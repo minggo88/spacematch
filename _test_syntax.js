@@ -1,0 +1,1 @@
+const esbuild=require('esbuild'); try { esbuild.buildSync({entryPoints:['src/pages/community/CommunityPage.jsx'],bundle:false,write:false,jsx:'transform',loader:{'.jsx':'jsx'}}); console.log('SYNTAX OK'); } catch(e) { console.error(e.message); }  
