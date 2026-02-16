@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Store, Plus, MapPin, Edit2, Search, LayoutGrid, List, Copy, Lock, Users, Calendar, TrendingUp, Eye, AlertTriangle, CheckCircle, XCircle, X } from 'lucide-react';
 import VenueModal from '../../components/VenueModal';
 
 const API_BASE = '/api';
 
-const TYPE_LABELS = {
-    market: '마켓', popup: '팝업', exhibition: '전시', festival: '축제',
-    concert: '콘서트', workshop: '워크숍', fair: '박람회', other: '기타',
-};
-
 const VendorVenues = () => {
     const { user } = useAuth();
+    const { t } = useTranslation('vendor');
+
+    const TYPE_LABELS = {
+        market: t('venuesPage.typeMarket'), popup: t('venuesPage.typePopup'), exhibition: t('venuesPage.typeExhibition'), festival: t('venuesPage.typeFestival'),
+        concert: t('venuesPage.typeConcert'), workshop: t('venuesPage.typeWorkshop'), fair: t('venuesPage.typeFair'), other: t('venuesPage.typeOther'),
+    };
     const [venues, setVenues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,9 +30,9 @@ const VendorVenues = () => {
 
     const getPricingUnitLabel = (unit) => {
         switch (unit) {
-            case 'weekly': return '/';
-            case 'monthly': return '/';
-            default: return '/';
+            case 'weekly': return t('venuesPage.pricingWeekly');
+            case 'monthly': return t('venuesPage.pricingMonthly');
+            default: return t('venuesPage.pricingDaily');
         }
     };
 
@@ -47,8 +49,8 @@ const VendorVenues = () => {
 
     const isVenueLocked = (venue) => parseInt(venue.recruitment_closed) === 1 || parseInt(venue.approved_count) > 0;
     const getLockReason = (venue) => {
-        if (parseInt(venue.approved_count) > 0) return '승인된 입점 신청이 있어 수정/삭제가 제한됩니다';
-        if (parseInt(venue.recruitment_closed) === 1) return '모집이 마감되어 수정/삭제가 제한됩니다';
+        if (parseInt(venue.approved_count) > 0) return t('venuesPage.lockReasonApproved');
+        if (parseInt(venue.recruitment_closed) === 1) return t('venuesPage.lockReasonClosed');
         return '';
     };
 
@@ -70,7 +72,7 @@ const VendorVenues = () => {
     const openDrawer = (venue = null) => { setEditingVenue(venue); setDuplicatingVenue(null); setIsDrawerOpen(true); };
 
     const handleDuplicate = (venue) => {
-        const cloned = { ...venue, name: (venue.name || '') + ' (복사)', recruitment_start: '', recruitment_end: '', event_start: '', event_end: '', event_periods: null, recruitment_closed: false };
+        const cloned = { ...venue, name: (venue.name || '') + t('venuesPage.copySuffix'), recruitment_start: '', recruitment_end: '', event_start: '', event_end: '', event_periods: null, recruitment_closed: false };
         delete cloned.id; delete cloned.status; delete cloned.created_at;
         setEditingVenue(null); setDuplicatingVenue(cloned); setIsDrawerOpen(true);
     };
@@ -86,33 +88,33 @@ const VendorVenues = () => {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showToast(editingVenue ? '베뉴 수정되었습니다' : '베뉴 등록되었습니다', 'success');
+                    showToast(editingVenue ? t('venuesPage.toastVenueUpdated') : t('venuesPage.toastVenueCreated'), 'success');
                     setIsDrawerOpen(false); fetchMyVenues();
                 } else {
-                    showToast(data.message || '오류가 발생했습니다.', 'error');
+                    showToast(data.message || t('venuesPage.toastError'), 'error');
                 }
-            }).catch(err => { console.error(err); showToast('오류가 발생했습니다.', 'error'); });
+            }).catch(err => { console.error(err); showToast(t('venuesPage.toastError'), 'error'); });
     };
 
     const handleDelete = (id) => {
         const venue = venues.find(v => String(v.id) === String(id));
         setConfirmModal({
-            title: '베뉴 삭제',
-            message: `"${venue?.name || ''}" 베뉴를 정말 삭제하시겠습니까?\n삭제된 베뉴는 복구할 수 없습니다.`,
+            title: t('venuesPage.deleteTitle'),
+            message: t('venuesPage.deleteMessage', { name: venue?.name || '' }),
             type: 'danger',
             onConfirm: () => {
                 fetch(`${API_BASE}/venues/delete_venue.php`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ id }) })
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            showToast('베뉴가 삭제되었습니다.', 'success');
+                            showToast(t('venuesPage.toastDeleted'), 'success');
                             setIsDrawerOpen(false);
                             fetchMyVenues();
                         } else {
-                            showToast('실패: ' + data.message, 'error');
+                            showToast(t('venuesPage.toastDeleteFailed') + data.message, 'error');
                         }
                     })
-                    .catch(() => showToast('\uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.', 'error'));
+                    .catch(() => showToast(t('venuesPage.toastError'), 'error'));
                 setConfirmModal(null);
             }
         });
@@ -121,16 +123,16 @@ const VendorVenues = () => {
     const getDday = (deadline) => {
         if (!deadline) return null;
         const diff = Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
-        if (diff < 0) return { text: '마감', color: 'text-gray-400' };
+        if (diff < 0) return { text: t('venuesPage.deadline'), color: 'text-gray-400' };
         if (diff === 0) return { text: 'D-Day', color: 'text-red-500' };
         if (diff <= 3) return { text: `D-${diff}`, color: 'text-orange-500' };
         return { text: `D-${diff}`, color: 'text-indigo-500' };
     };
 
     const statusConfig = {
-        approved: { label: '운영', dot: 'bg-emerald-500', bg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', listBg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-        pending: { label: '심사', dot: 'bg-amber-500', bg: 'bg-amber-500/15 text-amber-400 border-amber-500/20', listBg: 'bg-amber-50 text-amber-700 border-amber-200' },
-        rejected: { label: '반려', dot: 'bg-red-500', bg: 'bg-red-500/15 text-red-400 border-red-500/20', listBg: 'bg-red-50 text-red-700 border-red-200' },
+        approved: { label: t('venuesPage.statusApproved'), dot: 'bg-emerald-500', bg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', listBg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        pending: { label: t('venuesPage.statusPending'), dot: 'bg-amber-500', bg: 'bg-amber-500/15 text-amber-400 border-amber-500/20', listBg: 'bg-amber-50 text-amber-700 border-amber-200' },
+        rejected: { label: t('venuesPage.statusRejected'), dot: 'bg-red-500', bg: 'bg-red-500/15 text-red-400 border-red-500/20', listBg: 'bg-red-50 text-red-700 border-red-200' },
     };
 
     return (
@@ -140,24 +142,24 @@ const VendorVenues = () => {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                     <div>
                         <p className="text-indigo-600 font-bold text-sm tracking-wide mb-1">SPACE MANAGEMENT</p>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">내 공간 관리</h1>
-                        <p className="text-gray-500 text-sm font-medium mt-1">등록한 공간을 관리하고 새로운 공간을 추가하세요</p>
+                        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('venuesPage.title')}</h1>
+                        <p className="text-gray-500 text-sm font-medium mt-1">{t('venuesPage.subtitle')}</p>
                     </div>
                     <button
                         onClick={() => openDrawer()}
                         className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200/60 hover:shadow-xl hover:shadow-indigo-300/60 hover:-translate-y-0.5 transition-all duration-300"
                     >
-                        <Plus size={18} /> 새 공간 등록
+                        <Plus size={18} /> {t('venuesPage.addVenue')}
                     </button>
                 </div>
 
                 {/* Stats Strip */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                        { label: '전체 공간', value: stats.total, icon: <Store size={16} />, color: 'from-slate-500 to-slate-700' },
-                        { label: '운영 중', value: stats.approved, icon: <TrendingUp size={16} />, color: 'from-emerald-500 to-emerald-700' },
-                        { label: '심사 중', value: stats.pending, icon: <Eye size={16} />, color: 'from-amber-500 to-amber-600' },
-                        { label: '수정 제한', value: stats.locked, icon: <Lock size={16} />, color: 'from-red-500 to-rose-600' },
+                        { label: t('venuesPage.statsTotal'), value: stats.total, icon: <Store size={16} />, color: 'from-slate-500 to-slate-700' },
+                        { label: t('venuesPage.statsApproved'), value: stats.approved, icon: <TrendingUp size={16} />, color: 'from-emerald-500 to-emerald-700' },
+                        { label: t('venuesPage.statsPending'), value: stats.pending, icon: <Eye size={16} />, color: 'from-amber-500 to-amber-600' },
+                        { label: t('venuesPage.statsLocked'), value: stats.locked, icon: <Lock size={16} />, color: 'from-red-500 to-rose-600' },
                     ].map((s, i) => (
                         <div key={i} className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 p-4 group hover:shadow-md transition-all">
                             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${s.color}`}></div>
@@ -178,7 +180,7 @@ const VendorVenues = () => {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
-                        type="text" placeholder="공간 이름 또는 위치 검색.."
+                        type="text" placeholder={t('venuesPage.searchPlaceholder')}
                         value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
                     />
@@ -189,7 +191,7 @@ const VendorVenues = () => {
                             className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200
                                 ${filterStatus === status ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
                         >
-                            {status === 'all' ? '전체' : statusConfig[status]?.label || status}
+                            {status === 'all' ? t('venuesPage.filterAll') : statusConfig[status]?.label || status}
                         </button>
                     ))}
                 </div>
@@ -207,15 +209,15 @@ const VendorVenues = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-24 gap-3">
                     <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-indigo-600 border-t-transparent"></div>
-                    <p className="text-sm text-gray-400 font-medium">공간을 불러오는 중..</p>
+                    <p className="text-sm text-gray-400 font-medium">{t('venuesPage.loading')}</p>
                 </div>
             ) : filteredVenues.length === 0 ? (
                 <div className="text-center py-20">
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><Store size={32} className="text-gray-300" /></div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">등록된 공간이 없습니다</h3>
-                    <p className="text-gray-500 text-sm mb-6">새로운 공간을 등록하여 셀러 모집을 시작해보세요.</p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{t('venuesPage.noVenues')}</h3>
+                    <p className="text-gray-500 text-sm mb-6">{t('venuesPage.noVenuesDesc')}</p>
                     <button onClick={() => openDrawer()} className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors">
-                        <Plus size={16} /> 새 공간 등록하기
+                        <Plus size={16} /> {t('venuesPage.addNewVenue')}
                     </button>
                 </div>
             ) : viewMode === 'grid' ? (
@@ -238,7 +240,7 @@ const VendorVenues = () => {
                                     ) : (
                                         <div className="flex flex-col items-center justify-center h-full text-gray-300 gap-2 bg-gradient-to-br from-gray-50 to-gray-100">
                                             <Store size={36} strokeWidth={1.5} />
-                                            <span className="text-xs font-medium">이미지 없음</span>
+                                            <span className="text-xs font-medium">{t('venuesPage.noImage')}</span>
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
@@ -251,14 +253,14 @@ const VendorVenues = () => {
                                         </span>
                                         {locked && (
                                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-black/40 backdrop-blur-md text-white/90 text-[10px] font-bold rounded-lg border border-white/10" title={getLockReason(venue)}>
-                                                <Lock size={10} /> 잠금
+                                                <Lock size={10} /> {t('venuesPage.locked')}
                                             </span>
                                         )}
                                     </div>
 
                                     {/* Hover Actions */}
                                     <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
-                                        <button onClick={() => handleDuplicate(venue)} className="p-2 bg-white/90 backdrop-blur-sm rounded-lg text-gray-600 hover:text-indigo-600 hover:bg-white shadow-sm transition-all" title="복제">
+                                        <button onClick={() => handleDuplicate(venue)} className="p-2 bg-white/90 backdrop-blur-sm rounded-lg text-gray-600 hover:text-indigo-600 hover:bg-white shadow-sm transition-all" title={t('venuesPage.duplicate')}>
                                             <Copy size={15} />
                                         </button>
                                         {locked ? (
@@ -266,7 +268,7 @@ const VendorVenues = () => {
                                                 <Lock size={15} />
                                             </button>
                                         ) : (
-                                            <button onClick={() => openDrawer(venue)} className="p-2 bg-white/90 backdrop-blur-sm rounded-lg text-gray-600 hover:text-indigo-600 hover:bg-white shadow-sm transition-all" title="수정">
+                                            <button onClick={() => openDrawer(venue)} className="p-2 bg-white/90 backdrop-blur-sm rounded-lg text-gray-600 hover:text-indigo-600 hover:bg-white shadow-sm transition-all" title={t('venuesPage.edit')}>
                                                 <Edit2 size={15} />
                                             </button>
                                         )}
@@ -276,7 +278,7 @@ const VendorVenues = () => {
                                     <div className="absolute bottom-3 right-3">
                                         <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-sm">
                                             <span className="font-bold text-sm text-gray-900">
-                                                {Number(venue.price) === 0 ? <span className="text-emerald-600">무료</span> : <>{`₩${parseInt(venue.price).toLocaleString()}`}</>}
+                                                {Number(venue.price) === 0 ? <span className="text-emerald-600">{t('venuesPage.free')}</span> : <>{`₩${parseInt(venue.price).toLocaleString()}`}</>}
                                             </span>
                                             <span className="text-gray-400 text-[10px] font-medium ml-0.5">{getPricingUnitLabel(venue.pricing_unit)}</span>
                                         </div>
@@ -308,7 +310,7 @@ const VendorVenues = () => {
                                         {venue.recruitment_deadline && (
                                             <div className="flex items-center gap-1 text-[11px] text-gray-400">
                                                 <Calendar size={11} />
-                                                <span>{new Date(venue.recruitment_deadline).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 마감</span>
+                                                <span>{new Date(venue.recruitment_deadline).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} {t('venuesPage.deadlineSuffix')}</span>
                                             </div>
                                         )}
                                     </div>
@@ -357,7 +359,7 @@ const VendorVenues = () => {
                                                     <span className="text-[10px] font-bold text-gray-400 uppercase">{typeLabel}</span>
                                                     {locked && (
                                                         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-red-400">
-                                                            <Lock size={8} /> 잠금
+                                                            <Lock size={8} /> {t('venuesPage.locked')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -376,10 +378,10 @@ const VendorVenues = () => {
                                             {/* Actions + Price */}
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <span className="text-sm font-bold text-gray-900 hidden sm:block">
-                                                    {Number(venue.price) === 0 ? <span className="text-emerald-600">무료</span> : <>{`₩${parseInt(venue.price).toLocaleString()}`}</>}
+                                                    {Number(venue.price) === 0 ? <span className="text-emerald-600">{t('venuesPage.free')}</span> : <>{`₩${parseInt(venue.price).toLocaleString()}`}</>}
                                                 </span>
                                                 <div className="flex gap-1">
-                                                    <button onClick={() => handleDuplicate(venue)} className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" title="복제">
+                                                    <button onClick={() => handleDuplicate(venue)} className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" title={t('venuesPage.duplicate')}>
                                                         <Copy size={13} />
                                                     </button>
                                                     {locked ? (
@@ -387,7 +389,7 @@ const VendorVenues = () => {
                                                             <Lock size={13} />
                                                         </button>
                                                     ) : (
-                                                        <button onClick={() => openDrawer(venue)} className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors" title="수정">
+                                                        <button onClick={() => openDrawer(venue)} className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors" title={t('venuesPage.edit')}>
                                                             <Edit2 size={13} />
                                                         </button>
                                                     )}
@@ -430,7 +432,7 @@ const VendorVenues = () => {
                                 onClick={() => setConfirmModal(null)}
                                 className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors"
                             >
-                                취소
+                                {t('venuesPage.cancel')}
                             </button>
                             <button
                                 onClick={confirmModal.onConfirm}
@@ -439,7 +441,7 @@ const VendorVenues = () => {
                                     : 'bg-amber-500 hover:bg-amber-600'
                                     }`}
                             >
-                                {confirmModal.type === 'danger' ? '삭제' : '확인'}
+                                {confirmModal.type === 'danger' ? t('venuesPage.delete') : t('venuesPage.confirm')}
                             </button>
                         </div>
                     </div>

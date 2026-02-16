@@ -12,7 +12,7 @@ session_start();
 if (!isset($_SESSION['user_id'])) {
     header('Content-Type: application/json; charset=utf-8');
     http_response_code(401);
-    echo json_encode(["success" => false, "message" => "로그인이 필요합니다."]);
+    echo json_encode(["success" => false, "message" => "Login required."]);
     exit;
 }
 
@@ -55,6 +55,37 @@ try {
         $conn->exec("ALTER TABLE community_posts ADD COLUMN keywords TEXT DEFAULT NULL AFTER view_count");
     }
 
+    // Add original_lang column if not exists
+    try {
+        $conn->query("SELECT original_lang FROM community_posts LIMIT 1");
+    } catch (PDOException $e) {
+        $conn->exec("ALTER TABLE community_posts ADD COLUMN original_lang VARCHAR(5) DEFAULT NULL AFTER content");
+    }
+
+    // Add country column to users if not exists (needed for u.country in queries)
+    try {
+        $conn->query("SELECT country FROM users LIMIT 1");
+    } catch (PDOException $e) {
+        $conn->exec("ALTER TABLE users ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER instagram");
+    }
+
+    // Add is_notice column if not exists (0=normal, 1=general notice, 2=required notice)
+    try {
+        $conn->query("SELECT is_notice FROM community_posts LIMIT 1");
+    } catch (PDOException $e) {
+        $conn->exec("ALTER TABLE community_posts ADD COLUMN is_notice TINYINT(1) DEFAULT 0 AFTER keywords");
+    }
+
+    // Add country column to community_posts for denormalized country filtering
+    try {
+        $conn->query("SELECT country FROM community_posts LIMIT 1");
+    } catch (PDOException $e) {
+        $conn->exec("ALTER TABLE community_posts ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER is_notice");
+        $conn->exec("CREATE INDEX idx_country ON community_posts (country)");
+        // Backfill existing posts with user's country
+        $conn->exec("UPDATE community_posts p JOIN users u ON p.user_id = u.id SET p.country = u.country WHERE p.country IS NULL AND u.country IS NOT NULL");
+    }
+
     $conn->exec("CREATE TABLE IF NOT EXISTS community_post_photos (
         id INT AUTO_INCREMENT PRIMARY KEY,
         post_id INT NOT NULL,
@@ -74,6 +105,28 @@ try {
         INDEX idx_post_id (post_id),
         INDEX idx_user_id (user_id)
     )");
+
+    // Comments table (referenced by main query subquery)
+    $conn->exec("CREATE TABLE IF NOT EXISTS community_comments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        parent_id INT DEFAULT NULL,
+        user_id INT NOT NULL,
+        user_name VARCHAR(100) NOT NULL,
+        user_role VARCHAR(20) NOT NULL,
+        profile_image VARCHAR(500) DEFAULT '',
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_post_id (post_id),
+        INDEX idx_parent_id (parent_id)
+    )");
+
+    // Add name_en column to users if not exists (referenced by main query)
+    try {
+        $conn->query("SELECT name_en FROM users LIMIT 1");
+    } catch (PDOException $e2) {
+        $conn->exec("ALTER TABLE users ADD COLUMN name_en VARCHAR(100) DEFAULT NULL AFTER name");
+    }
 } catch (PDOException $e) {
     // Tables might already exist
 }
@@ -119,16 +172,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $label = isset($_GET['label']) ? trim($_GET['label']) : '';
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $single_post_id = isset($_GET['post_id']) ? intval($_GET['post_id']) : 0;
+    $sort = isset($_GET['sort']) ? $_GET['sort'] : 'latest'; // latest, likes, comments, views
+    $mode = isset($_GET['mode']) ? $_GET['mode'] : ''; // 'best' = 개념글
+    $country_filter = isset($_GET['country']) ? trim($_GET['country']) : ''; // country code or 'all'
     $limit = 20;
     $offset = ($page - 1) * $limit;
 
+    // Fetch notices for this community
+    $fetchNotices = isset($_GET['notices']) ? intval($_GET['notices']) : 0;
+
     try {
+        // Handle share count increment
+        $increment_share = isset($_GET['increment_share']) ? intval($_GET['increment_share']) : 0;
+        if ($increment_share > 0) {
+            try {
+                $conn->query("SELECT share_count FROM community_posts LIMIT 1");
+            } catch (PDOException $e) {
+                $conn->exec("ALTER TABLE community_posts ADD COLUMN share_count INT DEFAULT 0 AFTER view_count");
+            }
+            $conn->prepare("UPDATE community_posts SET share_count = COALESCE(share_count, 0) + 1 WHERE id = ?")->execute([$increment_share]);
+            echo json_encode(["success" => true]);
+            exit;
+        }
+
         // If a specific post_id is requested, return just that post (for shared links)
         if ($single_post_id > 0) {
-            $stmt = $conn->prepare("SELECT p.id, p.user_id, p.user_name, p.user_role, p.profile_image, p.label, p.title, p.content, p.view_count, p.created_at,
+            $stmt = $conn->prepare("SELECT p.id, p.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, u.profile_image, u.country, p.label, p.title, p.content, p.original_lang, p.view_count, p.created_at,
                                     (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id) as like_count,
                                     (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
                                     FROM community_posts p
+                                    JOIN users u ON p.user_id = u.id
                                     WHERE p.id = ?");
             $stmt->execute([$user_id, $single_post_id]);
             $singlePost = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -152,15 +225,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             } else {
                 echo json_encode([
                     "success" => false,
-                    "message" => "게시글을 찾을 수 없습니다."
+                    "message" => "Post not found."
                 ]);
             }
             exit;
         }
 
-        // Build query with optional label filter and search
-        $where = "p.community_type = ?";
+        // If notices requested, return notices only
+        if ($fetchNotices) {
+            // Add is_notice column check
+            try {
+                $conn->query("SELECT is_notice FROM community_posts LIMIT 1");
+            } catch (PDOException $e) {
+                $conn->exec("ALTER TABLE community_posts ADD COLUMN is_notice TINYINT(1) DEFAULT 0 AFTER keywords");
+            }
+
+            $noticeStmt = $conn->prepare("SELECT p.id, p.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, p.title, p.content, COALESCE(p.is_notice, 0) as is_notice, p.created_at
+                                          FROM community_posts p
+                                          JOIN users u ON p.user_id = u.id
+                                          WHERE p.community_type = ? AND COALESCE(p.is_notice, 0) > 0
+                                          ORDER BY p.is_notice DESC, p.created_at DESC
+                                          LIMIT 20");
+            $noticeStmt->execute([$type]);
+            $notices = $noticeStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($notices as &$n) {
+                $n['id'] = intval($n['id']);
+                $n['is_notice'] = intval($n['is_notice']);
+            }
+            echo json_encode(["success" => true, "notices" => $notices]);
+            exit;
+        }
+
+        // Build query with optional label filter, country filter, and search (exclude notices)
+        $where = "p.community_type = ? AND COALESCE(p.is_notice, 0) = 0";
         $params = [$type];
+        // Country filter: if not 'all' and not empty, filter by country
+        if (!empty($country_filter) && $country_filter !== 'all') {
+            $where .= " AND p.country = ?";
+            $params[] = $country_filter;
+        }
         if (!empty($label)) {
             $where .= " AND p.label = ?";
             $params[] = $label;
@@ -174,16 +277,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $params[] = $searchParam;
         }
 
+        // Best mode: only posts with 10+ likes
+        if ($mode === 'best') {
+            $where .= " AND (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id) >= 10";
+        }
+
         $countStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM community_posts p WHERE $where");
         $countStmt->execute($params);
         $total = $countStmt->fetch(PDO::FETCH_ASSOC)['cnt'];
 
-        $stmt = $conn->prepare("SELECT p.id, p.user_id, p.user_name, p.user_role, p.profile_image, p.label, p.title, p.content, p.view_count, p.keywords, p.created_at,
+        // Sort order
+        $orderBy = 'p.created_at DESC';
+        switch ($sort) {
+            case 'likes':
+                $orderBy = 'like_count DESC, p.created_at DESC';
+                break;
+            case 'comments':
+                $orderBy = 'comment_count DESC, p.created_at DESC';
+                break;
+            case 'views':
+                $orderBy = 'p.view_count DESC, p.created_at DESC';
+                break;
+        }
+
+        // Add share_count column if not exists
+        try {
+            $conn->query("SELECT share_count FROM community_posts LIMIT 1");
+        } catch (PDOException $e) {
+            $conn->exec("ALTER TABLE community_posts ADD COLUMN share_count INT DEFAULT 0 AFTER view_count");
+        }
+
+        $stmt = $conn->prepare("SELECT p.id, p.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, u.profile_image, u.country, p.label, p.title, p.content, p.original_lang, p.view_count, COALESCE(p.share_count, 0) as share_count, p.keywords, p.created_at,
                                 (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id) as like_count,
-                                (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
+                                (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id AND user_id = ?) as is_liked,
+                                (SELECT COUNT(*) FROM community_comments WHERE post_id = p.id) as comment_count
                                 FROM community_posts p
+                                JOIN users u ON p.user_id = u.id
                                 WHERE $where 
-                                ORDER BY p.created_at DESC 
+                                ORDER BY $orderBy 
                                 LIMIT " . intval($limit) . " OFFSET " . intval($offset));
         $stmt->execute(array_merge([$user_id], $params));
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -199,6 +330,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $post['is_mine'] = ($post['user_id'] === intval($user_id));
             $post['can_manage'] = ($post['is_mine'] || $is_admin);
             $post['keywords'] = !empty($post['keywords']) ? json_decode($post['keywords'], true) : [];
+            $post['share_count'] = intval($post['share_count'] ?? 0);
+            $post['comment_count'] = intval($post['comment_count'] ?? 0);
             $photoStmt->execute([$post['id']]);
             $post['photos'] = $photoStmt->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -231,7 +364,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = isset($_POST['title']) ? htmlspecialchars(strip_tags(trim($_POST['title']))) : '';
     $content = isset($_POST['content']) ? htmlspecialchars(strip_tags(trim($_POST['content']))) : '';
     $label = isset($_POST['label']) ? htmlspecialchars(strip_tags(trim($_POST['label']))) : '';
+    $is_notice = 0;
+    if ($is_admin && isset($_POST['is_notice'])) {
+        $is_notice = intval($_POST['is_notice']);
+        if ($is_notice < 0 || $is_notice > 2)
+            $is_notice = 0;
+    }
     $keywordsRaw = isset($_POST['keywords']) ? trim($_POST['keywords']) : '';
+    $original_lang = isset($_POST['original_lang']) ? trim($_POST['original_lang']) : 'ko';
     $keywordsJson = null;
     if (!empty($keywordsRaw)) {
         $decoded = json_decode($keywordsRaw, true);
@@ -250,13 +390,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get user info
     $user_name = $_SESSION['user_name'] ?? 'Unknown';
     $profile_image = '';
+    $user_country = null;
     try {
-        $userStmt = $conn->prepare("SELECT name, profile_image FROM users WHERE id = ?");
+        $userStmt = $conn->prepare("SELECT name, profile_image, country FROM users WHERE id = ?");
         $userStmt->execute([$user_id]);
         $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
         if ($userData) {
             $user_name = $userData['name'];
             $profile_image = $userData['profile_image'] ?? '';
+            $user_country = $userData['country'] ?? null;
         }
     } catch (PDOException $e) {
     }
@@ -264,8 +406,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $conn->beginTransaction();
 
-        $stmt = $conn->prepare("INSERT INTO community_posts (user_id, user_name, user_role, profile_image, community_type, label, title, content, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$user_id, $user_name, $user_role, $profile_image, $type, $label, $title, $content, $keywordsJson]);
+        $stmt = $conn->prepare("INSERT INTO community_posts (user_id, user_name, user_role, profile_image, community_type, label, title, content, original_lang, keywords, is_notice, country) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$user_id, $user_name, $user_role, $profile_image, $type, $label, $title, $content, $original_lang, $keywordsJson, $is_notice, $user_country]);
         $newId = $conn->lastInsertId();
 
         // Handle photo uploads (up to 10)
@@ -431,6 +573,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "content" => $content,
                 "keywords" => $keywordsJson ? json_decode($keywordsJson, true) : [],
                 "photos" => $uploadedPhotos,
+                "is_notice" => $is_notice,
                 "created_at" => date('Y-m-d H:i:s'),
                 "is_mine" => true
             ]

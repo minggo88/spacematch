@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
-import { Store, MapPin, Sparkles, XCircle, AlertTriangle, Send, Clock, CheckCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Store, MapPin, Sparkles, XCircle, AlertTriangle, Send, Clock, CheckCircle, X, Zap } from 'lucide-react';
 
 const API_BASE = '/api';
 
 const SellerApplications = () => {
     const { applications, fetchApplications } = useData();
+    const { t } = useTranslation('seller');
 
     React.useEffect(() => {
         fetchApplications();
@@ -48,7 +50,7 @@ const SellerApplications = () => {
 
     // Direct cancel (pending/rejected only)
     const handleCancel = async (appId, venueName) => {
-        if (!confirm(`"${venueName}" 입점 신청을 취소하시겠습니까?\n취소 후 되돌릴 수 없습니다.`)) return;
+        if (!confirm(t('appPage.confirmCancel', { venue: venueName }))) return;
         setCancelling(appId);
         try {
             const res = await fetch(`${API_BASE}/applications/cancel_application.php`, {
@@ -59,13 +61,13 @@ const SellerApplications = () => {
             });
             const data = await res.json();
             if (data.success) {
-                alert('신청이 취소되었습니다.');
+                alert(t('appPage.cancelSuccess'));
                 fetchApplications();
             } else {
-                alert(data.message || '취소에 실패했습니다.');
+                alert(data.message || t('appPage.cancelFailed'));
             }
         } catch (err) {
-            alert('오류가 발생했습니다.');
+            alert(t('common:error'));
         } finally {
             setCancelling(null);
         }
@@ -74,7 +76,7 @@ const SellerApplications = () => {
     // Submit cancellation request (approved only)
     const handleCancelRequest = async () => {
         if (!cancelReason.trim()) {
-            alert('취소 사유를 반드시 작성해주세요.');
+            alert(t('appPage.cancelReasonRequired'));
             return;
         }
         setSubmittingRequest(true);
@@ -95,10 +97,10 @@ const SellerApplications = () => {
                 setCancelReason('');
                 fetchCancelStatuses();
             } else {
-                alert(data.message || '취소 신청에 실패했습니다.');
+                alert(data.message || t('appPage.cancelRequestFailed'));
             }
         } catch (err) {
-            alert('오류가 발생했습니다.');
+            alert(t('common:error'));
         } finally {
             setSubmittingRequest(false);
         }
@@ -110,10 +112,10 @@ const SellerApplications = () => {
     }, [myApplications, activeTab]);
 
     const tabs = [
-        { id: 'all', label: '전체' },
-        { id: 'pending', label: '심사중' },
-        { id: 'approved', label: '승인' },
-        { id: 'rejected', label: '거절' }
+        { id: 'all', label: t('appPage.tabAll') },
+        { id: 'pending', label: t('appPage.tabPending') },
+        { id: 'approved', label: t('appPage.tabApproved') },
+        { id: 'rejected', label: t('appPage.tabRejected') }
     ];
 
     // Helper: get cancel request info for an application
@@ -125,10 +127,10 @@ const SellerApplications = () => {
             <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
                 <div>
                     <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900">
-                        내 신청 현황
+                        {t('appPage.title')}
                     </h1>
                     <p className="text-gray-500 font-medium mt-2">
-                        입점 신청한 베뉴의 진행 현황을 확인하세요.
+                        {t('appPage.subtitle')}
                     </p>
                 </div>
 
@@ -159,7 +161,7 @@ const SellerApplications = () => {
                     filteredApplications.map(app => {
                         const cancelInfo = getCancelInfo(app.id);
                         return (
-                            <div key={app.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group flex flex-col sm:flex-row">
+                            <div key={app.id} className={`bg-white rounded-2xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group flex flex-col sm:flex-row ${app.is_priority == 1 ? 'border-amber-200 ring-1 ring-amber-100' : 'border-gray-100'}`}>
                                 {/* Image Section */}
                                 <div className="sm:w-40 h-40 sm:h-auto bg-gray-100 relative shrink-0">
                                     {app.venue_images && app.venue_images.length > 0 ? (
@@ -181,9 +183,16 @@ const SellerApplications = () => {
                                     <div>
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <h4 className="text-lg font-bold text-gray-900 line-clamp-1">{app.venue_name}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-lg font-bold text-gray-900 line-clamp-1">{app.venue_name}</h4>
+                                                    {app.is_priority == 1 && (
+                                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-white text-[10px] font-extrabold rounded-md flex-shrink-0">
+                                                            <Zap size={9} fill="white" />패스트트랙
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                                                    <MapPin size={14} /> {app.venue_location || "위치 정보 없음"}
+                                                    <MapPin size={14} /> {app.venue_location || t('appPage.noLocation')}
                                                 </p>
                                             </div>
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5
@@ -192,7 +201,7 @@ const SellerApplications = () => {
                                                         app.status === 'cancelled' ? 'bg-gray-50 text-gray-500 border-gray-200' :
                                                             'bg-red-50 text-red-700 border-red-200'}`}>
                                                 <div className={`w-2 h-2 rounded-full ${app.status === 'pending' ? 'bg-yellow-500' : app.status === 'approved' ? 'bg-emerald-500' : app.status === 'cancelled' ? 'bg-gray-400' : 'bg-red-500'}`}></div>
-                                                {app.status === 'pending' ? '대기 중' : app.status === 'approved' ? '승인' : app.status === 'cancelled' ? '취소' : '거절'}
+                                                {app.status === 'pending' ? t('appPage.statusPending') : app.status === 'approved' ? t('appPage.statusApproved') : app.status === 'cancelled' ? t('appPage.statusCancelled') : t('appPage.statusRejected')}
                                             </span>
                                         </div>
 
@@ -200,7 +209,7 @@ const SellerApplications = () => {
                                             <div className="px-3 py-1 bg-gray-50 rounded-lg text-gray-600 font-medium">
                                                 ₩{app.venue_price ? parseInt(app.venue_price).toLocaleString() : '0'} /일</div>
                                             <div className="text-gray-400 text-xs">
-                                                신청일: {new Date(app.created_at || Date.now()).toLocaleDateString()}
+                                                {t('appPage.appliedDate')}: {new Date(app.created_at || Date.now()).toLocaleDateString()}
                                             </div>
                                         </div>
 
@@ -210,9 +219,9 @@ const SellerApplications = () => {
                                                 ${cancelInfo.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                                                     cancelInfo.status === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
                                                         'bg-red-50 text-red-700 border border-red-200'}`}>
-                                                {cancelInfo.status === 'pending' && <><Clock size={13} /> {"\ucde8\uc18c \uc2e0\uccad \uc911 \u2014 \ubca4\ub354 \ud655\uc778\uc744 \uae30\ub2e4\ub9ac\uace0 \uc788\uc2b5\ub2c8\ub2e4"}</>}
-                                                {cancelInfo.status === 'approved' && <><CheckCircle size={13} /> {"\ucde8\uc18c \uc2e0\uccad\uc774 \uc2b9\uc778\ub418\uc5c8\uc2b5\ub2c8\ub2e4"}</>}
-                                                {cancelInfo.status === 'rejected' && <><X size={13} /> {"\ucde8\uc18c \uc2e0\uccad\uc774 \uac70\uc808\ub418\uc5c8\uc2b5\ub2c8\ub2e4"}{cancelInfo.decision_note ? ` \u2014 ${cancelInfo.decision_note}` : ''}</>}
+                                                {cancelInfo.status === 'pending' && <><Clock size={13} /> {t('appPage.cancelPending')}</>}
+                                                {cancelInfo.status === 'approved' && <><CheckCircle size={13} /> {t('appPage.cancelApproved')}</>}
+                                                {cancelInfo.status === 'rejected' && <><X size={13} /> {t('appPage.cancelRejected')}{cancelInfo.decision_note ? ` — ${cancelInfo.decision_note}` : ''}</>}
                                             </div>
                                         )}
                                     </div>
@@ -223,9 +232,9 @@ const SellerApplications = () => {
                                             <div className={`h-full ${app.status === 'rejected' || app.status === 'cancelled' ? 'bg-red-500 w-full' : 'bg-indigo-500'} ${app.status === 'pending' ? 'w-1/3' : 'w-full'} transition-all duration-1000`}></div>
                                         </div>
                                         <div className="flex justify-between text-[10px] text-gray-400 mt-1.5 font-medium">
-                                            <span className="text-indigo-600">신청 완료</span>
+                                            <span className="text-indigo-600">{t('appPage.applicationDone')}</span>
                                             <span className={app.status !== 'pending' ? (app.status === 'rejected' || app.status === 'cancelled' ? 'text-red-500' : 'text-indigo-600') : ''}>
-                                                {app.status === 'pending' ? '심사 중' : (app.status === 'approved' ? '승인 완료' : app.status === 'cancelled' ? '취소' : '거절')}
+                                                {app.status === 'pending' ? t('appPage.reviewing') : (app.status === 'approved' ? t('appPage.approvedDone') : app.status === 'cancelled' ? t('appPage.statusCancelled') : t('appPage.statusRejected'))}
                                             </span>
                                         </div>
                                     </div>
@@ -239,7 +248,7 @@ const SellerApplications = () => {
                                                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 border border-amber-200 rounded-xl transition-all"
                                             >
                                                 <AlertTriangle size={16} />
-                                                취소 신청
+                                                {t('appPage.cancelRequest')}
                                             </button>
                                         )}
                                         {/* Show direct cancel for pending only */}
@@ -250,7 +259,7 @@ const SellerApplications = () => {
                                                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all disabled:opacity-40"
                                             >
                                                 <XCircle size={16} />
-                                                {cancelling === app.id ? '취소 중..' : '신청 취소'}
+                                                {cancelling === app.id ? t('appPage.cancelling') : t('appPage.cancelApplication')}
                                             </button>
                                         )}
                                     </div>
@@ -265,11 +274,11 @@ const SellerApplications = () => {
                         </div>
                         <h4 className="text-gray-900 font-bold mb-1">
                             {activeTab === 'all'
-                                ? '아직 입점 신청한 베뉴가 없습니다.'
-                                : `${tabs.find(t => t.id === activeTab)?.label} 상태의 신청이 없습니다.`}
+                                ? t('appPage.noAppsAll')
+                                : t('appPage.noAppsFiltered', { tab: tabs.find(tb => tb.id === activeTab)?.label })}
                         </h4>
                         <p className="text-gray-500 text-sm">
-                            {activeTab === 'all' ? '\ub9c8\uc74c\uc5d0 \ub4dc\ub294 \ubca0\ub274\ub97c \ucc3e\uc544 \uc785\uc810\uc744 \uc81c\uc548\ud574\ubcf4\uc138\uc694!' : '\ub2e4\ub978 \ud0ed\uc744 \ud655\uc778\ud574\ubcf4\uc138\uc694.'}
+                            {activeTab === 'all' ? t('appPage.noAppsHint') : t('appPage.noAppsOther')}
                         </p>
                     </div>
                 )}
@@ -290,23 +299,23 @@ const SellerApplications = () => {
                                     <AlertTriangle size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">취소 신청</h3>
+                                    <h3 className="text-lg font-bold text-gray-900">{t('appPage.cancelModalTitle')}</h3>
                                     <p className="text-sm text-gray-500">{cancelRequestModal.venue_name}</p>
                                 </div>
                             </div>
 
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 text-sm text-amber-800">
-                                <p className="font-bold mb-1">?️ \uC2B9\uC778\uB41C \uC2E0\uCCAD\uC740 \uC9C1\uC811 \uCDE8\uC18C\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.</p>
-                                <p>취소 사유를 작성하면 벤더에게 전달되며, 벤더 확인 후 취소가 처리됩니다.</p>
+                                <p className="font-bold mb-1">⚠️ {t('appPage.cancelNotice')}</p>
+                                <p>{t('appPage.cancelNoticeDesc')}</p>
                             </div>
 
                             <label className="block text-sm font-bold text-gray-700 mb-2">
-                                취소 사유 <span className="text-red-500">*</span>
+                                {t('appPage.cancelReasonLabel')} <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 value={cancelReason}
                                 onChange={e => setCancelReason(e.target.value)}
-                                placeholder="취소 사유를 자세히 작성해주세요. (필수)"
+                                placeholder={t('appPage.cancelReasonPlaceholder')}
                                 rows={4}
                                 className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 resize-none"
                             />
@@ -316,7 +325,7 @@ const SellerApplications = () => {
                                     onClick={() => setCancelRequestModal(null)}
                                     className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
                                 >
-                                    닫기
+                                    {t('appPage.closeBtn')}
                                 </button>
                                 <button
                                     onClick={handleCancelRequest}
@@ -324,7 +333,7 @@ const SellerApplications = () => {
                                     className="flex-1 py-3 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     <Send size={14} />
-                                    {submittingRequest ? '발송 중...' : '취소 신청 발송'}
+                                    {submittingRequest ? t('appPage.sending') : t('appPage.sendCancelRequest')}
                                 </button>
                             </div>
                         </div>

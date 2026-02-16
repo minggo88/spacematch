@@ -11,10 +11,20 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
-    // Ensure is_featured column exists
-    try {
-        $conn->exec("ALTER TABLE users ADD COLUMN is_featured TINYINT(1) DEFAULT 0");
-    } catch (PDOException $e) { /* column already exists */
+    // Ensure featured/verified columns exist
+    $auto_cols = [
+        'is_featured' => 'TINYINT(1) DEFAULT 0',
+        'featured_start' => 'DATE DEFAULT NULL',
+        'featured_end' => 'DATE DEFAULT NULL',
+        'is_verified' => 'TINYINT(1) DEFAULT 0',
+        'verified_start' => 'DATE DEFAULT NULL',
+        'verified_end' => 'DATE DEFAULT NULL'
+    ];
+    foreach ($auto_cols as $col => $def) {
+        try {
+            $conn->exec("ALTER TABLE users ADD COLUMN {$col} {$def}");
+        } catch (PDOException $e) {
+        }
     }
 
     // Ensure recruitment_deadline and recruitment_closed columns exist in venues
@@ -27,15 +37,16 @@ try {
     } catch (PDOException $e) { /* column already exists */
     }
 
+    $today = date('Y-m-d');
     // Get all active vendors with their venue stats
     $query = "SELECT 
-                u.id, u.name, u.email, u.phone, u.business_no, u.is_featured, u.created_at,
+                u.id, u.name, u.email, u.phone, u.business_no, u.is_featured, u.featured_start, u.featured_end, u.is_verified, u.verified_start, u.verified_end, u.created_at,
                 (SELECT COUNT(*) FROM venues v WHERE v.owner_id = u.id AND v.status = 'approved') as venue_count,
                 (SELECT GROUP_CONCAT(DISTINCT v2.location SEPARATOR '||') FROM venues v2 WHERE v2.owner_id = u.id AND v2.status = 'approved') as venue_locations,
                 (SELECT GROUP_CONCAT(DISTINCT v3.type SEPARATOR '||') FROM venues v3 WHERE v3.owner_id = u.id AND v3.status = 'approved') as venue_types
               FROM users u 
               WHERE u.role = 'vendor' AND u.status = 'active'
-              ORDER BY u.is_featured DESC, u.created_at DESC";
+              ORDER BY (CASE WHEN u.is_featured = 1 AND (u.featured_start IS NULL OR u.featured_start <= '{$today}') AND (u.featured_end IS NULL OR u.featured_end >= '{$today}') THEN 1 ELSE 0 END) DESC, u.created_at DESC";
 
     $stmt = $conn->prepare($query);
     $stmt->execute();
@@ -70,12 +81,26 @@ try {
             $venueListCols .= ", v.pricing_unit";
     } catch (PDOException $e) {
     }
-    $venueListStmt = $conn->prepare("SELECT {$venueListCols} FROM venues v WHERE v.owner_id = ? AND v.status = 'approved' ORDER BY v.created_at DESC");
+    $venueListStmt = $conn->prepare("SELECT {$venueListCols}, v.status FROM venues v WHERE v.owner_id = ? ORDER BY v.status = 'approved' DESC, v.created_at DESC");
 
     // Process location strings to extract city/district
+    $today = date('Y-m-d');
     foreach ($vendors as &$vendor) {
         $vendor['venue_count'] = intval($vendor['venue_count']);
-        $vendor['is_featured'] = intval($vendor['is_featured'] ?? 0);
+
+        // Apply period-based checks
+        $raw_featured = intval($vendor['is_featured'] ?? 0);
+        $raw_verified = intval($vendor['is_verified'] ?? 0);
+
+        $featured_active = $raw_featured &&
+            (!$vendor['featured_start'] || $vendor['featured_start'] <= $today) &&
+            (!$vendor['featured_end'] || $vendor['featured_end'] >= $today);
+        $verified_active = $raw_verified &&
+            (!$vendor['verified_start'] || $vendor['verified_start'] <= $today) &&
+            (!$vendor['verified_end'] || $vendor['verified_end'] >= $today);
+
+        $vendor['is_featured'] = $featured_active ? 1 : 0;
+        $vendor['is_verified'] = $verified_active ? 1 : 0;
 
         // Parse locations into array
         $locations = [];
@@ -121,6 +146,8 @@ try {
             if (isset($v['images'])) {
                 $v['images'] = json_decode($v['images'], true) ?: [];
             }
+            $v['is_active'] = ($v['status'] === 'approved') ? 1 : 0;
+            unset($v['status']);
         }
         $vendor['venues'] = $venueList;
 

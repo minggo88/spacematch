@@ -295,7 +295,7 @@ switch ($action) {
         ]);
         break;
 
-    // ─── Delete Row ──────────────────────────────────────
+    // ─── Delete Row → Move to Trash ─────────────────────
     case 'delete_row':
         $input = json_decode(file_get_contents('php://input'), true);
         $table = $input['table'] ?? '';
@@ -313,13 +313,128 @@ switch ($action) {
             break;
         }
 
+        // Move to trash before deleting
+        try {
+            // Use main $conn for trash_bin (always in spacematch DB)
+            $conn->exec("CREATE TABLE IF NOT EXISTS trash_bin (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                table_name VARCHAR(100) NOT NULL,
+                record_id VARCHAR(100) NOT NULL,
+                item_label VARCHAR(255) DEFAULT '',
+                record_data JSON NULL,
+                deleted_by INT NULL,
+                deleted_by_name VARCHAR(100) DEFAULT '',
+                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_table (table_name),
+                INDEX idx_deleted_at (deleted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $fetchStmt = $dbConn->prepare("SELECT * FROM `{$table}` WHERE `{$primaryKey}` = ? LIMIT 1");
+            $fetchStmt->execute([$primaryValue]);
+            $rowData = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($rowData) {
+                $label = $rowData['title'] ?? $rowData['name'] ?? $rowData['content'] ?? ($table . ' #' . $primaryValue);
+                if (is_string($label) && mb_strlen($label) > 50)
+                    $label = mb_substr($label, 0, 50);
+                $trashStmt = $conn->prepare("INSERT INTO trash_bin (table_name, record_id, item_label, record_data, deleted_by, deleted_by_name) VALUES (?,?,?,?,?,?)");
+                $trashStmt->execute([
+                    $table,
+                    $primaryValue,
+                    $label,
+                    json_encode($rowData, JSON_UNESCAPED_UNICODE),
+                    $_SESSION['user_id'],
+                    $_SESSION['user_name'] ?? $_SESSION['nickname'] ?? 'SuperAdmin'
+                ]);
+            }
+        } catch (PDOException $trashErr) {
+            // Non-critical: proceed with delete even if trash fails
+            error_log("Trash save failed: " . $trashErr->getMessage());
+        }
+
         $stmt = $dbConn->prepare("DELETE FROM `{$table}` WHERE `{$primaryKey}` = ?");
         $result = $stmt->execute([$primaryValue]);
         echo json_encode([
             "success" => $result,
-            "message" => $result ? "삭제 완료" : "삭제 실패",
+            "message" => $result ? "휴지통으로 이동되었습니다." : "삭제 실패",
             "affected_rows" => $stmt->rowCount()
         ]);
+        break;
+
+    // ─── Batch Delete Rows → Move to Trash ─────────────
+    case 'batch_delete':
+        $input = json_decode(file_get_contents('php://input'), true);
+        $table = $input['table'] ?? '';
+        $primaryKey = $input['primary_key'] ?? '';
+        $primaryValues = $input['primary_values'] ?? [];
+
+        if (empty($table) || empty($primaryKey) || !is_array($primaryValues) || count($primaryValues) === 0) {
+            echo json_encode(["error" => "필수 파라미터가 누락되었습니다."]);
+            break;
+        }
+
+        $checkStmt = $dbConn->query("SHOW TABLES LIKE " . $dbConn->quote($table));
+        if (!$checkStmt->fetch()) {
+            echo json_encode(["error" => "존재하지 않는 테이블입니다."]);
+            break;
+        }
+
+        try {
+            // Move all rows to trash before deleting
+            try {
+                $conn->exec("CREATE TABLE IF NOT EXISTS trash_bin (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    table_name VARCHAR(100) NOT NULL,
+                    record_id VARCHAR(100) NOT NULL,
+                    item_label VARCHAR(255) DEFAULT '',
+                    record_data JSON NULL,
+                    deleted_by INT NULL,
+                    deleted_by_name VARCHAR(100) DEFAULT '',
+                    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_table (table_name),
+                    INDEX idx_deleted_at (deleted_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+                $placeholdersSelect = implode(',', array_fill(0, count($primaryValues), '?'));
+                $fetchAll = $dbConn->prepare("SELECT * FROM `{$table}` WHERE `{$primaryKey}` IN ({$placeholdersSelect})");
+                $fetchAll->execute($primaryValues);
+                $allRows = $fetchAll->fetchAll(PDO::FETCH_ASSOC);
+
+                $trashStmt = $conn->prepare("INSERT INTO trash_bin (table_name, record_id, item_label, record_data, deleted_by, deleted_by_name) VALUES (?,?,?,?,?,?)");
+                foreach ($allRows as $rowData) {
+                    $pv = $rowData[$primaryKey] ?? '';
+                    $label = $rowData['title'] ?? $rowData['name'] ?? $rowData['content'] ?? ($table . ' #' . $pv);
+                    if (is_string($label) && mb_strlen($label) > 50)
+                        $label = mb_substr($label, 0, 50);
+                    $trashStmt->execute([
+                        $table,
+                        $pv,
+                        $label,
+                        json_encode($rowData, JSON_UNESCAPED_UNICODE),
+                        $_SESSION['user_id'],
+                        $_SESSION['user_name'] ?? $_SESSION['nickname'] ?? 'SuperAdmin'
+                    ]);
+                }
+            } catch (PDOException $trashErr) {
+                error_log("Batch trash save failed: " . $trashErr->getMessage());
+            }
+
+            $dbConn->beginTransaction();
+            $placeholders = implode(',', array_fill(0, count($primaryValues), '?'));
+            $stmt = $dbConn->prepare("DELETE FROM `{$table}` WHERE `{$primaryKey}` IN ({$placeholders})");
+            $result = $stmt->execute($primaryValues);
+            $affected = $stmt->rowCount();
+            $dbConn->commit();
+            echo json_encode([
+                "success" => $result,
+                "message" => $result ? "{$affected}개 항목이 휴지통으로 이동되었습니다." : "삭제 실패",
+                "affected_rows" => $affected
+            ]);
+        } catch (PDOException $e) {
+            if ($dbConn->inTransaction())
+                $dbConn->rollBack();
+            echo json_encode(["error" => "삭제 중 오류: " . $e->getMessage()]);
+        }
         break;
 
     // ─── Table Structure ─────────────────────────────────

@@ -1,19 +1,23 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { MessageSquare, Send, Trash2, ChevronLeft, ChevronRight, PenLine, X, User, Clock, ImagePlus, Tag, Filter, Edit3, Check, CornerDownRight, MessageCircle, Heart, Eye, Flame, Share2, Link2, ExternalLink, ShieldAlert, Search, Hash, AtSign, MapPin, Store, Calendar, ClipboardList, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MessageSquare, Send, Trash2, ChevronLeft, ChevronRight, PenLine, X, User, Clock, ImagePlus, Tag, Filter, Edit3, Check, CornerDownRight, MessageCircle, Heart, Eye, Flame, Share2, Link2, ExternalLink, ShieldAlert, Search, Hash, AtSign, MapPin, Store, Calendar, ClipboardList, AlertTriangle, CheckCircle, TrendingUp, Zap, Crown, ArrowUpDown, Users, BarChart3, ArrowLeft, ArrowRight, Pin, Megaphone, ChevronDown, Globe } from 'lucide-react';
 import AdSlot from '../../components/AdSlot';
+import TranslatedText from '../../components/TranslatedText';
+import CountryBadge, { COUNTRY_FLAGS } from '../../components/CountryBadge';
+import { getDisplayName, countryToLang } from '../../utils/translateText';
 
 const API_BASE = '/api/community';
 
 const COMMUNITY_CONFIG = {
     seller: {
         categories: [
-            { id: 'free', label: '자유게시판', icon: 'MessageSquare', color: 'text-blue-600 bg-blue-100' },
-            { id: 'info', label: '정보공유', icon: 'Info', color: 'text-emerald-600 bg-emerald-100' },
+            { id: 'free', labelKey: 'categories.free', icon: 'MessageSquare', color: 'text-blue-600 bg-blue-100' },
+            { id: 'info', labelKey: 'categories.info', icon: 'Info', color: 'text-emerald-600 bg-emerald-100' },
         ],
-        title: '셀러 커뮤니티',
-        subtitle: '셀러들의 자유로운 소통 공간',
+        titleKey: 'sellerCommunity',
+        subtitleKey: 'sellerSubtitle',
         gradient: 'from-violet-500 to-purple-600',
         accentBg: 'bg-violet-50',
         accentText: 'text-violet-600',
@@ -23,8 +27,8 @@ const COMMUNITY_CONFIG = {
         labelActiveColor: 'bg-violet-600 text-white',
     },
     vendor: {
-        title: '벤더 커뮤니티',
-        subtitle: '벤더들의 경험과 정보 공유 공간',
+        titleKey: 'vendorCommunity',
+        subtitleKey: 'vendorSubtitle',
         gradient: 'from-emerald-500 to-teal-600',
         accentBg: 'bg-emerald-50',
         accentText: 'text-emerald-600',
@@ -34,8 +38,8 @@ const COMMUNITY_CONFIG = {
         labelActiveColor: 'bg-emerald-600 text-white',
     },
     general: {
-        title: '전체 커뮤니티',
-        subtitle: '모든 회원의 소통 공간',
+        titleKey: 'generalCommunity',
+        subtitleKey: 'generalSubtitle',
         gradient: 'from-blue-500 to-indigo-600',
         accentBg: 'bg-blue-50',
         accentText: 'text-blue-600',
@@ -46,18 +50,27 @@ const COMMUNITY_CONFIG = {
     }
 };
 
-const DEFAULT_LABELS = ['자유', '질문', '정보공유', '후기', '구인/구직', '정보', '기타'];
+const DEFAULT_LABEL_KEYS = ['labels.free', 'labels.question', 'labels.infoShare', 'labels.review', 'labels.jobSeeker', 'labels.info', 'labels.other'];
+
+// Korean DB values corresponding to each label key (for consistent DB storage)
+const LABEL_KO_VALUES = ['자유', '질문', '정보공유', '후기', '구인/구직', '정보', '기타'];
 
 const CommunityPage = ({ type = 'general' }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation('community');
+    // Label options: { ko: Korean DB value, display: translated text }
+    const LABEL_OPTIONS = DEFAULT_LABEL_KEYS.map((key, i) => ({ ko: LABEL_KO_VALUES[i], display: t(key) }));
+    const DEFAULT_LABELS = LABEL_OPTIONS.map(opt => opt.display);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [accessDenied, setAccessDenied] = useState(null); // { message: string }
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [showWriteForm, setShowWriteForm] = useState(false);
-    const [newPost, setNewPost] = useState({ title: '', content: '', label: '', keywords: '' });
+    const [newPost, setNewPost] = useState({ title: '', content: '', label: '', keywords: '', is_notice: 0 });
+    const [notices, setNotices] = useState([]);
+    const [noticesExpanded, setNoticesExpanded] = useState(false);
     const [newPhotos, setNewPhotos] = useState([]);
     const [photoPreviewUrls, setPhotoPreviewUrls] = useState([]);
     const [submitting, setSubmitting] = useState(false);
@@ -80,6 +93,28 @@ const CommunityPage = ({ type = 'general' }) => {
     const [copiedPostId, setCopiedPostId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+    // Map Korean DB label values → i18n keys for translation
+    const LABEL_KO_TO_KEY = {
+        '자유': 'labels.free',
+        '질문': 'labels.question',
+        '정보공유': 'labels.infoShare',
+        '후기': 'labels.review',
+        '구인/구직': 'labels.jobSeeker',
+        '정보': 'labels.info',
+        '기타': 'labels.other'
+    };
+    const translateLabel = (label) => {
+        const key = LABEL_KO_TO_KEY[label];
+        return key ? t(key) : label;
+    };
+    // Reverse: translated display text → Korean DB value
+    const toLabelKo = (displayLabel) => {
+        const opt = LABEL_OPTIONS.find(o => o.display === displayLabel);
+        return opt ? opt.ko : displayLabel;
+    };
+
     // Confirm modal + Toast state
     const [confirmModal, setConfirmModal] = useState(null);
     const [toast, setToast] = useState(null);
@@ -96,7 +131,7 @@ const CommunityPage = ({ type = 'general' }) => {
     const contentTextareaRef = useRef(null);
 
     // Profile popup state
-    const categoryLabels = { free: '자유게시판', info: '정보공유', question: '질문', review: '후기', tip: '팁/노하우' };
+    const categoryLabels = { free: t('categories.free'), info: t('categories.info'), question: t('labels.question'), review: t('labels.review'), tip: t('labels.info') };
     const [profileData, setProfileData] = useState(null);
     const [profileLoading, setProfileLoading] = useState(false);
     const [profilePopup, setProfilePopup] = useState(null);
@@ -112,11 +147,36 @@ const CommunityPage = ({ type = 'general' }) => {
     // Popular posts & likes
     const [popularPosts, setPopularPosts] = useState([]);
 
+    // Double-tap like animation
+    const [doubleTapHeart, setDoubleTapHeart] = useState(null);
+    const lastTapRef = useRef({});
+
+    // Sort & Mode (DC Inside style)
+    const [sortBy, setSortBy] = useState('latest'); // latest, likes, comments, views
+    const [feedMode, setFeedMode] = useState('all'); // all, best, hot
+
+    // Country filter — auto-landing on user's country
+    const [countryFilter, setCountryFilter] = useState(user?.country || 'all');
+
     // Notification highlight
     const [searchParams, setSearchParams] = useSearchParams();
     const [highlightedPostId, setHighlightedPostId] = useState(null);
 
     const config = COMMUNITY_CONFIG[type] || COMMUNITY_CONFIG.general;
+
+    // Trending hashtags (computed from popular posts keywords)
+    const trendingTags = useMemo(() => {
+        const tagCount = {};
+        [...popularPosts, ...posts].forEach(p => {
+            if (p.keywords && Array.isArray(p.keywords)) {
+                p.keywords.forEach(kw => {
+                    const tag = kw.trim().toLowerCase();
+                    if (tag) tagCount[tag] = (tagCount[tag] || 0) + 1;
+                });
+            }
+        });
+        return Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([tag]) => tag);
+    }, [popularPosts, posts]);
 
     // Close share menu on outside click
     useEffect(() => {
@@ -137,10 +197,13 @@ const CommunityPage = ({ type = 'general' }) => {
             let url = `${API_BASE}/community_posts.php?type=${type}&page=${page}`;
             if (filterLabel) url += `&label=${encodeURIComponent(filterLabel)}`;
             if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+            if (sortBy !== 'latest') url += `&sort=${sortBy}`;
+            if (feedMode === 'best') url += `&mode=best`;
+            if (countryFilter && countryFilter !== 'all') url += `&country=${encodeURIComponent(countryFilter)}`;
             const res = await fetch(url, { credentials: 'include' });
             if (res.status === 403) {
                 const data = await res.json();
-                setAccessDenied({ message: data.message || '이 커뮤니티에 접근 권한이 없습니다.' });
+                setAccessDenied({ message: data.message || t('accessDeniedMessage') });
                 setLoading(false);
                 return;
             }
@@ -155,21 +218,35 @@ const CommunityPage = ({ type = 'general' }) => {
         } finally {
             setLoading(false);
         }
-    }, [type, page, filterLabel, searchQuery]);
+    }, [type, page, filterLabel, searchQuery, sortBy, feedMode, countryFilter]);
 
     const fetchPopularPosts = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/community_popular.php?type=${type}`, { credentials: 'include' });
+            let url = `${API_BASE}/community_popular.php?type=${type}`;
+            if (countryFilter && countryFilter !== 'all') url += `&country=${encodeURIComponent(countryFilter)}`;
+            const res = await fetch(url, { credentials: 'include' });
             const data = await res.json();
             if (data.success) setPopularPosts(data.posts || []);
         } catch (err) {
             console.error('Failed to load popular posts:', err);
         }
+    }, [type, countryFilter]);
+
+    const fetchNotices = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/community_posts.php?type=${type}&notices=1`, { credentials: 'include' });
+            const data = await res.json();
+            if (data.success) setNotices(data.notices || []);
+        } catch (err) { console.error('Failed to load notices:', err); }
     }, [type]);
 
     useEffect(() => {
         fetchPosts();
     }, [fetchPosts]);
+
+    useEffect(() => {
+        fetchNotices();
+    }, [fetchNotices]);
 
     useEffect(() => {
         fetchPopularPosts();
@@ -277,10 +354,25 @@ const CommunityPage = ({ type = 'general' }) => {
         setPhotoPreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
+    const movePhoto = (index, direction) => {
+        const newIdx = direction === 'left' ? index - 1 : index + 1;
+        if (newIdx < 0 || newIdx >= newPhotos.length) return;
+        setNewPhotos(prev => {
+            const arr = [...prev];
+            [arr[index], arr[newIdx]] = [arr[newIdx], arr[index]];
+            return arr;
+        });
+        setPhotoPreviewUrls(prev => {
+            const arr = [...prev];
+            [arr[index], arr[newIdx]] = [arr[newIdx], arr[index]];
+            return arr;
+        });
+    };
+
     const handleSubmitPost = async (e) => {
         e.preventDefault();
         if (!newPost.title.trim() || !newPost.content.trim()) {
-            showToast('제목과 내용을 입력하세요.', 'error');
+            showToast(t('titleContentRequired'), 'error');
             return;
         }
         setSubmitting(true);
@@ -289,7 +381,7 @@ const CommunityPage = ({ type = 'general' }) => {
             formData.append('type', type);
             formData.append('title', newPost.title);
             formData.append('content', newPost.content);
-            formData.append('label', newPost.label);
+            formData.append('label', toLabelKo(newPost.label));
             const keywordsStr = newPost.keywords || '';
             const keywordsArr = keywordsStr.split(/[,#]/).map(k => k.trim()).filter(Boolean);
             if (keywordsArr.length > 0) {
@@ -298,6 +390,10 @@ const CommunityPage = ({ type = 'general' }) => {
             newPhotos.forEach(file => {
                 formData.append('photos[]', file);
             });
+            if (isAdmin && newPost.is_notice > 0) {
+                formData.append('is_notice', newPost.is_notice.toString());
+            }
+            formData.append('original_lang', i18n.language || 'ko');
 
             const res = await fetch(`${API_BASE}/community_posts.php`, {
                 method: 'POST',
@@ -306,20 +402,24 @@ const CommunityPage = ({ type = 'general' }) => {
             });
             const data = await res.json();
             if (data.success) {
-                setPosts(prev => [data.post, ...prev]);
-                setNewPost({ title: '', content: '', label: '', keywords: '' });
+                if (data.post.is_notice > 0) {
+                    setNotices(prev => [data.post, ...prev]);
+                } else {
+                    setPosts(prev => [data.post, ...prev]);
+                }
+                setNewPost({ title: '', content: '', label: '', keywords: '', is_notice: 0 });
                 setNewPhotos([]);
                 setPhotoPreviewUrls([]);
                 setShowWriteForm(false);
                 if (data.post.label && !availableLabels.includes(data.post.label)) {
                     setAvailableLabels(prev => [...prev, data.post.label]);
                 }
-                showToast('게시글을 등록했습니다!', 'success');
+                showToast(t('postCreated'), 'success');
             } else {
-                showToast(data.message || '게시글 등록에 실패했습니다.', 'error');
+                showToast(data.message || t('postCreateFailed'), 'error');
             }
         } catch (err) {
-            showToast('게시글 등록 중 오류가 발생했습니다.', 'error');
+            showToast(t('postCreateError'), 'error');
         } finally {
             setSubmitting(false);
         }
@@ -327,9 +427,9 @@ const CommunityPage = ({ type = 'general' }) => {
 
     const handleDeletePost = async (postId) => {
         setConfirmModal({
-            title: '게시글 삭제',
-            message: '이 게시글을 삭제하시겠습니까?',
-            confirmLabel: '삭제',
+            title: t('deletePostTitle'),
+            message: t('deletePostMessage'),
+            confirmLabel: t('deletePostConfirm'),
             onConfirm: async () => {
                 setConfirmModal(null);
                 setCommentsMap(prev => { const n = { ...prev }; delete n[postId]; return n; });
@@ -345,12 +445,12 @@ const CommunityPage = ({ type = 'general' }) => {
                     if (data.success) {
                         setPosts(prev => prev.filter(p => p.id !== postId));
                         if (expandedPost === postId) setExpandedPost(null);
-                        showToast('게시글이 삭제되었습니다.', 'success');
+                        showToast(t('postDeleted'), 'success');
                     } else {
-                        showToast('게시글 삭제에 실패했습니다.', 'error');
+                        showToast(t('postDeleteFailed'), 'error');
                     }
                 } catch (err) {
-                    showToast('삭제 중 오류가 발생했습니다.', 'error');
+                    showToast(t('postDeleteError'), 'error');
                 }
             }
         });
@@ -360,20 +460,20 @@ const CommunityPage = ({ type = 'general' }) => {
         const d = new Date(dateStr);
         const now = new Date();
         const diff = Math.floor((now - d) / 1000);
-        if (diff < 60) return `${diff}초 전`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-        if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
-        return d.toLocaleDateString('ko-KR');
+        if (diff < 60) return t('timeSecondsAgo', { count: diff });
+        if (diff < 3600) return t('timeMinutesAgo', { count: Math.floor(diff / 60) });
+        if (diff < 86400) return t('timeHoursAgo', { count: Math.floor(diff / 3600) });
+        if (diff < 604800) return t('timeDaysAgo', { count: Math.floor(diff / 86400) });
+        return d.toLocaleDateString();
     };
 
     const getRoleBadge = (role) => {
         switch (role) {
-            case 'seller': return { label: '셀러', color: 'bg-violet-100 text-violet-700' };
-            case 'vendor': return { label: '벤더', color: 'bg-emerald-100 text-emerald-700' };
-            case 'admin': return { label: '관리자', color: 'bg-red-100 text-red-700' };
-            case 'superadmin': return { label: '최고관리자', color: 'bg-yellow-100 text-yellow-700' };
-            default: return { label: '사용자', color: 'bg-gray-100 text-gray-700' };
+            case 'seller': return { label: 'Seller', color: 'bg-violet-100 text-violet-700' };
+            case 'vendor': return { label: 'Vendor', color: 'bg-emerald-100 text-emerald-700' };
+            case 'admin': return { label: 'Admin', color: 'bg-red-100 text-red-700' };
+            case 'superadmin': return { label: t('badgeSuperAdmin'), color: 'bg-yellow-100 text-yellow-700' };
+            default: return { label: t('badgeUser'), color: 'bg-gray-100 text-gray-700' };
         }
     };
 
@@ -394,7 +494,7 @@ const CommunityPage = ({ type = 'general' }) => {
 
     const handleEditPost = async (postId) => {
         if (!editData.title.trim() || !editData.content.trim()) {
-            showToast('제목과 내용을 입력하세요.', 'error');
+            showToast(t('titleContentRequired'), 'error');
             return;
         }
         try {
@@ -408,10 +508,10 @@ const CommunityPage = ({ type = 'general' }) => {
             if (data.success) {
                 setPosts(prev => prev.map(p => p.id === postId ? { ...p, ...editData } : p));
                 setEditingPost(null);
-                showToast('게시글이 수정되었습니다.', 'success');
+                showToast(t('postUpdated'), 'success');
             }
         } catch (err) {
-            showToast('수정 중 오류가 발생했습니다.', 'error');
+            showToast(t('postUpdateError'), 'error');
         }
     };
 
@@ -437,17 +537,17 @@ const CommunityPage = ({ type = 'general' }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ post_id: postId, content: commentInput })
+                body: JSON.stringify({ post_id: postId, content: commentInput, original_lang: i18n.language || 'ko' })
             });
             const data = await res.json();
             if (data.success) {
                 setCommentInput('');
                 fetchComments(postId);
             } else {
-                showToast('댓글 등록에 실패했습니다.', 'error');
+                showToast(t('commentCreateFailed'), 'error');
             }
         } catch (err) {
-            showToast('등록 중 오류가 발생했습니다.', 'error');
+            showToast(t('commentCreateError'), 'error');
         } finally {
             setSubmittingComment(false);
         }
@@ -461,7 +561,7 @@ const CommunityPage = ({ type = 'general' }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ post_id: postId, parent_id: parentId, content: replyInput })
+                body: JSON.stringify({ post_id: postId, parent_id: parentId, content: replyInput, original_lang: i18n.language || 'ko' })
             });
             const data = await res.json();
             if (data.success) {
@@ -469,10 +569,10 @@ const CommunityPage = ({ type = 'general' }) => {
                 setReplyingTo(null);
                 fetchComments(postId);
             } else {
-                showToast('답글 등록에 실패했습니다.', 'error');
+                showToast(t('replyCreateFailed'), 'error');
             }
         } catch (err) {
-            showToast('등록 중 오류가 발생했습니다.', 'error');
+            showToast(t('replyCreateError'), 'error');
         } finally {
             setSubmittingComment(false);
         }
@@ -480,10 +580,10 @@ const CommunityPage = ({ type = 'general' }) => {
 
     const handleDeleteComment = async (postId, commentId) => {
         setConfirmModal({
-            title: '댓글 삭제',
-            message: '이 댓글을 삭제하시겠습니까?',
+            title: t('deleteCommentTitle'),
+            message: t('deleteCommentMessage'),
             type: 'danger',
-            confirmLabel: '삭제',
+            confirmLabel: t('deleteCommentConfirm'),
             onConfirm: async () => {
                 setConfirmModal(null);
                 try {
@@ -496,12 +596,12 @@ const CommunityPage = ({ type = 'general' }) => {
                     const data = await res.json();
                     if (data.success) {
                         fetchComments(postId);
-                        showToast('댓글이 삭제되었습니다.', 'success');
+                        showToast(t('commentDeleted'), 'success');
                     } else {
-                        showToast('댓글 삭제에 실패했습니다.', 'error');
+                        showToast(t('commentDeleteFailed'), 'error');
                     }
                 } catch (err) {
-                    showToast('댓글 삭제 중 오류가 발생했습니다.', 'error');
+                    showToast(t('commentDeleteError'), 'error');
                 }
             }
         });
@@ -629,6 +729,33 @@ const CommunityPage = ({ type = 'general' }) => {
         }
     };
 
+    // Double-tap like handler
+    const handleDoubleTap = (e, postId) => {
+        const now = Date.now();
+        const lastTap = lastTapRef.current[postId] || 0;
+        if (now - lastTap < 350) {
+            // Double tap detected
+            const post = posts.find(p => p.id === postId);
+            if (post && !post.is_liked) {
+                handleToggleLike(e, postId);
+            }
+            setDoubleTapHeart(postId);
+            setTimeout(() => setDoubleTapHeart(null), 900);
+            lastTapRef.current[postId] = 0;
+        } else {
+            lastTapRef.current[postId] = now;
+        }
+    };
+
+    // Check if post is new (within 24h) or hot (5+ likes)
+    const getPostBadge = (post) => {
+        const created = new Date(post.created_at);
+        const hoursDiff = (Date.now() - created.getTime()) / (1000 * 60 * 60);
+        if ((post.like_count || 0) >= 5) return 'hot';
+        if (hoursDiff < 24) return 'new';
+        return null;
+    };
+
     return (
         <div className="max-w-4xl mx-auto pb-20 space-y-6">
             {/* Community Header Banner */}
@@ -641,17 +768,94 @@ const CommunityPage = ({ type = 'general' }) => {
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <MessageSquare size={28} />
-                            <h1 className="text-2xl md:text-3xl font-extrabold">{config.title}</h1>
+                            <h1 className="text-2xl md:text-3xl font-extrabold">{t(config.titleKey)}</h1>
                         </div>
-                        <p className="text-white/80 text-sm">{config.subtitle}</p>
+                        <p className="text-white/80 text-sm">{t(config.subtitleKey)}</p>
                     </div>
                     <button
                         onClick={() => setShowWriteForm(!showWriteForm)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-white/20 backdrop-blur rounded-xl font-bold text-sm hover:bg-white/30 transition-colors"
                     >
                         <PenLine size={16} />
-                        글쓰기
+                        {t('writePost')}
                     </button>
+                </div>
+                {/* Real-time Activity Indicator */}
+                <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur rounded-full">
+                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        <span className="text-white/90 text-xs font-medium" dangerouslySetInnerHTML={{ __html: t('currentViewers', { count: Math.max(3, Math.floor((posts.reduce((s, p) => s + (p.view_count || 0), 0) / Math.max(1, posts.length)) * 0.08 + popularPosts.length * 2)) }) }} />
+                    </div>
+                    <span className="text-white/60 text-xs">{t('todayPosts', { count: posts.filter(p => { const d = new Date(p.created_at); const now = new Date(); return d.toDateString() === now.toDateString(); }).length })}</span>
+                </div>
+            </div>
+
+            {/* Mode Tabs (DC Inside style: 전체 / 개념글) */}
+            <div className="flex items-center gap-1 bg-gray-50 rounded-xl p-1">
+                {[
+                    { key: 'all', label: t('feedAll'), icon: <BarChart3 size={13} /> },
+                    { key: 'best', label: t('feedBest'), icon: <Crown size={13} /> },
+                ].map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => { setFeedMode(tab.key); setPage(1); }}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${feedMode === tab.key
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                        {tab.key === 'best' && <span className="text-[9px] text-amber-500 font-extrabold">🏅</span>}
+                    </button>
+                ))}
+                {/* Sort Dropdown */}
+                <div className="ml-auto flex items-center gap-1">
+                    <ArrowUpDown size={12} className="text-gray-400" />
+                    <select
+                        value={sortBy}
+                        onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+                        className="text-xs font-bold text-gray-600 bg-transparent border-none outline-none cursor-pointer py-1 pr-1"
+                    >
+                        <option value="latest">{t('sortBy.latest')}</option>
+                        <option value="likes">{t('sortBy.likes')}</option>
+                        <option value="comments">{t('sortBy.comments')}</option>
+                        <option value="views">{t('sortBy.views')}</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* 🌍 Country Filter Tabs */}
+            <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
+                <div className="flex items-center gap-1.5 py-1 min-w-max">
+                    <Globe size={14} className="text-gray-400 flex-shrink-0" />
+                    <button
+                        onClick={() => { setCountryFilter('all'); setPage(1); }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === 'all'
+                                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                    >
+                        🌍 {t('allCountries')}
+                    </button>
+                    {Object.entries(COUNTRY_FLAGS).map(([code, info]) => (
+                        <button
+                            key={code}
+                            onClick={() => { setCountryFilter(code); setPage(1); }}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === code
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
+                                    : code === user?.country
+                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                }`}
+                        >
+                            <span>{info.flag}</span>
+                            <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
+                            {code === user?.country && countryFilter !== code && (
+                                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+                            )}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -662,7 +866,7 @@ const CommunityPage = ({ type = 'general' }) => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                    placeholder="제목, 내용, 작성자, 키워드로 검색.."
+                    placeholder={t('searchPlaceholder')}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none bg-white"
                 />
             </div>
@@ -676,7 +880,7 @@ const CommunityPage = ({ type = 'general' }) => {
                             onClick={() => { setFilterLabel(''); setPage(1); }}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${filterLabel === '' ? config.labelActiveColor : config.labelColor}`}
                         >
-                            전체
+                            {t('all')}
                         </button>
                         {availableLabels.map(lbl => (
                             <button
@@ -684,9 +888,43 @@ const CommunityPage = ({ type = 'general' }) => {
                                 onClick={() => { setFilterLabel(lbl); setPage(1); }}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${filterLabel === lbl ? config.labelActiveColor : config.labelColor}`}
                             >
-                                {lbl}
+                                {translateLabel(lbl)}
                             </button>
                         ))}
+                    </div>
+                )
+            }
+
+            {/* 🔥 Trending Hashtags */}
+            {
+                trendingTags.length > 0 && (
+                    <div className="relative overflow-hidden bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/40 dark:via-amber-950/30 dark:to-yellow-950/20 rounded-2xl border border-orange-100 dark:border-orange-800/40 p-4">
+                        <div className="absolute inset-0 opacity-5">
+                            <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-400 rounded-full blur-2xl"></div>
+                            <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-yellow-400 rounded-full blur-xl"></div>
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                                    <TrendingUp size={13} className="text-white" />
+                                </div>
+                                <span className="text-sm font-extrabold text-gray-800 dark:text-gray-100">{t('trending')}</span>
+                                <span className="text-[10px] text-orange-500 dark:text-orange-400 font-bold bg-orange-100 dark:bg-orange-900/50 px-2 py-0.5 rounded-full">LIVE</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {trendingTags.map((tag, i) => (
+                                    <button
+                                        key={tag}
+                                        onClick={() => { setSearchQuery(tag); setPage(1); }}
+                                        className="group flex items-center gap-1 px-3 py-1.5 bg-white/80 dark:bg-white/10 backdrop-blur border border-orange-100 dark:border-orange-800/40 rounded-full text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-500 hover:text-white hover:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105"
+                                    >
+                                        <Hash size={11} className="text-orange-400 group-hover:text-white/80" />
+                                        {tag}
+                                        {i === 0 && <Flame size={11} className="text-orange-500 group-hover:text-yellow-200 ml-0.5" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 )
             }
@@ -694,23 +932,25 @@ const CommunityPage = ({ type = 'general' }) => {
             {/* Popular Posts Section */}
             {
                 popularPosts.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2">
-                            <Flame size={18} className="text-orange-500" />
-                            <h2 className="font-bold text-gray-900 text-sm">🔥 인기 글</h2>
-                            <span className="text-[10px] text-gray-400 font-medium">최근 7일</span>
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+                        <div className="px-5 py-3 border-b border-gray-50 dark:border-gray-800 flex items-center gap-2">
+                            <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
+                                <Flame size={15} className="text-white" />
+                            </div>
+                            <h2 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm">{t('popularRanking')}</h2>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium ml-auto">{t('last7days')}</span>
                         </div>
                         <div className="relative group">
                             {/* Left Arrow */}
                             <button
-                                onClick={() => { const el = popularScrollRef.current; if (el) el.scrollBy({ left: -260, behavior: 'smooth' }); }}
+                                onClick={() => { const el = popularScrollRef.current; if (el) el.scrollBy({ left: -280, behavior: 'smooth' }); }}
                                 className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg backdrop-blur-sm"
                             >
                                 <ChevronLeft size={18} />
                             </button>
                             {/* Right Arrow */}
                             <button
-                                onClick={() => { const el = popularScrollRef.current; if (el) el.scrollBy({ left: 260, behavior: 'smooth' }); }}
+                                onClick={() => { const el = popularScrollRef.current; if (el) el.scrollBy({ left: 280, behavior: 'smooth' }); }}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg backdrop-blur-sm"
                             >
                                 <ChevronRight size={18} />
@@ -737,235 +977,335 @@ const CommunityPage = ({ type = 'general' }) => {
                                 onMouseUp={() => setIsDragging(false)}
                                 onMouseLeave={() => setIsDragging(false)}
                             >
-                                {popularPosts.map((pp, idx) => (
-                                    <div
-                                        key={pp.id}
-                                        onClick={() => { if (!hasDraggedRef.current) goToPopularPost(pp.id); }}
-                                        className="flex-shrink-0 w-56 sm:w-64 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100 p-4 cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all group/card"
-                                    >
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xs font-extrabold text-orange-500">#{idx + 1}</span>
-                                            {pp.label && (
-                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${config.labelColor}`}>{pp.label}</span>
-                                            )}
-                                        </div>
-                                        <h4 className="text-sm font-bold text-gray-800 line-clamp-2 group-hover/card:text-indigo-600 transition-colors leading-tight mb-2">{pp.title}</h4>
-                                        <div className="flex items-center justify-between text-[10px] text-gray-400">
-                                            <span className="truncate">{pp.user_name}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="flex items-center gap-0.5">
-                                                    <Heart size={10} className={pp.is_liked ? 'text-red-500 fill-red-500' : ''} />
-                                                    {pp.like_count}
-                                                </span>
-                                                <span className="flex items-center gap-0.5">
-                                                    <MessageCircle size={10} />
-                                                    {pp.comment_count || 0}
-                                                </span>
-                                                <span className="flex items-center gap-0.5">
-                                                    <Eye size={10} />
-                                                    {pp.view_count}
-                                                </span>
+                                {popularPosts.map((pp, idx) => {
+                                    const rankColors = [
+                                        'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/50 dark:to-yellow-950/30 shadow-amber-100 dark:shadow-none',
+                                        'border-gray-300 dark:border-gray-600 bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/80 dark:to-slate-800/60 shadow-gray-100 dark:shadow-none',
+                                        'border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/30 shadow-orange-100 dark:shadow-none',
+                                    ];
+                                    const medals = ['🏆', '🥈', '🥉'];
+                                    const rankStyle = idx < 3 ? rankColors[idx] : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800';
+                                    const engagementScore = (pp.like_count || 0) * 3 + (pp.comment_count || 0) * 2 + (pp.view_count || 0);
+                                    return (
+                                        <div
+                                            key={pp.id}
+                                            onClick={() => { if (!hasDraggedRef.current) goToPopularPost(pp.id); }}
+                                            className={`flex-shrink-0 w-60 sm:w-72 rounded-xl border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200 group/card hover:-translate-y-0.5 ${rankStyle}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-2.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg">{medals[idx] || `#${idx + 1}`}</span>
+                                                    {idx < 3 && <span className="text-[10px] font-extrabold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">{idx === 0 ? t('rank1') : idx === 1 ? t('rank2') : t('rank3')}</span>}
+                                                </div>
+                                                {pp.label && (
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${config.labelColor}`}>{pp.label}</span>
+                                                )}
+                                            </div>
+                                            <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 line-clamp-2 group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors leading-tight mb-2">{pp.title}</h4>
+                                            <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500">
+                                                <span className="truncate font-medium">{getDisplayName(pp, countryToLang(user?.country))}</span>
+                                                <div className="flex items-center gap-2.5">
+                                                    <span className="flex items-center gap-0.5">
+                                                        <Heart size={10} className={pp.is_liked ? 'text-red-500 fill-red-500' : ''} />
+                                                        {pp.like_count}
+                                                    </span>
+                                                    <span className="flex items-center gap-0.5">
+                                                        <MessageCircle size={10} />
+                                                        {pp.comment_count || 0}
+                                                    </span>
+                                                    <span className="flex items-center gap-0.5">
+                                                        <Eye size={10} />
+                                                        {pp.view_count}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {/* Engagement bar */}
+                                            <div className="mt-2.5 flex items-center gap-2">
+                                                <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                    <div className={`h-full rounded-full ${idx === 0 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : idx === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' : idx === 2 ? 'bg-gradient-to-r from-orange-300 to-amber-400' : 'bg-gray-300'}`}
+                                                        style={{ width: `${Math.min(100, (engagementScore / Math.max(1, ((popularPosts[0]?.like_count || 0) * 3 + (popularPosts[0]?.comment_count || 0) * 2 + (popularPosts[0]?.view_count || 0)))) * 100)}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-gray-400 flex items-center gap-0.5"><Zap size={8} />{engagementScore}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
                 )
             }
 
-            {/* Write Form */}
+            {/* Write Form Modal */}
             {
                 showWriteForm && (
-                    <div className={`${config.accentBg} rounded-2xl border ${config.accentBorder} p-6 shadow-sm`}>
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className={`font-bold ${config.accentText} flex items-center gap-2`}>
-                                <PenLine size={18} />
-                                게시글 작성
-                            </h3>
-                            <button onClick={() => setShowWriteForm(false)} className="text-gray-400 hover:text-gray-600">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmitPost} className="space-y-4">
-                            {/* Label Selection */}
-                            <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
-                                <Tag size={12} />
-                                라벨 선택
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                                {DEFAULT_LABELS.map(lbl => (
-                                    <button
-                                        key={lbl}
-                                        type="button"
-                                        onClick={() => setNewPost(p => ({ ...p, label: p.label === lbl ? '' : lbl }))}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${newPost.label === lbl
-                                            ? config.labelActiveColor + ' shadow-sm scale-105'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                                            }`}
-                                    >
-                                        {lbl}
-                                    </button>
-                                ))}
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                        onClick={(e) => { if (e.target === e.currentTarget) { setShowWriteForm(false); setNewPhotos([]); setPhotoPreviewUrls([]); } }}>
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                        {/* Modal Content */}
+                        <div className={`relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border ${config.accentBorder}`}
+                            style={{ scrollbarWidth: 'thin' }}>
+                            {/* Modal Header */}
+                            <div className={`sticky top-0 z-10 flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gradient-to-r ${config.gradient} text-white rounded-t-2xl`}>
+                                <h3 className="font-bold flex items-center gap-2 text-lg">
+                                    <PenLine size={20} />
+                                    {t('writePost')}
+                                </h3>
+                                <button onClick={() => { setShowWriteForm(false); setNewPhotos([]); setPhotoPreviewUrls([]); }}
+                                    className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <input
-                                type="text"
-                                placeholder="제목을 입력하세요"
-                                value={newPost.title}
-                                onChange={e => setNewPost(p => ({ ...p, title: e.target.value }))}
-                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-bold text-sm"
-                            />
-                            {/* Content */}
-                            <div className="relative">
-                                <textarea
-                                    ref={contentTextareaRef}
-                                    placeholder="내용을 입력하세요.. (@로 사용자 멘션 가능)"
-                                    value={newPost.content}
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setNewPost(p => ({ ...p, content: val }));
-                                        // @mention detection
-                                        const cursorPos = e.target.selectionStart;
-                                        const textBefore = val.substring(0, cursorPos);
-                                        const mentionMatch = textBefore.match(/@([\w\uAC00-\uD7A3]*)$/);
-                                        if (mentionMatch) {
-                                            const q = mentionMatch[1];
-                                            setMentionQuery(q);
-                                            if (q.length >= 1) {
-                                                fetch(`/api/users/search_users.php?q=${encodeURIComponent(q)}`, { credentials: 'include' })
-                                                    .then(r => r.json())
-                                                    .then(data => {
-                                                        setMentionResults(data.users || []);
-                                                        setShowMentionDropdown((data.users || []).length > 0);
-                                                    });
-                                            }
-                                        } else {
-                                            setShowMentionDropdown(false);
-                                        }
-                                    }}
-                                    rows={5}
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium resize-none"
-                                />
-                                {/* @Mention Dropdown */}
-                                {
-                                    showMentionDropdown && mentionResults.length > 0 && (
-                                        <div className="absolute left-0 right-0 bottom-full mb-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
-                                            {mentionResults.map(mu => (
+                            {/* Modal Body */}
+                            <div className="p-6">
+                                <form onSubmit={handleSubmitPost} className="space-y-4">
+                                    {/* Admin Notice Type Selector */}
+                                    {isAdmin && (
+                                        <div className="mb-1">
+                                            <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                                                <Megaphone size={12} />
+                                                {t('noticeType')}
+                                            </label>
+                                            <div className="flex gap-2">
+                                                {[{ v: 0, l: t('noticeNormal'), icon: null, color: 'bg-white text-gray-600 border-gray-200' },
+                                                { v: 1, l: t('noticeGeneral'), icon: <Megaphone size={11} />, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                                                { v: 2, l: t('noticeRequired'), icon: <Pin size={11} />, color: 'bg-red-50 text-red-700 border-red-200' }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.v}
+                                                        type="button"
+                                                        onClick={() => setNewPost(p => ({ ...p, is_notice: opt.v }))}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${newPost.is_notice === opt.v
+                                                            ? (opt.v === 2 ? 'bg-red-500 text-white border-red-500 shadow-sm' : opt.v === 1 ? 'bg-blue-500 text-white border-blue-500 shadow-sm' : 'bg-gray-800 text-white border-gray-800 shadow-sm')
+                                                            : opt.color + ' hover:border-gray-300'
+                                                            }`}
+                                                    >
+                                                        {opt.icon}
+                                                        {opt.l}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Label Selection */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                                            <Tag size={12} />
+                                            {t('selectLabel')}
+                                        </label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {DEFAULT_LABELS.map(lbl => (
                                                 <button
-                                                    key={mu.id}
+                                                    key={lbl}
                                                     type="button"
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 transition-colors text-left"
-                                                    onClick={() => {
-                                                        const content = newPost.content;
-                                                        const before = content.substring(0, mentionCursorPos);
-                                                        const after = content.substring(mentionCursorPos);
-                                                        const mentionStart = before.lastIndexOf('@');
-                                                        const newContent = before.substring(0, mentionStart) + `@${mu.name} ` + after;
-                                                        setNewPost(p => ({ ...p, content: newContent }));
-                                                        setShowMentionDropdown(false);
-                                                        setMentionResults([]);
-                                                        setTimeout(() => contentTextareaRef.current?.focus(), 50);
-                                                    }}
+                                                    onClick={() => setNewPost(p => ({ ...p, label: p.label === lbl ? '' : lbl }))}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${newPost.label === lbl
+                                                        ? config.labelActiveColor + ' shadow-sm scale-105'
+                                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                                        }`}
                                                 >
-                                                    <div className="w-7 h-7 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                                        {mu.profile_image ? (
-                                                            <img src={mu.profile_image} alt="" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <User size={14} className="text-gray-500" />
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-sm font-bold text-gray-900">{mu.name}</span>
-                                                        <span className="ml-2 text-[10px] text-gray-400 font-medium">{mu.role === 'seller' ? '' : mu.role === 'vendor' ? '벤더' : mu.role}</span>
-                                                    </div>
+                                                    {lbl}
                                                 </button>
                                             ))}
                                         </div>
-                                    )
-                                }
-                            </div>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder={t('titlePlaceholder')}
+                                        value={newPost.title}
+                                        onChange={e => setNewPost(p => ({ ...p, title: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-bold text-sm"
+                                    />
+                                    {/* Content */}
+                                    <div className="relative">
+                                        <textarea
+                                            ref={contentTextareaRef}
+                                            placeholder={t('contentPlaceholder')}
+                                            value={newPost.content}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setNewPost(p => ({ ...p, content: val }));
+                                                // @mention detection
+                                                const cursorPos = e.target.selectionStart;
+                                                const textBefore = val.substring(0, cursorPos);
+                                                const mentionMatch = textBefore.match(/@([\w\uAC00-\uD7A3]*)$/);
+                                                if (mentionMatch) {
+                                                    const q = mentionMatch[1];
+                                                    setMentionQuery(q);
+                                                    if (q.length >= 1) {
+                                                        fetch(`/api/users/search_users.php?q=${encodeURIComponent(q)}`, { credentials: 'include' })
+                                                            .then(r => r.json())
+                                                            .then(data => {
+                                                                setMentionResults(data.users || []);
+                                                                setShowMentionDropdown((data.users || []).length > 0);
+                                                            });
+                                                    }
+                                                } else {
+                                                    setShowMentionDropdown(false);
+                                                }
+                                            }}
+                                            rows={6}
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none font-medium resize-none"
+                                        />
+                                        {/* @Mention Dropdown */}
+                                        {
+                                            showMentionDropdown && mentionResults.length > 0 && (
+                                                <div className="absolute left-0 right-0 bottom-full mb-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
+                                                    {mentionResults.map(mu => (
+                                                        <button
+                                                            key={mu.id}
+                                                            type="button"
+                                                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 transition-colors text-left"
+                                                            onClick={() => {
+                                                                const content = newPost.content;
+                                                                const before = content.substring(0, mentionCursorPos);
+                                                                const after = content.substring(mentionCursorPos);
+                                                                const mentionStart = before.lastIndexOf('@');
+                                                                const newContent = before.substring(0, mentionStart) + `@${mu.name} ` + after;
+                                                                setNewPost(p => ({ ...p, content: newContent }));
+                                                                setShowMentionDropdown(false);
+                                                                setMentionResults([]);
+                                                                setTimeout(() => contentTextareaRef.current?.focus(), 50);
+                                                            }}
+                                                        >
+                                                            <div className="w-7 h-7 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                                {mu.profile_image ? (
+                                                                    <img src={mu.profile_image} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <User size={14} className="text-gray-500" />
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-sm font-bold text-gray-900">{mu.name}</span>
+                                                                <span className="ml-2 text-[10px] text-gray-400 font-medium">{mu.role === 'seller' ? '' : mu.role === 'vendor' ? 'Vendor' : mu.role}</span>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )
+                                        }
+                                    </div>
 
-                            {/* Keywords Input */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
-                                    <Hash size={12} />
-                                    키워드 (선택사항)
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="#키워드1, #키워드2 또는 키워드1, 키워드2"
-                                    value={newPost.keywords}
-                                    onChange={e => setNewPost(p => ({ ...p, keywords: e.target.value }))}
-                                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
-                                />
-                                <p className="text-[10px] text-gray-400 mt-1">콤마(,) 또는 해시태그(#)로 구분하여 입력</p>
-                            </div>
+                                    {/* Keywords Input */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                                            <Hash size={12} />
+                                            {t('keywordsLabel')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder={t('keywordsPlaceholder')}
+                                            value={newPost.keywords}
+                                            onChange={e => setNewPost(p => ({ ...p, keywords: e.target.value }))}
+                                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">{t('keywordsHint')}</p>
+                                    </div>
 
-                            {/* Photo Upload */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
-                                    <ImagePlus size={12} />
-                                    사진 첨부 (최대 10장)
-                                </label>
-                                <div className="grid grid-cols-5 gap-2">
-                                    {photoPreviewUrls.map((url, idx) => (
-                                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group">
-                                            <img src={url} alt="" className="w-full h-full object-cover" />
-                                            <button
-                                                type="button"
-                                                onClick={() => removePhoto(idx)}
-                                                className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow"
-                                            >
-                                                <X size={10} />
-                                            </button>
+                                    {/* Photo Upload */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                                            <ImagePlus size={12} />
+                                            {t('maxImages', { count: 10 })}
+                                        </label>
+                                        <div className="grid grid-cols-5 gap-2">
+                                            {photoPreviewUrls.map((url, idx) => (
+                                                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group">
+                                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                                    {/* Order badge */}
+                                                    <span className="absolute top-1 left-1 w-5 h-5 bg-black/60 text-white text-[10px] font-bold rounded-md flex items-center justify-center">
+                                                        {idx + 1}
+                                                    </span>
+                                                    {/* Delete button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removePhoto(idx)}
+                                                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                                                    >
+                                                        <X size={10} />
+                                                    </button>
+                                                    {/* Reorder buttons */}
+                                                    {newPhotos.length > 1 && (
+                                                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            {idx > 0 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => movePhoto(idx, 'left')}
+                                                                    className="p-1 bg-black/60 text-white rounded-md hover:bg-black/80 transition-colors"
+                                                                >
+                                                                    <ArrowLeft size={10} />
+                                                                </button>
+                                                            )}
+                                                            {idx < newPhotos.length - 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => movePhoto(idx, 'right')}
+                                                                    className="p-1 bg-black/60 text-white rounded-md hover:bg-black/80 transition-colors"
+                                                                >
+                                                                    <ArrowRight size={10} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {newPhotos.length < 10 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => photoInputRef.current?.click()}
+                                                    className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
+                                                >
+                                                    <ImagePlus size={20} />
+                                                    <span className="text-[10px] mt-1 font-medium">{newPhotos.length}/10</span>
+                                                </button>
+                                            )}
                                         </div>
-                                    ))}
-                                    {newPhotos.length < 10 && (
+                                        <input
+                                            type="file"
+                                            ref={photoInputRef}
+                                            onChange={handlePhotoSelect}
+                                            className="hidden"
+                                            accept="image/*"
+                                            multiple
+                                        />
+                                    </div>
+
+                                    {/* Action Buttons - sticky at bottom */}
+                                    <div className="flex justify-end gap-3 pt-2">
                                         <button
                                             type="button"
-                                            onClick={() => photoInputRef.current?.click()}
-                                            className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
+                                            onClick={() => { setShowWriteForm(false); setNewPhotos([]); setPhotoPreviewUrls([]); }}
+                                            className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 font-medium text-sm transition-colors"
                                         >
-                                            <ImagePlus size={20} />
-                                            <span className="text-[10px] mt-1 font-medium">{newPhotos.length}/10</span>
+                                            {t('cancel')}
                                         </button>
-                                    )}
-                                </div>
-                                <input
-                                    type="file"
-                                    ref={photoInputRef}
-                                    onChange={handlePhotoSelect}
-                                    className="hidden"
-                                    accept="image/*"
-                                    multiple
-                                />
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className={`px-6 py-2.5 ${config.buttonBg} text-white rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 disabled:opacity-50`}
+                                        >
+                                            <Send size={14} />
+                                            {submitting ? t('submitting') : t('publish')}
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowWriteForm(false); setNewPhotos([]); setPhotoPreviewUrls([]); }}
-                                    className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 font-medium text-sm transition-colors"
-                                >
-                                    취소
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className={`px-6 py-2.5 ${config.buttonBg} text-white rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 disabled:opacity-50`}
-                                >
-                                    <Send size={14} />
-                                    {submitting ? '등록 중..' : '게시하기'}
-                                </button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 )
             }
 
-            {/* Ad Slot E - Between write form and posts */}
-            <AdSlot slotId="community_e" format="banner" />
+            {/* Ad Section - Community Top */}
+            <div className="mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('sponsor')}</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                <AdSlot slotId={`${type}_community_top`} format="banner" />
+            </div>
 
             {/* Access Denied */}
             {
@@ -974,14 +1314,14 @@ const CommunityPage = ({ type = 'general' }) => {
                         <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
                             <ShieldAlert size={32} className="text-red-400" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">접근 권한이 없습니다</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('accessDenied')}</h3>
                         <p className="text-gray-500 text-sm mb-6">{accessDenied.message}</p>
                         <button
                             onClick={() => navigate(-1)}
                             className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors inline-flex items-center gap-2"
                         >
                             <ChevronLeft size={16} />
-                            돌아가기
+                            {t('goBack')}
                         </button>
                     </div>
                 ) : loading ? (
@@ -991,21 +1331,65 @@ const CommunityPage = ({ type = 'general' }) => {
                 ) : posts.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
                         <MessageSquare className="mx-auto text-gray-300 mb-4" size={48} />
-                        <p className="text-gray-500 font-medium">아직 게시글이 없습니다.</p>
-                        <p className="text-gray-400 text-sm mt-1">첫 번째 게시글을 작성해 보세요!</p>
+                        <p className="text-gray-500 font-medium">{t('noPostsYet')}</p>
+                        <p className="text-gray-400 text-sm mt-1">{t('writeFirstPost')}</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
+                        {/* Notice Strip */}
+                        {notices.length > 0 && (
+                            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                                {notices.filter(n => n.is_notice === 2).map(n => (
+                                    <div key={n.id}
+                                        onClick={() => { setExpandedPost(n.id); const el = document.getElementById(`post-${n.id}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); else goToPopularPost(n.id); }}
+                                        className="flex items-center gap-2 px-3 py-2 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-red-50/50 transition-colors"
+                                    >
+                                        <Pin size={12} className="text-red-500 flex-shrink-0" />
+                                        <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded flex-shrink-0">{t('requiredNotice')}</span>
+                                        <span className="text-xs font-bold text-gray-800 truncate">{n.title}</span>
+                                        <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">{new Date(n.created_at).toLocaleDateString('ko-KR')}</span>
+                                    </div>
+                                ))}
+                                {notices.filter(n => n.is_notice === 1).length > 0 && (
+                                    <>
+                                        {(noticesExpanded ? notices.filter(n => n.is_notice === 1) : notices.filter(n => n.is_notice === 1).slice(0, 2)).map(n => (
+                                            <div key={n.id}
+                                                onClick={() => { setExpandedPost(n.id); const el = document.getElementById(`post-${n.id}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); else goToPopularPost(n.id); }}
+                                                className="flex items-center gap-2 px-3 py-2 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-blue-50/50 transition-colors"
+                                            >
+                                                <Megaphone size={12} className="text-blue-500 flex-shrink-0" />
+                                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">{t('notice')}</span>
+                                                <span className="text-xs text-gray-700 truncate">{n.title}</span>
+                                                <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">{new Date(n.created_at).toLocaleDateString('ko-KR')}</span>
+                                            </div>
+                                        ))}
+                                        {notices.filter(n => n.is_notice === 1).length > 2 && (
+                                            <button
+                                                onClick={() => setNoticesExpanded(!noticesExpanded)}
+                                                className="w-full flex items-center justify-center gap-1 py-1.5 text-[10px] font-bold text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <ChevronDown size={12} className={`transition-transform ${noticesExpanded ? 'rotate-180' : ''}`} />
+                                                {noticesExpanded ? t('foldNotices') : t('moreNotices', { count: notices.filter(n => n.is_notice === 1).length - 2 })}
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
                         {posts.map((post, postIdx) => {
                             const roleBadge = getRoleBadge(post.user_role);
                             const isExpanded = expandedPost === post.id;
                             const hasPhotos = post.photos && post.photos.length > 0;
+                            const postBadge = getPostBadge(post);
 
                             const isHighlighted = highlightedPostId === post.id;
 
                             return (
                                 <React.Fragment key={post.id}>
-                                    {postIdx === 5 && <AdSlot slotId="community_f" format="banner" />}
+                                    {/* Repeating feed ad: first at index 2, then every 5 posts */}
+                                    {(postIdx === 2 || (postIdx > 2 && (postIdx - 2) % 5 === 0)) && (
+                                        <AdSlot slotId={`${type}_community_feed`} format="native" className="my-3" />
+                                    )}
                                     <div
                                         id={`post-${post.id}`}
                                         ref={isHighlighted ? highlightRef : undefined}
@@ -1015,9 +1399,29 @@ const CommunityPage = ({ type = 'general' }) => {
                                             }`}
                                     >
                                         <div
-                                            className="p-5 cursor-pointer"
-                                            onClick={() => handleTogglePost(post.id)}
+                                            className="p-5 cursor-pointer relative"
+                                            onClick={(e) => { handleDoubleTap(e, post.id); handleTogglePost(post.id); }}
                                         >
+                                            {/* Double-tap heart animation */}
+                                            {doubleTapHeart === post.id && (
+                                                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                                                    <Heart size={64} className="text-red-500 fill-red-500" style={{ animation: 'heartBurst 0.8s ease-out forwards' }} />
+                                                </div>
+                                            )}
+                                            {/* NEW / HOT Badge */}
+                                            {postBadge && (
+                                                <div className="absolute top-3 right-3 z-10">
+                                                    {postBadge === 'hot' ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-extrabold rounded-full shadow-sm">
+                                                            <Flame size={10} /> HOT
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-extrabold rounded-full shadow-sm">
+                                                            <Zap size={10} /> NEW
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="flex items-start gap-3">
                                                 <div
                                                     className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-300 transition-all"
@@ -1034,7 +1438,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                         <span
                                                             className="font-bold text-gray-900 text-sm cursor-pointer hover:text-indigo-600 transition-colors"
                                                             onClick={(e) => openUserProfile(e, post.user_id)}
-                                                        >{post.user_name}</span>
+                                                        >{getDisplayName(post, countryToLang(user?.country))}</span>
                                                         {type === 'general' && (
                                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${roleBadge.color}`}>
                                                                 {roleBadge.label}
@@ -1042,7 +1446,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                         )}
                                                         {post.label && (
                                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${config.labelColor}`}>
-                                                                {post.label}
+                                                                {translateLabel(post.label)}
                                                             </span>
                                                         )}
                                                         <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -1056,7 +1460,8 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <h3 className="font-bold text-gray-900 truncate">{post.title}
+                                                    <h3 className="font-bold text-gray-900 truncate">
+                                                        <TranslatedText text={post.title} sourceLang={post.original_lang} showBadge={false} />
                                                         {commentCounts[post.id] > 0 && (
                                                             <span className="ml-2 text-xs font-medium text-gray-400 inline-flex items-center gap-0.5">
                                                                 <MessageCircle size={11} />
@@ -1064,8 +1469,14 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             </span>
                                                         )}
                                                     </h3>
+                                                    {/* Cover Image for non-expanded cards */}
+                                                    {!isExpanded && hasPhotos && (
+                                                        <div className="mt-2 rounded-xl overflow-hidden h-36 bg-gray-100">
+                                                            <img src={post.photos[0].image_url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                        </div>
+                                                    )}
                                                     {!isExpanded && (
-                                                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">{post.content}</p>
+                                                        <p className="text-sm text-gray-500 mt-2 line-clamp-2"><TranslatedText text={post.content} sourceLang={post.original_lang} showBadge={false} /></p>
                                                     )}
                                                     {/* Keyword Chips */}
                                                     {post.keywords && post.keywords.length > 0 && (
@@ -1082,35 +1493,41 @@ const CommunityPage = ({ type = 'general' }) => {
                                                         </div>
                                                     )}
                                                     {/* Like / View count / Share bar */}
-                                                    <div className="flex items-center gap-4 mt-2.5">
+                                                    <div className="flex items-center gap-4 mt-3">
                                                         <button
                                                             onClick={(e) => handleToggleLike(e, post.id)}
-                                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${post.is_liked ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-400 hover:bg-red-50/50'}`}
+                                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${post.is_liked ? 'text-red-500 bg-red-50 scale-105' : 'text-gray-400 hover:text-red-400 hover:bg-red-50/50'}`}
                                                         >
-                                                            <Heart size={18} className={post.is_liked ? 'fill-red-500' : ''} />
-                                                            <span>{post.like_count || 0}</span>
+                                                            <Heart size={18} className={`transition-transform ${post.is_liked ? 'fill-red-500 scale-110' : ''}`} />
+                                                            <span className="tabular-nums">{post.like_count || 0}</span>
                                                         </button>
                                                         <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                                                            <MessageCircle size={16} />
+                                                            <span className="tabular-nums">{commentCounts[post.id] || 0}</span>
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5 text-sm text-gray-400">
                                                             <Eye size={16} />
-                                                            <span>{post.view_count || 0}</span>
+                                                            <span className="tabular-nums">{post.view_count || 0}</span>
                                                         </span>
                                                         <div className="relative" ref={shareMenuPostId === post.id ? shareMenuRef : undefined}>
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
+                                                                    const shareUrl = `${window.location.origin}/api/community/share_preview.php?post=${post.id}&type=${type}`;
                                                                     if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
-                                                                        const shareUrl = `${window.location.origin}${window.location.pathname}?post=${post.id}`;
                                                                         const shareText = `[SpaceMatch ${config.title}] ${post.title}`;
                                                                         navigator.share({ title: shareText, text: `${shareText}\n${post.content?.substring(0, 100)}...`, url: shareUrl }).catch(() => { });
+                                                                        // Increment share count
+                                                                        fetch(`${API_BASE}/community_posts.php?type=${type}&increment_share=${post.id}`, { credentials: 'include' }).catch(() => { });
                                                                     } else {
                                                                         setShareMenuPostId(shareMenuPostId === post.id ? null : post.id);
                                                                     }
                                                                 }}
                                                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${shareMenuPostId === post.id ? 'text-indigo-500 bg-indigo-50' : 'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50/50'}`}
-                                                                title="공유하기"
+                                                                title={t('shareTitle')}
                                                             >
                                                                 <Share2 size={16} />
-                                                                <span>공유</span>
+                                                                <span>{t('share')}{post.share_count > 0 ? ` ${post.share_count}` : ''}</span>
                                                             </button>
 
                                                             {/* Share Dropdown */}
@@ -1121,13 +1538,13 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                     onClick={(e) => e.stopPropagation()}
                                                                 >
                                                                     <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                                                        <p className="text-xs font-bold text-gray-700">공유하기</p>
+                                                                        <p className="text-xs font-bold text-gray-700">{t('shareTitle')}</p>
                                                                     </div>
                                                                     <div className="p-1.5">
                                                                         {/* Copy Link */}
                                                                         <button
                                                                             onClick={async () => {
-                                                                                const shareUrl = `${window.location.origin}${window.location.pathname}?post=${post.id}`;
+                                                                                const shareUrl = `${window.location.origin}/api/community/share_preview.php?post=${post.id}&type=${type}`;
                                                                                 try {
                                                                                     await navigator.clipboard.writeText(shareUrl);
                                                                                 } catch {
@@ -1141,6 +1558,8 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                 setCopiedPostId(post.id);
                                                                                 setTimeout(() => setCopiedPostId(null), 2000);
                                                                                 setTimeout(() => setShareMenuPostId(null), 1500);
+                                                                                // Increment share count
+                                                                                fetch(`${API_BASE}/community_posts.php?type=${type}&increment_share=${post.id}`, { credentials: 'include' }).catch(() => { });
                                                                             }}
                                                                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-indigo-50 transition-colors group"
                                                                         >
@@ -1155,20 +1574,22 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                             )}
                                                                             <div className="text-left">
                                                                                 <p className={`text-sm font-bold ${copiedPostId === post.id ? 'text-emerald-600' : 'text-gray-700'}`}>
-                                                                                    {copiedPostId === post.id ? '복사 완료!' : '링크 복사'}
+                                                                                    {copiedPostId === post.id ? t('linkCopied') : t('copyLink')}
                                                                                 </p>
-                                                                                <p className="text-[10px] text-gray-400">URL이 클립보드로 복사됩니다</p>
+                                                                                <p className="text-[10px] text-gray-400">{t('copyLinkDesc')}</p>
                                                                             </div>
                                                                         </button>
 
                                                                         {/* KakaoTalk */}
                                                                         <button
                                                                             onClick={() => {
-                                                                                const shareUrl = `${window.location.origin}${window.location.pathname}?post=${post.id}`;
-                                                                                const text = `[SpaceMatch ${config.title}] ${post.title}`;
+                                                                                const shareUrl = `${window.location.origin}/api/community/share_preview.php?post=${post.id}&type=${type}`;
+                                                                                const text = `[SpaceMatch ${t(config.titleKey)}] ${post.title}`;
                                                                                 const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
                                                                                 window.open(kakaoUrl, '_blank', 'width=500,height=600');
                                                                                 setShareMenuPostId(null);
+                                                                                // Increment share count
+                                                                                fetch(`${API_BASE}/community_posts.php?type=${type}&increment_share=${post.id}`, { credentials: 'include' }).catch(() => { });
                                                                             }}
                                                                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yellow-50 transition-colors group"
                                                                         >
@@ -1178,8 +1599,32 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                 </svg>
                                                                             </div>
                                                                             <div className="text-left">
-                                                                                <p className="text-sm font-bold text-gray-700">카카오톡</p>
-                                                                                <p className="text-[10px] text-gray-400">카카오톡으로 공유합니다</p>
+                                                                                <p className="text-sm font-bold text-gray-700">{t('kakaoTalk')}</p>
+                                                                                <p className="text-[10px] text-gray-400">{t('kakaoTalkDesc')}</p>
+                                                                            </div>
+                                                                        </button>
+
+                                                                        {/* X (Twitter) Share */}
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const shareUrl = `${window.location.origin}/api/community/share_preview.php?post=${post.id}&type=${type}`;
+                                                                                const text = `${post.title} - SpaceMatch ${t(config.titleKey)}`;
+                                                                                const hashtags = (post.keywords || []).slice(0, 3).join(',');
+                                                                                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}${hashtags ? `&hashtags=${encodeURIComponent(hashtags)}` : ''}`;
+                                                                                window.open(twitterUrl, '_blank', 'width=550,height=420');
+                                                                                setShareMenuPostId(null);
+                                                                                fetch(`${API_BASE}/community_posts.php?type=${type}&increment_share=${post.id}`, { credentials: 'include' }).catch(() => { });
+                                                                            }}
+                                                                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 transition-colors group"
+                                                                        >
+                                                                            <div className="w-8 h-8 flex items-center justify-center bg-gray-900 rounded-lg">
+                                                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
+                                                                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                                                                </svg>
+                                                                            </div>
+                                                                            <div className="text-left">
+                                                                                <p className="text-sm font-bold text-gray-700">{t('xTwitter')}</p>
+                                                                                <p className="text-[10px] text-gray-400">{t('xTwitterDesc')}</p>
                                                                             </div>
                                                                         </button>
 
@@ -1188,7 +1633,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                             <button
                                                                                 onClick={async () => {
                                                                                     const shareUrl = `${window.location.origin}${window.location.pathname}?post=${post.id}`;
-                                                                                    const shareText = `[SpaceMatch ${config.title}] ${post.title}`;
+                                                                                    const shareText = `[SpaceMatch ${t(config.titleKey)}] ${post.title}`;
                                                                                     try {
                                                                                         await navigator.share({ title: shareText, text: `${shareText}\n${post.content?.substring(0, 100)}...`, url: shareUrl });
                                                                                     } catch (e) { }
@@ -1200,8 +1645,8 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                     <ExternalLink size={16} className="text-blue-600" />
                                                                                 </div>
                                                                                 <div className="text-left">
-                                                                                    <p className="text-sm font-bold text-gray-700">다른 앱으로 공유</p>
-                                                                                    <p className="text-[10px] text-gray-400">시스템 공유 메뉴를 엽니다</p>
+                                                                                    <p className="text-sm font-bold text-gray-700">{t('shareOther')}</p>
+                                                                                    <p className="text-[10px] text-gray-400">{t('shareOtherDesc')}</p>
                                                                                 </div>
                                                                             </button>
                                                                         )}
@@ -1248,13 +1693,9 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             />
                                                         </div>
                                                     ) : (
-                                                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
-                                                            {post.content.split(/(@[\w\uAC00-\uD7A3]+)/g).map((part, i) =>
-                                                                /^@[\w\uAC00-\uD7A3]+$/.test(part)
-                                                                    ? <span key={i} className="text-indigo-600 font-bold bg-indigo-50 px-0.5 rounded">{part}</span>
-                                                                    : part
-                                                            )}
-                                                        </p>
+                                                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                                            <TranslatedText text={post.content} sourceLang={post.original_lang} as="p" />
+                                                        </div>
                                                     )}
 
                                                     {/* Post Photos */}
@@ -1281,14 +1722,14 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                     className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
                                                                 >
                                                                     <X size={12} />
-                                                                    취소
+                                                                    {t('cancel')}
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); handleEditPost(post.id); }}
                                                                     className="text-xs text-green-500 hover:text-green-700 flex items-center gap-1 transition-colors font-bold"
                                                                 >
                                                                     <Check size={12} />
-                                                                    수정 완료
+                                                                    {t('editDone')}
                                                                 </button>
                                                             </>
                                                         ) : (
@@ -1298,14 +1739,14 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                     className="text-xs text-blue-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
                                                                 >
                                                                     <Edit3 size={12} />
-                                                                    수정
+                                                                    {t('edit')}
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }}
                                                                     className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 transition-colors"
                                                                 >
                                                                     <Trash2 size={12} />
-                                                                    삭제
+                                                                    {t('delete')}
                                                                 </button>
                                                             </>
                                                         )}
@@ -1316,7 +1757,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                 <div className="mt-6 pt-5 border-t border-gray-100">
                                                     <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2 mb-4">
                                                         <MessageCircle size={16} />
-                                                        댓글 {commentCounts[post.id] > 0 && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{commentCounts[post.id]}</span>}
+                                                        {t('comment')} {commentCounts[post.id] > 0 && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{commentCounts[post.id]}</span>}
                                                     </h4>
 
                                                     {/* Comment Input */}
@@ -1334,7 +1775,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                 value={commentInput}
                                                                 onChange={e => setCommentInput(e.target.value)}
                                                                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitComment(post.id); } }}
-                                                                placeholder="댓글을 입력하세요.."
+                                                                placeholder={t('writeComment')}
                                                                 className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                                                                 onClick={e => e.stopPropagation()}
                                                             />
@@ -1366,11 +1807,12 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                             </div>
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                                                                    <span className="text-xs font-bold text-gray-800">{comment.user_name}</span>
+                                                                                    <span className="text-xs font-bold text-gray-800">{getDisplayName(comment, countryToLang(user?.country))}</span>
                                                                                     <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${cBadge.color}`}>{cBadge.label}</span>
                                                                                     <span className="text-[10px] text-gray-400">{formatDate(comment.created_at)}</span>
                                                                                 </div>
-                                                                                <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                                                                                <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap"><TranslatedText text={comment.content} sourceLang={comment.original_lang} /></p>
+                                                                                {comment.country && <CountryBadge country={comment.country} size="xs" className="mt-1" />}
                                                                                 <div className="flex items-center gap-3 mt-1">
                                                                                     <button
                                                                                         onClick={(e) => handleToggleCommentLike(e, post.id, comment.id)}
@@ -1380,18 +1822,18 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                         {comment.like_count > 0 && comment.like_count}
                                                                                     </button>
                                                                                     <button
-                                                                                        onClick={(e) => { e.stopPropagation(); setReplyingTo(replyingTo?.commentId === comment.id ? null : { commentId: comment.id, userName: comment.user_name }); setReplyInput(''); }}
+                                                                                        onClick={(e) => { e.stopPropagation(); setReplyingTo(replyingTo?.commentId === comment.id ? null : { commentId: comment.id, userName: getDisplayName(comment, countryToLang(user?.country)) }); setReplyInput(''); }}
                                                                                         className="text-[11px] text-gray-400 hover:text-indigo-500 font-medium flex items-center gap-1 transition-colors"
                                                                                     >
                                                                                         <CornerDownRight size={10} />
-                                                                                        답글</button>
+                                                                                        {t('reply')}</button>
                                                                                     {comment.can_delete && (
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleDeleteComment(post.id, comment.id); }}
                                                                                             className="text-[11px] text-gray-400 hover:text-red-500 font-medium flex items-center gap-1 transition-colors opacity-0 group-hover/comment:opacity-100"
                                                                                         >
                                                                                             <Trash2 size={10} />
-                                                                                            삭제
+                                                                                            {t('delete')}
                                                                                         </button>
                                                                                     )}
                                                                                 </div>
@@ -1406,7 +1848,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                     value={replyInput}
                                                                                     onChange={e => setReplyInput(e.target.value)}
                                                                                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitReply(post.id, comment.id); } }}
-                                                                                    placeholder={`@${replyingTo.userName} 에게 답글...`}
+                                                                                    placeholder={t('replyPlaceholder', { name: replyingTo.userName })}
                                                                                     className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                                                                                     onClick={e => e.stopPropagation()}
                                                                                     autoFocus
@@ -1443,7 +1885,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                             </div>
                                                                                             <div className="flex-1 min-w-0">
                                                                                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                                                                                    <span className="text-[11px] font-bold text-gray-800">{reply.user_name}</span>
+                                                                                                    <span className="text-[11px] font-bold text-gray-800">{getDisplayName(reply, countryToLang(user?.country))}</span>
                                                                                                     <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${rBadge.color}`}>{rBadge.label}</span>
                                                                                                     <span className="text-[10px] text-gray-400">{formatDate(reply.created_at)}</span>
                                                                                                 </div>
@@ -1462,7 +1904,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                                                             className="text-[10px] text-gray-400 hover:text-red-500 font-medium flex items-center gap-1 transition-colors opacity-0 group-hover/reply:opacity-100"
                                                                                                         >
                                                                                                             <Trash2 size={9} />
-                                                                                                            삭제</button>
+                                                                                                            {t('delete')}</button>
                                                                                                     )}
                                                                                                 </div>
                                                                                             </div>
@@ -1476,7 +1918,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             })}
                                                         </div>
                                                     ) : commentsMap[post.id] ? (
-                                                        <p className="text-xs text-gray-400 text-center py-2">아직 댓글이 없습니다. 첫 댓글을 남겨보세요</p>
+                                                        <p className="text-xs text-gray-400 text-center py-2">{t('noComments')}</p>
                                                     ) : (
                                                         <div className="flex justify-center py-3">
                                                             <div className="w-5 h-5 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin"></div>
@@ -1599,13 +2041,13 @@ const CommunityPage = ({ type = 'general' }) => {
                                                         profileData.user.role === 'seller' ? 'bg-green-50 text-green-700 border-green-100' :
                                                             'bg-purple-50 text-purple-700 border-purple-100'
                                                         }`}>
-                                                        {profileData.user.role === 'vendor' ? '벤더' : profileData.user.role === 'seller' ? '셀러' : profileData.user.role === 'superadmin' ? '최고관리자' : '관리자'}
+                                                        {profileData.user.role === 'vendor' ? t('roleVendor') : profileData.user.role === 'seller' ? t('roleSeller') : profileData.user.role === 'superadmin' ? t('roleSuperAdmin') : t('roleAdmin')}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar size={11} />
-                                                        가입일: {new Date(profileData.user.created_at).toLocaleDateString()}
+                                                        {t('joinDate')}: {new Date(profileData.user.created_at).toLocaleDateString()}
                                                     </span>
                                                     {(profileData.user.product_category || profileData.user.category) && (
                                                         <span className="flex items-center gap-1">
@@ -1622,18 +2064,18 @@ const CommunityPage = ({ type = 'general' }) => {
                                     <div className="grid grid-cols-3 gap-0 border-b border-gray-100">
                                         <div className="text-center py-4 border-r border-gray-50">
                                             <p className="text-lg font-extrabold text-gray-900">{profileData.community_stats?.post_count || 0}</p>
-                                            <p className="text-[10px] text-gray-400 font-medium">게시글</p>
+                                            <p className="text-[10px] text-gray-400 font-medium">{t('profilePosts')}</p>
                                         </div>
                                         <div className="text-center py-4 border-r border-gray-50">
                                             <p className="text-lg font-extrabold text-gray-900">{profileData.community_stats?.comment_count || 0}</p>
-                                            <p className="text-[10px] text-gray-400 font-medium">댓글</p>
+                                            <p className="text-[10px] text-gray-400 font-medium">{t('profileComments')}</p>
                                         </div>
                                         <div className="text-center py-4">
                                             <p className="text-lg font-extrabold text-gray-900">
                                                 {profileData.user.role === 'vendor' ? (profileData.stats?.total_venues || 0) : (profileData.stats?.total_applications || 0)}
                                             </p>
                                             <p className="text-[10px] text-gray-400 font-medium">
-                                                {profileData.user.role === 'vendor' ? '등록 베뉴' : '입점 활동'}
+                                                {profileData.user.role === 'vendor' ? t('registeredVenues') : t('applicationActivity')}
                                             </p>
                                         </div>
                                     </div>
@@ -1643,7 +2085,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                         <div className="p-5 border-b border-gray-100">
                                             <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
                                                 <ImagePlus size={14} className="text-indigo-500" />
-                                                판매 상품
+                                                {t('sellerProducts')}
                                             </h4>
                                             <div className="grid grid-cols-4 gap-2">
                                                 {profileData.seller_photos.map(photo => (
@@ -1660,7 +2102,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                         <div className="p-5 border-b border-gray-100">
                                             <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
                                                 <Store size={14} className="text-blue-500" />
-                                                등록된 베뉴
+                                                {t('registeredVenuesList')}
                                             </h4>
                                             <div className="space-y-2">
                                                 {profileData.venues.map(venue => (
@@ -1691,7 +2133,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                         <div className="p-5">
                                             <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
                                                 <ClipboardList size={14} className="text-green-500" />
-                                                활동 위치 (입점 지역)
+                                                {t('activityArea')}
                                             </h4>
                                             <div className="space-y-2">
                                                 {profileData.applications.map(app => (
@@ -1715,13 +2157,13 @@ const CommunityPage = ({ type = 'general' }) => {
                                         (!profileData.applications || profileData.applications.length === 0) &&
                                         (!profileData.seller_photos || profileData.seller_photos.length === 0)) && (
                                             <div className="p-8 text-center text-gray-400 text-sm">
-                                                아직 활동 지역이 없습니다.
+                                                {t('noActivityArea')}
                                             </div>
                                         )}
                                 </>
                             ) : (
                                 <div className="p-8 text-center text-gray-400 text-sm">
-                                    프로필 정보를 불러올 수 없습니다.
+                                    {t('profileLoadError')}
                                 </div>
                             )}
                         </div>
@@ -1744,10 +2186,10 @@ const CommunityPage = ({ type = 'general' }) => {
                             </div>
                             <div className="px-5 pb-5 flex gap-3">
                                 <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">
-                                    취소
+                                    {t('cancel')}
                                 </button>
                                 <button onClick={confirmModal.onConfirm} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors text-white ${confirmModal.type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'}`}>
-                                    {confirmModal.confirmLabel || '확인'}
+                                    {confirmModal.confirmLabel || t('confirm')}
                                 </button>
                             </div>
                         </div>
@@ -1768,7 +2210,29 @@ const CommunityPage = ({ type = 'general' }) => {
                     </div>
                 )
             }
-        </div>
+
+            {/* Floating Action Button (Write) */}
+            {
+                !showWriteForm && user && (
+                    <button
+                        onClick={() => setShowWriteForm(true)}
+                        className={`fixed bottom-8 right-8 w-14 h-14 ${config.buttonBg} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 hover:scale-110 active:scale-95`}
+                        title={t('writePost')}
+                    >
+                        <PenLine size={22} />
+                    </button>
+                )
+            }
+
+            {/* Heart burst animation CSS */}
+            <style>{`
+                @keyframes heartBurst {
+                    0% { transform: scale(0); opacity: 1; }
+                    50% { transform: scale(1.3); opacity: 0.8; }
+                    100% { transform: scale(1.5); opacity: 0; }
+                }
+            `}</style>
+        </div >
     );
 };
 

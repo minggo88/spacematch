@@ -10,7 +10,7 @@ session_start();
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(["success" => false, "message" => "로그인이 필요합니다."]);
+    echo json_encode(["success" => false, "message" => "Login required."]);
     exit;
 }
 
@@ -33,6 +33,20 @@ try {
     // Table might already exist
 }
 
+// Add original_lang column if not exists
+try {
+    $conn->query("SELECT original_lang FROM community_comments LIMIT 1");
+} catch (PDOException $e) {
+    $conn->exec("ALTER TABLE community_comments ADD COLUMN original_lang VARCHAR(5) DEFAULT NULL AFTER content");
+}
+
+// Add country column to users if not exists
+try {
+    $conn->query("SELECT country FROM users LIMIT 1");
+} catch (PDOException $e) {
+    $conn->exec("ALTER TABLE users ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER instagram");
+}
+
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['user_role'] ?? '';
 $is_admin = in_array($user_role, ['admin', 'superadmin']);
@@ -46,10 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     try {
-        $stmt = $conn->prepare("SELECT id, post_id, parent_id, user_id, user_name, user_role, profile_image, content, created_at 
-                                FROM community_comments 
-                                WHERE post_id = ? 
-                                ORDER BY created_at ASC");
+        $stmt = $conn->prepare("SELECT c.id, c.post_id, c.parent_id, c.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, u.profile_image, u.country, c.content, c.original_lang, c.created_at 
+                                FROM community_comments c
+                                JOIN users u ON c.user_id = u.id
+                                WHERE c.post_id = ? 
+                                ORDER BY c.created_at ASC");
         $stmt->execute([$post_id]);
         $allComments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -122,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $post_id = intval($data->post_id);
     $parent_id = isset($data->parent_id) ? intval($data->parent_id) : null;
     $content = htmlspecialchars(strip_tags(trim($data->content)));
+    $original_lang = isset($data->original_lang) ? trim($data->original_lang) : 'ko';
 
     // Verify post exists
     $postCheck = $conn->prepare("SELECT id FROM community_posts WHERE id = ?");
@@ -156,8 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $stmt = $conn->prepare("INSERT INTO community_comments (post_id, parent_id, user_id, user_name, user_role, profile_image, content) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$post_id, $parent_id, $user_id, $user_name, $user_role, $profile_image, $content]);
+        $stmt = $conn->prepare("INSERT INTO community_comments (post_id, parent_id, user_id, user_name, user_role, profile_image, content, original_lang) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$post_id, $parent_id, $user_id, $user_name, $user_role, $profile_image, $content, $original_lang]);
         $newId = $conn->lastInsertId();
 
         // [NOTIFICATION] Notify post author and parent comment author

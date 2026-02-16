@@ -43,7 +43,33 @@ $event_start = isset($_POST['event_start']) && $_POST['event_start'] !== '' ? $_
 $event_end = isset($_POST['event_end']) && $_POST['event_end'] !== '' ? $_POST['event_end'] : null;
 $event_periods = isset($_POST['event_periods']) ? $_POST['event_periods'] : null;
 $avg_sales = isset($_POST['avg_sales']) ? htmlspecialchars(strip_tags($_POST['avg_sales'])) : '';
+$sales_unit = isset($_POST['sales_unit']) ? htmlspecialchars(strip_tags($_POST['sales_unit'])) : 'monthly';
 $popular_categories = isset($_POST['popular_categories']) ? $_POST['popular_categories'] : '[]';
+$target_customers = isset($_POST['target_customers']) ? $_POST['target_customers'] : '[]';
+
+// Handle attachment file uploads
+$existing_attachments = isset($_POST['existing_attachments']) ? $_POST['existing_attachments'] : [];
+if (!is_array($existing_attachments))
+    $existing_attachments = [];
+$attachment_paths = $existing_attachments;
+if (isset($_FILES['attachments']) && is_array($_FILES['attachments']['name'])) {
+    $attachDir = __DIR__ . '/../../uploads/attachments/';
+    if (!is_dir($attachDir)) {
+        mkdir($attachDir, 0777, true);
+    }
+    for ($i = 0; $i < count($_FILES['attachments']['name']); $i++) {
+        if ($_FILES['attachments']['error'][$i] === UPLOAD_ERR_OK) {
+            $origName = basename($_FILES['attachments']['name'][$i]);
+            $ext = pathinfo($origName, PATHINFO_EXTENSION);
+            $uniqueName = 'att_' . time() . '_' . $i . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+            $destPath = $attachDir . $uniqueName;
+            if (move_uploaded_file($_FILES['attachments']['tmp_name'][$i], $destPath)) {
+                $attachment_paths[] = 'uploads/attachments/' . $uniqueName;
+            }
+        }
+    }
+}
+$attachments_json = json_encode($attachment_paths);
 
 // Auto-extract region from address if not provided
 if (empty($region) && !empty($location)) {
@@ -151,9 +177,26 @@ try {
     if (!$col_avg->fetch()) {
         $conn->exec("ALTER TABLE venues ADD COLUMN avg_sales VARCHAR(100) DEFAULT ''");
     }
+    // Auto-migrate: add sales_unit column
+    $col_su = $conn->query("SHOW COLUMNS FROM venues LIKE 'sales_unit'");
+    if (!$col_su->fetch()) {
+        $conn->exec("ALTER TABLE venues ADD COLUMN sales_unit VARCHAR(20) DEFAULT 'monthly'");
+    }
     $col_pop = $conn->query("SHOW COLUMNS FROM venues LIKE 'popular_categories'");
     if (!$col_pop->fetch()) {
         $conn->exec("ALTER TABLE venues ADD COLUMN popular_categories TEXT DEFAULT NULL");
+    }
+
+    // Auto-migrate: add target_customers column
+    $col_tc = $conn->query("SHOW COLUMNS FROM venues LIKE 'target_customers'");
+    if (!$col_tc->fetch()) {
+        $conn->exec("ALTER TABLE venues ADD COLUMN target_customers TEXT DEFAULT NULL");
+    }
+
+    // Auto-migrate: add attachments column
+    $col_att = $conn->query("SHOW COLUMNS FROM venues LIKE 'attachments'");
+    if (!$col_att->fetch()) {
+        $conn->exec("ALTER TABLE venues ADD COLUMN attachments TEXT DEFAULT NULL");
     }
 
     // Check for lat/lng columns
@@ -299,7 +342,7 @@ try {
         . ($has_max_sellers ? " max_sellers = :max_sellers," : "")
         . ($has_region ? " region = :region," : "")
         . " recruitment_start = :recruitment_start, recruitment_end = :recruitment_end, event_start = :event_start, event_end = :event_end, event_periods = :event_periods,"
-        . " avg_sales = :avg_sales, popular_categories = :popular_categories,"
+        . " avg_sales = :avg_sales, sales_unit = :sales_unit, popular_categories = :popular_categories, target_customers = :target_customers, attachments = :attachments,"
         . " latitude = :latitude, longitude = :longitude," .
         "    images = :images
               WHERE id = :id";
@@ -339,7 +382,10 @@ try {
     $stmt->bindParam(":event_end", $event_end);
     $stmt->bindParam(":event_periods", $event_periods);
     $stmt->bindParam(":avg_sales", $avg_sales);
+    $stmt->bindParam(":sales_unit", $sales_unit);
     $stmt->bindParam(":popular_categories", $popular_categories);
+    $stmt->bindParam(":target_customers", $target_customers);
+    $stmt->bindParam(":attachments", $attachments_json);
 
     if ($stmt->execute()) {
         echo json_encode(array("success" => true, "message" => "베뉴 정보가 수정되었습니다."));

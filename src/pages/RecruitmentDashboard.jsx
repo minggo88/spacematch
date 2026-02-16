@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import PublicNav from '../components/PublicNav';
 import PublicFooter from '../components/PublicFooter';
+import Toast from '../components/Toast';
 import {
     Flame, MapPin, Calendar, Store, ArrowRight, Search,
-    Filter, X, Clock, ChevronDown, Star,
+    Filter, X, Clock, ChevronDown, ChevronRight, Star,
     TrendingUp, Building, Users, Sparkles, Eye, FolderOpen, Heart, Share2, Link2, Check
 } from 'lucide-react';
 
 const API_BASE = '/api';
 
-const TYPE_LABELS = {
-    popup: '팝업스토어', gallery: '갤러리', cafe: '카페',
-    showroom: '쇼룸', fleamarket: '플리마켓', store: '매장'
-};
+// TYPE_LABELS moved into component to use t()
 
 // Smart image path helper
 const getImgSrc = (imgPath) => {
@@ -24,15 +23,10 @@ const getImgSrc = (imgPath) => {
     return `/${imgPath}`;
 };
 
-const getPricingUnitLabel = (unit) => {
-    switch (unit) {
-        case 'weekly': return '/주';
-        case 'monthly': return '/월';
-        default: return '/일';
-    }
-};
+// getPricingUnitLabel moved into component to use t()
 
 const RecruitmentDashboard = () => {
+    const { t } = useTranslation('venue');
     const [data, setData] = useState({ hot_top: [], hot_mid: [], category_featured: {}, all: [] });
     const [allVenues, setAllVenues] = useState([]);
     const [trendingVenues, setTrendingVenues] = useState([]);
@@ -42,8 +36,27 @@ const RecruitmentDashboard = () => {
     const [filterLocation, setFilterLocation] = useState('all');
     const [priceRange, setPriceRange] = useState('all');
     const [selectedVenue, setSelectedVenue] = useState(null);
+    const [toast, setToast] = useState(null);
     const { user } = useAuth();
     const location = useLocation();
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
+    const TYPE_LABELS = {
+        popup: t('spaceType.popup'), gallery: t('spaceType.gallery'), cafe: t('spaceType.cafe'),
+        showroom: t('spaceType.showroom'), fleamarket: t('spaceType.fleamarket'), store: t('spaceType.store')
+    };
+
+    const getPricingUnitLabel = (unit) => {
+        switch (unit) {
+            case 'weekly': return t('perWeek');
+            case 'monthly': return t('perMonth');
+            default: return t('perDay');
+        }
+    };
 
     useEffect(() => { window.scrollTo(0, 0); fetchData(); fetchAllVenues(); fetchTrendingVenues(); }, []);
 
@@ -68,7 +81,7 @@ const RecruitmentDashboard = () => {
                 setData({ hot_top: json.hot_top || [], hot_mid: json.hot_mid || [], category_featured: json.category_featured || {}, all: json.all || [] });
             }
         } catch (err) {
-            console.error('모집 정보 로드 실패:', err);
+            console.error('Recruitment data load failed:', err);
         } finally {
             setLoading(false);
         }
@@ -85,7 +98,7 @@ const RecruitmentDashboard = () => {
                 setAllVenues(json.venues);
             }
         } catch (err) {
-            console.error('전체 공간 로드 실패:', err);
+            console.error('Venue list load failed:', err);
         }
     };
 
@@ -97,14 +110,14 @@ const RecruitmentDashboard = () => {
                 setTrendingVenues(json.trending);
             }
         } catch (err) {
-            console.error('급상승 공간 로드 실패:', err);
+            console.error('Trending venues load failed:', err);
         }
     };
 
     const getDday = (deadline) => {
         if (!deadline) return null;
         const diff = Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
-        if (diff < 0) return { text: '마감', color: 'bg-gray-500', urgent: false };
+        if (diff < 0) return { text: t('closed'), color: 'bg-gray-500', urgent: false };
         if (diff === 0) return { text: 'D-DAY', color: 'bg-red-500', urgent: true };
         if (diff <= 3) return { text: `D-${diff}`, color: 'bg-red-500', urgent: true };
         if (diff <= 7) return { text: `D-${diff}`, color: 'bg-orange-500', urgent: false };
@@ -174,11 +187,6 @@ const RecruitmentDashboard = () => {
                     )}
                 </div>
                 <div className="p-4 flex flex-col gap-2">
-                    {/* 1. Vendor Name */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                        <Building size={12} className="flex-shrink-0" />
-                        <span className="truncate font-medium">{venue.owner_name || '공간 제공자'}</span>
-                    </div>
                     {/* 2. Type Label */}
                     <span className="inline-flex items-center gap-1 self-start px-2.5 py-0.5 bg-orange-50 text-orange-600 text-xs font-bold rounded-full border border-orange-100">
                         <Store size={11} />{typeLabel}
@@ -188,13 +196,13 @@ const RecruitmentDashboard = () => {
                     {/* 4. Location */}
                     <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <MapPin size={12} className="flex-shrink-0 text-gray-400" />
-                        <span className="truncate">{venue.location?.split(' ').slice(0, 2).join(' ') || '위치 미정'}</span>
+                        <span className="truncate">{venue.location?.split(' ').slice(0, 2).join(' ') || t('locationTBD')}</span>
                     </div>
                     {/* 5. Deadline */}
                     {venue.recruitment_deadline && (
                         <div className="flex items-center gap-1.5 text-xs text-gray-500">
                             <Clock size={12} className="flex-shrink-0 text-gray-400" />
-                            <span>모집 마감: {venue.recruitment_deadline}</span>
+                            <span>{t('recruitmentDeadline', { date: venue.recruitment_deadline })}</span>
                             {dday && <span className={`ml-auto px-1.5 py-0.5 ${dday.color} text-white text-[10px] font-bold rounded`}>{dday.text}</span>}
                         </div>
                     )}
@@ -206,7 +214,7 @@ const RecruitmentDashboard = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold text-center hover:bg-indigo-700 transition-colors"
                             >
-                                참여 신청
+                                {t('apply')}
                             </Link>
                         ) : (
                             <Link
@@ -214,13 +222,13 @@ const RecruitmentDashboard = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold text-center hover:bg-indigo-700 transition-colors"
                             >
-                                참여 신청
+                                {t('apply')}
                             </Link>
                         )}
                         <button
                             onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
                             className={`p-2 rounded-lg border transition-colors ${liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-red-400 hover:border-red-200'}`}
-                            title="좋아요"
+                            title={t('like')}
                         >
                             <Heart size={14} fill={liked ? 'currentColor' : 'none'} />
                         </button>
@@ -228,10 +236,10 @@ const RecruitmentDashboard = () => {
                             onClick={async (e) => {
                                 e.stopPropagation();
                                 const shareUrl = `${window.location.origin}${window.location.pathname}?venue=${venue.venue_id || venue.id}`;
-                                try { await navigator.clipboard.writeText(shareUrl); alert('링크가 복사되었습니다 📋'); } catch { }
+                                try { await navigator.clipboard.writeText(shareUrl); showToast(t('linkCopied')); } catch { }
                             }}
                             className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-400 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
-                            title="공유하기"
+                            title={t('share')}
                         >
                             <Share2 size={14} />
                         </button>
@@ -259,7 +267,7 @@ const RecruitmentDashboard = () => {
                     )}
                     <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2.5 py-1 bg-violet-600 text-white rounded-lg text-xs font-bold shadow">
                         <TrendingUp size={11} />
-                        급상승
+                        {t('trending')}
                     </div>
                 </div>
                 <div className="p-4">
@@ -309,7 +317,7 @@ const RecruitmentDashboard = () => {
                     {/* Price badge */}
                     <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg text-sm font-bold text-gray-900 shadow-lg">
                         {Number(venue.price) === 0 ? (
-                            <span className="text-emerald-600">무료</span>
+                            <span className="text-emerald-600">{t('free')}</span>
                         ) : (
                             <>₩{parseInt(venue.price).toLocaleString()}<span className="text-gray-500 font-normal text-xs ml-1">{getPricingUnitLabel(venue.pricing_unit)}</span></>
                         )}
@@ -317,11 +325,6 @@ const RecruitmentDashboard = () => {
                 </div>
                 {/* Content */}
                 <div className="p-4 flex-1 flex flex-col gap-1.5">
-                    {/* 1. Vendor Name */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                        <Building size={12} className="flex-shrink-0" />
-                        <span className="truncate font-medium">{venue.owner_name || '공간 제공자'}</span>
-                    </div>
                     {/* 2. Type Label */}
                     <span className="inline-flex items-center gap-1 self-start px-2.5 py-0.5 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full border border-indigo-100">
                         <Store size={11} />{typeLabel}
@@ -331,13 +334,13 @@ const RecruitmentDashboard = () => {
                     {/* 4. Location */}
                     <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <MapPin size={12} className="flex-shrink-0 text-gray-400" />
-                        <span className="line-clamp-1">{venue.location || '위치 미정'}</span>
+                        <span className="line-clamp-1">{venue.location || t('locationTBD')}</span>
                     </div>
                     {/* 5. Recruitment Deadline */}
                     {venue.recruitment_deadline && (
                         <div className="flex items-center gap-1.5 text-xs text-gray-500">
                             <Clock size={12} className="flex-shrink-0 text-gray-400" />
-                            <span>모집 마감: {venue.recruitment_deadline}</span>
+                            <span>{t('recruitmentDeadline', { date: venue.recruitment_deadline })}</span>
                             {dday && <span className={`ml-auto px-1.5 py-0.5 ${dday.color} text-white text-[10px] font-bold rounded`}>{dday.text}</span>}
                         </div>
                     )}
@@ -351,7 +354,7 @@ const RecruitmentDashboard = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold text-center hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all"
                             >
-                                참여 신청하기
+                                {t('applyForEntry')}
                             </Link>
                         ) : (
                             <Link
@@ -359,13 +362,13 @@ const RecruitmentDashboard = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold text-center hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all"
                             >
-                                참여 신청하기
+                                {t('applyForEntry')}
                             </Link>
                         )}
                         <button
                             onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
                             className={`p-2.5 rounded-xl border transition-all ${liked ? 'bg-red-50 border-red-200 text-red-500 shadow-sm' : 'bg-white border-gray-200 text-gray-400 hover:text-red-400 hover:border-red-200'}`}
-                            title="좋아요"
+                            title={t('like')}
                         >
                             <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
                         </button>
@@ -373,10 +376,10 @@ const RecruitmentDashboard = () => {
                             onClick={async (e) => {
                                 e.stopPropagation();
                                 const shareUrl = `${window.location.origin}${window.location.pathname}?venue=${venue.id || venue.venue_id}`;
-                                try { await navigator.clipboard.writeText(shareUrl); alert('링크가 복사되었습니다 📋'); } catch { }
+                                try { await navigator.clipboard.writeText(shareUrl); showToast(t('linkCopied')); } catch { }
                             }}
                             className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-indigo-500 hover:border-indigo-200 transition-all"
-                            title="공유하기"
+                            title={t('share')}
                         >
                             <Share2 size={16} />
                         </button>
@@ -429,11 +432,11 @@ const RecruitmentDashboard = () => {
                         <div className="space-y-2 mb-5">
                             <p className="flex items-center gap-2 text-sm text-gray-600">
                                 <MapPin size={16} className="text-gray-400 flex-shrink-0" />
-                                {venue.location || '위치 미정'}
+                                {venue.location || t('locationTBD')}
                             </p>
                             <p className="flex items-center gap-2 text-sm text-gray-600">
                                 <Store size={16} className="text-gray-400 flex-shrink-0" />
-                                {TYPE_LABELS[venue.type] || venue.type || '유형 미정'}
+                                {TYPE_LABELS[venue.type] || venue.type || t('typeTBD')}
                             </p>
                             {venue.size && (
                                 <p className="flex items-center gap-2 text-sm text-gray-600">
@@ -450,13 +453,13 @@ const RecruitmentDashboard = () => {
                             {parseFloat(venue.commission_rate) > 0 && (
                                 <p className="flex items-center gap-2 text-sm text-gray-600">
                                     <span className="text-gray-400 flex-shrink-0 font-bold text-sm"></span>
-                                    수수료율 {venue.commission_rate}%
+                                    {t('commissionRate', { rate: venue.commission_rate })}
                                 </p>
                             )}
                             {venue.recruitment_deadline && (
                                 <p className="flex items-center gap-2 text-sm text-gray-600">
                                     <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-                                    모집 마감: {venue.recruitment_deadline}
+                                    {t('recruitmentDeadline', { date: venue.recruitment_deadline })}
                                 </p>
                             )}
                         </div>
@@ -474,31 +477,20 @@ const RecruitmentDashboard = () => {
                             const isFull = max > 0 && approved >= max;
                             return (
                                 <div className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl mb-5 text-sm font-bold ${isFull ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
-                                    <span className="flex items-center gap-1.5"><Users size={14} /> 입점 현황</span>
-                                    <span>{approved}{max > 0 ? ` / ${max}명` : ''}{isFull && <span className="ml-1.5 text-[10px] bg-red-100 px-1.5 py-0.5 rounded-full">마감</span>}</span>
+                                    <span className="flex items-center gap-1.5"><Users size={14} /> {t('occupancy')}</span>
+                                    <span>{approved}{max > 0 ? ` / ${max}` : ''}{isFull && <span className="ml-1.5 text-[10px] bg-red-100 px-1.5 py-0.5 rounded-full">{t('full')}</span>}</span>
                                 </div>
                             );
                         })()}
 
-                        {/* Owner Info */}
-                        {venue.owner_name && (
-                            <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl mb-5">
-                                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold">
-                                    {venue.owner_name.charAt(0)}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900">{venue.owner_name}</p>
-                                    <p className="text-xs text-gray-500">공간 제공자</p>
-                                </div>
-                            </div>
-                        )}
+
 
                         <div className="flex gap-3">
                             {/* Share Button */}
                             <button
                                 onClick={async () => {
                                     const shareUrl = `${window.location.origin}${window.location.pathname}?venue=${venue.id}`;
-                                    const shareText = `[SpaceMatch] ${venue.name}\n📍 ${venue.location || '위치 미정'}`;
+                                    const shareText = `[SpaceMatch] ${venue.name}\n📍 ${venue.location || t('locationTBD')}`;
                                     if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
                                         try {
                                             await navigator.share({ title: `SpaceMatch - ${venue.name}`, text: shareText, url: shareUrl });
@@ -506,7 +498,7 @@ const RecruitmentDashboard = () => {
                                     } else {
                                         try {
                                             await navigator.clipboard.writeText(shareUrl);
-                                            alert('링크가 복사되었습니다 📋');
+                                            showToast(t('linkCopied'));
                                         } catch (e) {
                                             const ta = document.createElement('textarea');
                                             ta.value = shareUrl;
@@ -514,15 +506,15 @@ const RecruitmentDashboard = () => {
                                             ta.select();
                                             document.execCommand('copy');
                                             document.body.removeChild(ta);
-                                            alert('링크가 복사되었습니다 📋');
+                                            showToast(t('linkCopied'));
                                         }
                                     }
                                 }}
                                 className="px-4 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition-colors text-sm flex items-center gap-2"
-                                title="공유하기"
+                                title={t('share')}
                             >
                                 <Share2 size={16} />
-                                공유
+                                {t('share')}
                             </button>
 
                             {user ? (
@@ -530,15 +522,15 @@ const RecruitmentDashboard = () => {
                                     to={user.role === 'seller' ? '/seller' : user.role === 'vendor' ? '/vendor' : '/admin'}
                                     className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-center hover:bg-indigo-700 transition-colors text-sm"
                                 >
-                                    입점 신청하기
+                                    {t('applyForEntry')}
                                 </Link>
                             ) : (
                                 <Link to="/login" className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-center hover:bg-indigo-700 transition-colors text-sm">
-                                    로그인하고 신청하기
+                                    {t('loginAndApply')}
                                 </Link>
                             )}
                             <button onClick={onClose} className="px-5 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors text-sm">
-                                닫기
+                                {t('close')}
                             </button>
                         </div>
                     </div>
@@ -573,11 +565,11 @@ const RecruitmentDashboard = () => {
                         FIND YOUR SPACE
                     </div>
                     <h1 className="text-3xl md:text-5xl font-black text-white mb-3 md:mb-4 leading-tight">
-                        당신 브랜드에 꼭 맞는
+                        {t('recruitment.heroTitle1')}
                         <br />
-                        <span className="bg-gradient-to-r from-orange-300 to-amber-300 bg-clip-text text-transparent">특별한 공간</span>을 찾아보세요</h1>
+                        <span className="bg-gradient-to-r from-orange-300 to-amber-300 bg-clip-text text-transparent">{t('recruitment.heroTitle2')}</span>{t('recruitment.heroTitle3')}</h1>
                     <p className="text-sm md:text-lg text-white/60 max-w-xl mx-auto">
-                        팝업스토어, 갤러리, 쇼룸 등 다양한 공간을 브랜드와 매칭해드립니다.
+                        {t('recruitment.heroDesc')}
                     </p>
                 </div>
             </section>
@@ -590,9 +582,9 @@ const RecruitmentDashboard = () => {
                         <div className="flex items-center gap-3 mb-5">
                             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl">
                                 <Flame size={18} />
-                                <h2 className="text-lg font-black">핫한 플레이스</h2>
+                                <h2 className="text-lg font-black">{t('recruitment.hotPlaces')}</h2>
                             </div>
-                            <p className="text-sm text-gray-400 font-medium hidden md:block">지금 가장 주목받는 인기 공간</p>
+                            <p className="text-sm text-gray-400 font-medium hidden md:block">{t('recruitment.hotPlacesDesc')}</p>
                             <div className="flex-1 h-px bg-gradient-to-r from-orange-200 to-transparent" />
                         </div>
                         <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-thin">
@@ -609,9 +601,9 @@ const RecruitmentDashboard = () => {
                         <div className="flex items-center gap-3 mb-5">
                             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl">
                                 <TrendingUp size={18} />
-                                <h2 className="text-lg font-black">급상승 공간</h2>
+                                <h2 className="text-lg font-black">{t('recruitment.trendingSpaces')}</h2>
                             </div>
-                            <p className="text-sm text-gray-400 font-medium hidden md:block">새롭게 등록되어 떠오르는 공간</p>
+                            <p className="text-sm text-gray-400 font-medium hidden md:block">{t('recruitment.trendingDesc')}</p>
                             <div className="flex-1 h-px bg-gradient-to-r from-violet-200 to-transparent" />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -627,7 +619,7 @@ const RecruitmentDashboard = () => {
                     <div className="flex items-center gap-3 mb-5">
                         <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl">
                             <Eye size={18} />
-                            <h2 className="text-lg font-black">모든 공간</h2>
+                            <h2 className="text-lg font-black">{t('recruitment.allSpaces')}</h2>
                         </div>
                         <span className="text-sm text-gray-400 font-medium">{filteredVenues.length}</span>
                         <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
@@ -641,7 +633,7 @@ const RecruitmentDashboard = () => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="찾으시는 공간이나 베뉴 이름을 입력하세요.."
+                                placeholder={t('searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-14 pr-4 py-3.5 border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-transparent text-gray-700 placeholder-gray-400 font-medium"
@@ -652,12 +644,12 @@ const RecruitmentDashboard = () => {
                                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-indigo-600 transition-colors" size={16} />
                                 <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
                                     className="pl-10 pr-8 py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all min-w-[140px]">
-                                    <option value="all">모든 공간 타입</option>
-                                    <option value="popup">팝업스토어</option>
-                                    <option value="fleamarket">플리마켓</option>
-                                    <option value="gallery">갤러리</option>
-                                    <option value="cafe">카페/레스토랑</option>
-                                    <option value="showroom">쇼룸</option>
+                                    <option value="all">{t('recruitment.allTypes')}</option>
+                                    <option value="popup">{t('spaceType.popup')}</option>
+                                    <option value="fleamarket">{t('spaceType.fleamarket')}</option>
+                                    <option value="gallery">{t('spaceType.gallery')}</option>
+                                    <option value="cafe">{t('spaceType.cafe')}</option>
+                                    <option value="showroom">{t('spaceType.showroom')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                             </div>
@@ -665,17 +657,17 @@ const RecruitmentDashboard = () => {
                                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-indigo-600 transition-colors" size={16} />
                                 <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}
                                     className="pl-10 pr-8 py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all min-w-[140px]">
-                                    <option value="all">모든 지역</option>
-                                    <option value="서울특별시">서울</option>
-                                    <option value="경기도">경기</option>
-                                    <option value="인천광역시">인천</option>
-                                    <option value="대전광역시">대전</option>
-                                    <option value="대구광역시">대구</option>
-                                    <option value="광주광역시">광주</option>
-                                    <option value="울산광역시">울산</option>
-                                    <option value="부산광역시">부산</option>
-                                    <option value="제주특별자치도">제주</option>
-                                    <option value="강원도">강원</option>
+                                    <option value="all">{t('recruitment.allRegions')}</option>
+                                    <option value="서울특별시">{t('recruitment.regions.seoul')}</option>
+                                    <option value="경기도">{t('recruitment.regions.gyeonggi')}</option>
+                                    <option value="인천광역시">{t('recruitment.regions.incheon')}</option>
+                                    <option value="대전광역시">{t('recruitment.regions.daejeon')}</option>
+                                    <option value="대구광역시">{t('recruitment.regions.daegu')}</option>
+                                    <option value="광주광역시">{t('recruitment.regions.gwangju')}</option>
+                                    <option value="울산광역시">{t('recruitment.regions.ulsan')}</option>
+                                    <option value="부산광역시">{t('recruitment.regions.busan')}</option>
+                                    <option value="제주특별자치도">{t('recruitment.regions.jeju')}</option>
+                                    <option value="강원도">{t('recruitment.regions.gangwon')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                             </div>
@@ -683,10 +675,10 @@ const RecruitmentDashboard = () => {
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-serif"></span>
                                 <select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}
                                     className="pl-9 pr-8 py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all min-w-[140px]">
-                                    <option value="all">모든 가격대</option>
-                                    <option value="low">10만원 이하</option>
-                                    <option value="mid">10~30만원</option>
-                                    <option value="high">30만원 이상</option>
+                                    <option value="all">{t('recruitment.allPrices')}</option>
+                                    <option value="low">{t('recruitment.under100k')}</option>
+                                    <option value="mid">{t('recruitment.range100to300k')}</option>
+                                    <option value="high">{t('recruitment.over300k')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                             </div>
@@ -703,8 +695,8 @@ const RecruitmentDashboard = () => {
                                 <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-300">
                                     <Search size={40} />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">조건에 맞는 공간이 없어요</h3>
-                                <p className="text-gray-500">다른 조건이나 필터를 시도해보세요!</p>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">{t('recruitment.noResults')}</h3>
+                                <p className="text-gray-500">{t('recruitment.tryDifferent')}</p>
                             </div>
                         )}
                     </div>
@@ -716,6 +708,7 @@ const RecruitmentDashboard = () => {
                 <VenueDetailModal venue={selectedVenue} onClose={() => setSelectedVenue(null)} />
             )}
 
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             <PublicFooter />
         </div>
     );

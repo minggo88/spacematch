@@ -10,7 +10,7 @@ session_start();
 // Admin only
 if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin'])) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => '관리자 권한이 필요합니다.']);
+    echo json_encode(['success' => false, 'message' => 'Admin privileges required.']);
     exit;
 }
 
@@ -75,7 +75,7 @@ try {
     $checkStmt = $conn->prepare("SELECT id FROM venues WHERE id = ?");
     $checkStmt->execute([$venue_id]);
     if (!$checkStmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => '해당 베뉴를 찾을 수 없습니다.']);
+        echo json_encode(['success' => false, 'message' => 'Venue not found.']);
         exit;
     }
 

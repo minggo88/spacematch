@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Lock, Building, Phone, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { User, Mail, Lock, Building, Phone, AlertCircle, Globe, Home } from 'lucide-react';
 import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
 import KeywordSelector from '../components/KeywordSelector';
 import {
@@ -13,13 +14,16 @@ import {
 const SignupVendor = () => {
     const navigate = useNavigate();
     const { signup } = useAuth();
+    const { t } = useTranslation('auth');
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         realName: '',
         name: '',
+        nameEn: '',
         businessNumber: '',
         phone: '',
+        country: 'ko',
         role: 'vendor',
         keywords: []
     });
@@ -72,12 +76,12 @@ const SignupVendor = () => {
         setTouched({ realName: true, name: true, businessNumber: true, phone: true, email: true, password: true });
 
         if (Object.keys(errors).length > 0) {
-            setError('입력 정보를 다시 확인해주세요.');
+            setError(t('formValidationError'));
             return;
         }
 
         if (!isRequiredAgreed(agreements, 'vendor')) {
-            setError('필수 약관에 모두 동의해야 가입이 가능합니다.');
+            setError(t('termsRequired'));
             return;
         }
 
@@ -99,24 +103,24 @@ const SignupVendor = () => {
                     <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Building className="text-amber-600" size={36} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-3">가입 완료!</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('signupDone')}</h2>
                     <p className="text-gray-600 mb-2">
-                        벤더 회원가입이 성공적으로 완료되었습니다.
+                        {t('vendorSignupDone')}
                     </p>
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                         <p className="text-amber-800 font-semibold text-sm">
-                            ⏳ 관리자 승인 대기 중
+                            ⏳ {t('pendingApproval')}
                         </p>
                         <p className="text-amber-700 text-sm mt-1">
-                            관리자의 승인이 완료되면 로그인할 수 있습니다.<br />
-                            승인 완료 시 알림이 전송됩니다.
+                            {t('approvalMessage')}<br />
+                            {t('approvalNotify')}
                         </p>
                     </div>
                     <Link
                         to="/login"
                         className="inline-block px-8 py-3 bg-primary text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors shadow-md"
                     >
-                        로그인 페이지로 이동
+                        {t('goToLoginPage')}
                     </Link>
                 </div>
             </div>
@@ -135,41 +139,41 @@ const SignupVendor = () => {
     };
 
     const inputClass = (name) =>
-        `w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${touched[name] && fieldErrors[name]
-            ? 'border-red-400 focus:ring-red-200 bg-red-50/30'
+        `w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-colors bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${touched[name] && fieldErrors[name]
+            ? 'border-red-400 focus:ring-red-200 dark:border-red-500 dark:focus:ring-red-800 bg-red-50/30 dark:bg-red-900/20'
             : touched[name] && !fieldErrors[name] && formData[name]
-                ? 'border-green-400 focus:ring-green-200'
-                : 'border-gray-200 focus:ring-primary'
+                ? 'border-green-400 focus:ring-green-200 dark:border-green-500 dark:focus:ring-green-800'
+                : 'border-gray-200 dark:border-gray-600 focus:ring-primary'
         }`;
 
     const hasFormErrors = Object.values(fieldErrors).some(e => e);
     const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'vendor');
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-secondary py-10 px-4">
-            <div className="w-full max-w-lg p-6 md:p-8 bg-white rounded-xl shadow-lg">
+        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900 py-10 px-4">
+            <div className="w-full max-w-lg p-6 md:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
-                    <p className="text-gray-500 mt-2">벤더(공간 호스트)로 시작하기</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">{t('vendorSubtitle')}</p>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm flex items-center gap-2">
+                    <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm flex items-center gap-2">
                         <AlertCircle size={16} />
                         {error}
                     </div>
                 )}
 
-                <div className="mb-5 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-blue-700 text-xs font-medium">
-                        ℹ️ 벤더 가입 후 관리자 승인이 필요합니다. 승인이 완료되면 로그인할 수 있습니다.
+                <div className="mb-5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <p className="text-blue-700 dark:text-blue-300 text-xs font-medium">
+                        ℹ️ {t('vendorApprovalNotice')}
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">실명 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('realName')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -179,13 +183,13 @@ const SignupVendor = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     className={inputClass('realName')}
-                                    placeholder="홍길동"
+                                    placeholder={t('namePlaceholder')}
                                 />
                             </div>
                             <FieldError name="realName" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">업체명 (호스트명) <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('companyHostName')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -195,7 +199,7 @@ const SignupVendor = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     className={inputClass('name')}
-                                    placeholder="업체명 또는 호스트명"
+                                    placeholder={t('companyPlaceholder')}
                                 />
                             </div>
                             <FieldError name="name" />
@@ -204,7 +208,7 @@ const SignupVendor = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">사업자등록번호 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('businessNumber')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -221,7 +225,7 @@ const SignupVendor = () => {
                             <FieldError name="businessNumber" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">연락처 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -240,7 +244,7 @@ const SignupVendor = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">이메일 <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('email')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
@@ -258,7 +262,7 @@ const SignupVendor = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('password')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
@@ -269,10 +273,52 @@ const SignupVendor = () => {
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 className={inputClass('password')}
-                                placeholder="8자 이상 입력"
+                                placeholder={t('passwordPlaceholder')}
                             />
                         </div>
                         <FieldError name="password" />
+                    </div>
+
+                    {/* Country Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('country')} <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <select
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 appearance-none"
+                            >
+                                <option value="ko">🇰🇷 대한민국 (Korea)</option>
+                                <option value="vi">🇻🇳 Việt Nam</option>
+                                <option value="ja">🇯🇵 日本 (Japan)</option>
+                                <option value="en">🇺🇸 United States</option>
+                                <option value="en-GB">🇬🇧 United Kingdom</option>
+                                <option value="en-CA">🇨🇦 Canada (English)</option>
+                                <option value="fr-CA">🇨🇦 Canada (Français)</option>
+                                <option value="th">🇹🇭 ประเทศไทย (Thailand)</option>
+                                <option value="km">🇰🇭 កម្ពុជា (Cambodia)</option>
+                                <option value="ru">🇷🇺 Россия (Russia)</option>
+                                <option value="uk">🇺🇦 Україна (Ukraine)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* English Name */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('nameEn')} <span className="text-gray-400 dark:text-gray-500 text-xs">({t('optional')})</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                name="nameEn"
+                                value={formData.nameEn}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                                placeholder={t('nameEnPlaceholder')}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('nameEnHelp')}</p>
                     </div>
 
                     {/* 키워드 선택 */}
@@ -294,20 +340,27 @@ const SignupVendor = () => {
                         disabled={!isValid}
                         className={`w-full py-3 rounded-lg font-semibold transition-colors shadow-md ${isValid
                             ? 'bg-primary text-white hover:bg-indigo-700'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                             }`}
                     >
-                        가입하기
+                        {t('submitSignup')}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
-                        이미 계정이 있으신가요?{' '}
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {t('alreadyHaveAccount')}{' '}
                         <Link to="/login" className="text-primary hover:underline font-medium">
-                            로그인하기
+                            {t('goToLogin')}
                         </Link>
                     </p>
+                    <Link
+                        to="/"
+                        className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+                    >
+                        <Home size={16} />
+                        {t('goHome')}
+                    </Link>
                 </div>
             </div>
         </div>

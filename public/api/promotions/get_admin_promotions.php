@@ -8,7 +8,7 @@ session_start();
 
 if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin'])) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => '관리자 권한이 필요합니다.']);
+    echo json_encode(['success' => false, 'message' => 'Admin privileges required.']);
     exit;
 }
 

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     UserPlus, Search, Shield, ShieldAlert, Store, Ban, MoreHorizontal, X,
-    AlertTriangle, Eye, Users, Briefcase, ShoppingBag, Filter, CheckCircle, Edit3, Crown, XCircle
+    AlertTriangle, Eye, Users, Briefcase, ShoppingBag, Filter, CheckCircle, Edit3, Crown, XCircle,
+    Lock, Unlock, UserCheck, BadgeCheck, Calendar, Clock, Settings
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
@@ -13,6 +15,7 @@ const API_BASE = '/api';
 const AdminUsers = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation('admin');
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +34,18 @@ const AdminUsers = () => {
     const [showEditContent, setShowEditContent] = useState(false);
     const [confirmModal, setConfirmModal] = useState(null);
     const [toast, setToast] = useState(null);
+    // Seller contact access state
+    const [contactAccess, setContactAccess] = useState({ can_view: 0, monthly_limit: 0, used: 0, access_start: '', access_end: '' });
+    const [editContactLimit, setEditContactLimit] = useState(0);
+    const [contactStartDate, setContactStartDate] = useState('');
+    const [contactEndDate, setContactEndDate] = useState('');
+    // Period dates for featured/verified
+    const [featuredStartDate, setFeaturedStartDate] = useState('');
+    const [featuredEndDate, setFeaturedEndDate] = useState('');
+    const [verifiedStartDate, setVerifiedStartDate] = useState('');
+    const [verifiedEndDate, setVerifiedEndDate] = useState('');
+    // Service permissions state
+    const [userServices, setUserServices] = useState({});
 
     const showToast = useCallback((message, type = 'success') => {
         setToast({ message, type });
@@ -48,6 +63,8 @@ const AdminUsers = () => {
             .then(data => {
                 if (data.error) {
                     setError(data.error);
+                } else if (data.success && Array.isArray(data.users)) {
+                    setUsers(data.users);
                 } else if (Array.isArray(data)) {
                     setUsers(data);
                 } else {
@@ -56,7 +73,7 @@ const AdminUsers = () => {
             })
             .catch(err => {
                 console.error(err);
-                setError('\ub370\uc774\ud130 \ubd88\ub7ec\uc624\ub294 \ub370 \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4.');
+                setError(t('usersPage.loadError'));
             })
             .finally(() => setLoading(false));
     };
@@ -74,7 +91,7 @@ const AdminUsers = () => {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showToast('\uad00\ub9ac\uc790\uac00 \ucd94\uac00\ub418\uc5c8\uc2b5\ub2c8\ub2e4.', 'success');
+                    showToast(t('usersPage.adminAdded'), 'success');
                     setShowCreateAdmin(false);
                     setNewAdmin({ name: '', email: '', password: '' });
                     fetchUsers();
@@ -84,12 +101,67 @@ const AdminUsers = () => {
             });
     };
 
+    // Helper: compute D-day text
+    const getDDayText = (endDate) => {
+        if (!endDate) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0);
+        const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+        if (diff < 0) return { text: t('usersPage.expired'), expired: true, days: diff };
+        if (diff === 0) return { text: 'D-Day', expired: false, days: 0 };
+        return { text: `D-${diff}`, expired: false, days: diff };
+    };
+
+    // Helper: set quick period
+    const setQuickPeriod = (setter_start, setter_end, days) => {
+        const today = new Date();
+        const end = new Date(today);
+        end.setDate(end.getDate() + days);
+        setter_start(today.toISOString().split('T')[0]);
+        setter_end(end.toISOString().split('T')[0]);
+    };
+
     const openManageModal = (user) => {
         setSelectedUser(user);
         setEditLimit(user.venue_limit || 3);
         setEditContent({ name: user.name || '', email: user.email || '', phone: user.phone || '' });
         setShowEditContent(false);
         setShowManageModal(true);
+        // Set period dates from user data
+        setFeaturedStartDate(user.featured_start || '');
+        setFeaturedEndDate(user.featured_end || '');
+        setVerifiedStartDate(user.verified_start || '');
+        setVerifiedEndDate(user.verified_end || '');
+        // Fetch contact access info for vendors
+        if (user.role === 'vendor') {
+            fetch(`${API_BASE}/users/seller_contact_access.php?vendor_id=${user.id}`, { credentials: 'include' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setContactAccess({
+                            can_view: data.can_view_contacts,
+                            monthly_limit: data.monthly_limit,
+                            used: data.used_this_period ?? data.used_this_month ?? 0,
+                            access_start: data.access_start || '',
+                            access_end: data.access_end || ''
+                        });
+                        setEditContactLimit(data.monthly_limit);
+                        setContactStartDate(data.access_start || '');
+                        setContactEndDate(data.access_end || '');
+                    }
+                })
+                .catch(() => { });
+        }
+        // Fetch service permissions
+        setUserServices({});
+        fetch(`${API_BASE}/users/toggle_service.php?user_id=${user.id}`, { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) setUserServices(data.services || {});
+            })
+            .catch(() => { });
     };
 
     const handleSaveContent = () => {
@@ -103,7 +175,7 @@ const AdminUsers = () => {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showToast('\uc0ac\uc6a9\uc790 \uc815\ubcf4\uac00 \uc218\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4.', 'success');
+                    showToast(t('usersPage.userInfoUpdated'), 'success');
                     setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...editContent } : u));
                     setSelectedUser({ ...selectedUser, ...editContent });
                     setShowEditContent(false);
@@ -125,7 +197,7 @@ const AdminUsers = () => {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showToast('\ubca0\ub274 \ub4f1\ub85d \uc81c\ud55c\uc774 \uc218\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4.', 'success');
+                    showToast(t('usersPage.venueLimitUpdated'), 'success');
                     setUsers(users.map(u => u.id === selectedUser.id ? { ...u, venue_limit: editLimit } : u));
                 } else {
                     showToast(data.message, 'error');
@@ -135,10 +207,10 @@ const AdminUsers = () => {
     };
 
     const handleStatusAction = (action) => {
-        const actionText = action === 'ban' ? '\uc601\uad6c \ucc28\ub2e8' : (action === 'block' ? '\ucc28\ub2e8' : action === 'approve' ? '\uc2b9\uc778' : '\ucc28\ub2e8 \ud574\uc81c');
+        const actionText = action === 'ban' ? t('usersPage.actionBan') : (action === 'block' ? t('usersPage.actionBlock') : action === 'approve' ? t('usersPage.actionApprove') : t('usersPage.actionUnblock'));
         setConfirmModal({
-            title: `\uc0ac\uc6a9\uc790 ${actionText}`,
-            message: `\uc815\ub9d0\ub85c \uc774 \uc0ac\uc6a9\uc790\ub97c ${actionText} \ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?`,
+            title: t('usersPage.confirmTitle', { action: actionText }),
+            message: t('usersPage.confirmMsg', { action: actionText }),
             type: action === 'approve' || action === 'unblock' ? 'success' : 'danger',
             confirmLabel: actionText,
             onConfirm: () => {
@@ -167,26 +239,204 @@ const AdminUsers = () => {
 
     const handleToggleFeatured = (userId, currentStatus) => {
         setActionLoading(true);
+        const newVal = currentStatus ? 0 : 1;
         fetch(`${API_BASE}/users/toggle_featured.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ user_id: userId, is_featured: currentStatus ? 0 : 1 })
+            body: JSON.stringify({
+                user_id: userId,
+                is_featured: newVal,
+                start_date: newVal ? featuredStartDate : null,
+                end_date: newVal ? featuredEndDate : null
+            })
         })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    const updatedFields = {
+                        is_featured: data.is_featured ?? newVal,
+                        featured_start: data.featured_start || null,
+                        featured_end: data.featured_end || null
+                    };
                     setUsers(prev => prev.map(u =>
-                        u.id === userId ? { ...u, is_featured: currentStatus ? 0 : 1 } : u
+                        u.id === userId ? { ...u, ...updatedFields } : u
                     ));
                     if (selectedUser && selectedUser.id === userId) {
-                        setSelectedUser(prev => ({ ...prev, is_featured: currentStatus ? 0 : 1 }));
+                        setSelectedUser(prev => ({ ...prev, ...updatedFields }));
                     }
+                    if (!newVal) {
+                        setFeaturedStartDate('');
+                        setFeaturedEndDate('');
+                    }
+                    showToast(data.message, 'success');
                 } else {
-                    showToast(data.message || '\uc0c1\uc704 \ub178\ucd9c \uc124\uc815\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+                    showToast(data.message || t('usersPage.featuredFailed'), 'error');
                 }
             })
-            .catch(() => showToast('\ub124\ud2b8\uc6cc\ud06c \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4.', 'error'))
+            .catch(() => showToast(t('usersPage.networkError'), 'error'))
+            .finally(() => setActionLoading(false));
+    };
+
+    const handleSaveFeaturedPeriod = (userId) => {
+        setActionLoading(true);
+        fetch(`${API_BASE}/users/toggle_featured.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: userId, is_featured: 1, start_date: featuredStartDate, end_date: featuredEndDate })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const updatedFields = { is_featured: 1, featured_start: data.featured_start, featured_end: data.featured_end };
+                    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updatedFields } : u));
+                    if (selectedUser && selectedUser.id === userId) setSelectedUser(prev => ({ ...prev, ...updatedFields }));
+                    showToast(data.message, 'success');
+                } else { showToast(data.message, 'error'); }
+            })
+            .catch(() => showToast(t('usersPage.networkError'), 'error'))
+            .finally(() => setActionLoading(false));
+    };
+
+    const handleToggleVerified = (userId, currentStatus) => {
+        setActionLoading(true);
+        const newVal = currentStatus ? 0 : 1;
+        fetch(`${API_BASE}/users/toggle_verified.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                user_id: userId,
+                is_verified: newVal,
+                start_date: newVal ? verifiedStartDate : null,
+                end_date: newVal ? verifiedEndDate : null
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const updatedFields = {
+                        is_verified: data.is_verified ?? newVal,
+                        verified_start: data.verified_start || null,
+                        verified_end: data.verified_end || null
+                    };
+                    setUsers(prev => prev.map(u =>
+                        u.id === userId ? { ...u, ...updatedFields } : u
+                    ));
+                    if (selectedUser && selectedUser.id === userId) {
+                        setSelectedUser(prev => ({ ...prev, ...updatedFields }));
+                    }
+                    if (!newVal) {
+                        setVerifiedStartDate('');
+                        setVerifiedEndDate('');
+                    }
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message || t('usersPage.verifiedFailed'), 'error');
+                }
+            })
+            .catch(() => showToast(t('usersPage.networkError'), 'error'))
+            .finally(() => setActionLoading(false));
+    };
+
+    const handleSaveVerifiedPeriod = (userId) => {
+        setActionLoading(true);
+        fetch(`${API_BASE}/users/toggle_verified.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: userId, is_verified: 1, start_date: verifiedStartDate, end_date: verifiedEndDate })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const updatedFields = { is_verified: 1, verified_start: data.verified_start, verified_end: data.verified_end };
+                    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updatedFields } : u));
+                    if (selectedUser && selectedUser.id === userId) setSelectedUser(prev => ({ ...prev, ...updatedFields }));
+                    showToast(data.message, 'success');
+                } else { showToast(data.message, 'error'); }
+            })
+            .catch(() => showToast(t('usersPage.networkError'), 'error'))
+            .finally(() => setActionLoading(false));
+    };
+
+    const handleToggleService = (service, enabled, startDate, endDate, autoApply, monthlyLimit) => {
+        if (!selectedUser) return;
+        setActionLoading(true);
+        fetch(`${API_BASE}/users/toggle_service.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                user_id: selectedUser.id,
+                service,
+                enabled: enabled ? 1 : 0,
+                start_date: startDate || null,
+                end_date: endDate || null,
+                auto_apply: autoApply !== undefined ? (autoApply ? 1 : 0) : undefined,
+                monthly_limit: monthlyLimit !== undefined ? parseInt(monthlyLimit) || 0 : undefined
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setUserServices(prev => ({
+                        ...prev,
+                        [service]: {
+                            ...prev[service],
+                            enabled: enabled ? 1 : 0,
+                            start_date: startDate || null,
+                            end_date: endDate || null,
+                            ...(autoApply !== undefined ? { auto_apply: autoApply ? 1 : 0 } : {}),
+                            ...(monthlyLimit !== undefined ? { monthly_limit: parseInt(monthlyLimit) || 0 } : {})
+                        }
+                    }));
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message || t('usersPage.serviceFailed'), 'error');
+                }
+            })
+            .catch(() => showToast(t('usersPage.networkError'), 'error'))
+            .finally(() => setActionLoading(false));
+    };
+
+    const handleUpdateContactAccess = (newCanView = null) => {
+        setActionLoading(true);
+        const canView = newCanView !== null ? newCanView : contactAccess.can_view;
+        const limit = editContactLimit;
+        fetch(`${API_BASE}/users/seller_contact_access.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                vendor_id: selectedUser.id,
+                can_view_contacts: canView,
+                monthly_limit: limit,
+                start_date: canView ? contactStartDate : null,
+                end_date: canView ? contactEndDate : null
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || t('usersPage.contactAccessChanged'), 'success');
+                    setContactAccess(prev => ({
+                        ...prev,
+                        can_view: canView,
+                        monthly_limit: limit,
+                        access_start: data.access_start || '',
+                        access_end: data.access_end || ''
+                    }));
+                    if (!canView) {
+                        setContactStartDate('');
+                        setContactEndDate('');
+                    }
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(() => showToast(t('usersPage.networkError'), 'error'))
             .finally(() => setActionLoading(false));
     };
 
@@ -222,14 +472,14 @@ const AdminUsers = () => {
 
     // Tabs Configuration
     const tabs = [
-        { id: 'all', label: '\uc804\uccb4 \uc0ac\uc6a9\uc790', icon: Users, count: stats.total },
-        { id: 'vendor', label: '\ubca4\ub354', icon: Store, count: stats.vendor },
-        { id: 'seller', label: '\uc785\uc810 \ube0c\ub79c\ub4dc', icon: ShoppingBag, count: stats.seller },
+        { id: 'all', label: t('usersPage.tabAll'), icon: Users, count: stats.total },
+        { id: 'vendor', label: t('usersPage.tabVendor'), icon: Store, count: stats.vendor },
+        { id: 'seller', label: t('usersPage.tabSeller'), icon: ShoppingBag, count: stats.seller },
     ];
 
     // Only add Admin tab if Super Admin
     if (isSuperAdmin) {
-        tabs.push({ id: 'admin', label: '\uad00\ub9ac\uc790', icon: Shield, count: stats.admin });
+        tabs.push({ id: 'admin', label: t('usersPage.tabAdmin'), icon: Shield, count: stats.admin });
     }
 
     return (
@@ -237,15 +487,15 @@ const AdminUsers = () => {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{'\uc0ac\uc6a9\uc790 \uad00\ub9ac'}</h1>
-                    <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base font-medium">{'\uc11c\ube44\uc2a4\uc5d0 \ub4f1\ub85d\ub41c \ubaa8\ub4e0 \uc0ac\uc6a9\uc790\ub97c \ud1b5\ud569 \uad00\ub9ac\ud569\ub2c8\ub2e4.'}</p>
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('usersPage.title')}</h1>
+                    <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base font-medium">{t('usersPage.subtitle')}</p>
                 </div>
                 {isSuperAdmin && (
                     <button
                         onClick={() => setShowCreateAdmin(true)}
                         className="flex items-center justify-center gap-2 w-full md:w-auto px-5 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold transition-all shadow-lg shadow-indigo-200 hover:-translate-y-0.5 text-sm md:text-base"
                     >
-                        <UserPlus size={18} /> {'\uc2e0\uaddc \uad00\ub9ac\uc790 \ucd94\uac00'}
+                        <UserPlus size={18} /> {t('usersPage.addAdmin')}
                     </button>
                 )}
             </div>
@@ -267,7 +517,7 @@ const AdminUsers = () => {
                             >
                                 <tab.icon size={16} className={activeTab === tab.id ? 'text-indigo-600' : 'text-gray-400'} />
                                 <span className="hidden md:inline">{tab.label}</span>
-                                <span className="md:hidden">{tab.id === 'all' ? '\uc804\uccb4' : tab.id === 'vendor' ? '\ubca4\ub354' : tab.id === 'seller' ? '\ube0c\ub79c\ub4dc' : '\uad00\ub9ac\uc790'}</span>
+                                <span className="md:hidden">{tab.id === 'all' ? t('usersPage.tabAllShort') : tab.id === 'vendor' ? t('usersPage.tabVendorShort') : tab.id === 'seller' ? t('usersPage.tabSellerShort') : t('usersPage.tabAdminShort')}</span>
                                 <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500'}`}>
                                     {tab.count}
                                 </span>
@@ -282,7 +532,7 @@ const AdminUsers = () => {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             type="text"
-                            placeholder={'\uc0ac\uc6a9\uc790 \uc774\ub984, \uc774\uba54\uc77c, \uc0ac\uc5c5\uc790\ubc88\ud638 \uac80\uc0c9..'}
+                            placeholder={t('usersPage.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-100 focus:bg-white text-gray-700 font-medium transition-all outline-none"
@@ -296,10 +546,10 @@ const AdminUsers = () => {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                                 className="appearance-none pl-10 pr-10 py-3 bg-gray-50 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 font-bold text-gray-600 text-sm cursor-pointer transition-all min-w-[140px]"
                             >
-                                <option value="all">{'\ubaa8\ub4e0 \uc0c1\ud0dc'}</option>
-                                <option value="active">{'\uc815\uc0c1 \ud65c\ub3d9'}</option>
-                                <option value="pending">{'\uc2b9\uc778 \ub300\uae30'}</option>
-                                <option value="blocked">{'\ucc28\ub2e8'}</option>
+                                <option value="all">{t('usersPage.filterAllStatus')}</option>
+                                <option value="active">{t('usersPage.filterActive')}</option>
+                                <option value="pending">{t('usersPage.filterPending')}</option>
+                                <option value="blocked">{t('usersPage.filterBlocked')}</option>
                             </select>
                             <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         </div>
@@ -311,20 +561,20 @@ const AdminUsers = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-100">
-                                <th className="p-6">{'\uc0ac\uc6a9\uc790 \uc815\ubcf4'}</th>
-                                <th className="p-6">{'\uc5ed\ud560 / \uc720\ud615'}</th>
-                                <th className="p-6">{'\uc8fc\uc694 \ud65c\ub3d9'}</th>
-                                <th className="p-6">{'\uc0c1\ud0dc'}</th>
-                                <th className="p-6 text-right">{'\uad00\ub9ac'}</th>
+                                <th className="p-6">{t('usersPage.thUserInfo')}</th>
+                                <th className="p-6">{t('usersPage.thRoleType')}</th>
+                                <th className="p-6">{t('usersPage.thActivity')}</th>
+                                <th className="p-6">{t('usersPage.thStatus')}</th>
+                                <th className="p-6 text-right">{t('usersPage.thManage')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {loading ? (
-                                <tr><td colSpan="5" className="p-12 text-center text-gray-400 font-medium">{'\ub370\uc774\ud130\ub97c \ubd88\ub7ec\uc624\ub294 \uc911\uc785\ub2c8\ub2e4...'}</td></tr>
+                                <tr><td colSpan="5" className="p-12 text-center text-gray-400 font-medium">{t('usersPage.loading')}</td></tr>
                             ) : error ? (
                                 <tr><td colSpan="5" className="p-12 text-center text-red-500 font-bold bg-red-50">{error}</td></tr>
                             ) : filteredUsers.length === 0 ? (
-                                <tr><td colSpan="5" className="p-12 text-center text-gray-400 font-medium">{'\uac80\uc0c9 \uacb0\uacfc\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'}</td></tr>
+                                <tr><td colSpan="5" className="p-12 text-center text-gray-400 font-medium">{t('usersPage.noResults')}</td></tr>
                             ) : (
                                 filteredUsers.map(user => (
                                     <tr key={user.id} className="group hover:bg-gray-50/50 transition-colors">
@@ -352,24 +602,29 @@ const AdminUsers = () => {
                                                 {(user.role === 'admin' || user.role === 'superadmin') && <Shield size={12} />}
                                                 {user.role === 'vendor' && <Store size={12} />}
                                                 {user.role === 'seller' && <ShoppingBag size={12} />}
-                                                {user.role === 'superadmin' ? '\uc288\ud37c\uad00\ub9ac\uc790' : user.role === 'admin' ? '\uad00\ub9ac\uc790' : user.role === 'vendor' ? '\ubca4\ub354' : '\uc785\uc810 \ube0c\ub79c\ub4dc'}
+                                                {user.role === 'superadmin' ? t('usersPage.roleSuperAdmin') : user.role === 'admin' ? t('usersPage.roleAdmin') : user.role === 'vendor' ? t('usersPage.roleVendor') : t('usersPage.roleSeller')}
                                             </span>
                                             {(user.role === 'vendor' || user.role === 'seller') && parseInt(user.is_featured) === 1 && (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border border-amber-200 rounded-full text-[10px] font-extrabold ml-1">
                                                     <Crown size={10} /> PREMIUM
                                                 </span>
                                             )}
+                                            {(user.role === 'vendor' || user.role === 'seller') && parseInt(user.is_verified) === 1 && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-extrabold ml-1">
+                                                    <BadgeCheck size={10} /> {t('usersPage.verified')}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="p-6">
                                             {user.role === 'vendor' ? (
                                                 <div className="text-sm">
-                                                    <span className="text-gray-500 block mb-0.5">{'\ub4f1\ub85d \ubca0\ub274'}</span>
+                                                    <span className="text-gray-500 block mb-0.5">{t('usersPage.registeredVenues')}</span>
                                                     <span className="font-bold text-gray-900 text-base">{user.venue_count || 0}</span>
                                                     <span className="text-gray-400 text-xs ml-1">/ {user.venue_limit || 3}</span>
                                                 </div>
                                             ) : user.role === 'seller' ? (
                                                 <div className="text-sm">
-                                                    <span className="text-gray-500 block mb-0.5">{'\uc785\uc810 \uc2e0\uccad'}</span>
+                                                    <span className="text-gray-500 block mb-0.5">{t('usersPage.applications')}</span>
                                                     <span className="font-bold text-gray-900 text-base">{user.app_count || 0}</span>
                                                     <span className="text-gray-400 text-xs ml-1"></span>
                                                 </div>
@@ -385,7 +640,7 @@ const AdminUsers = () => {
                                                     : 'bg-emerald-50 text-emerald-600'
                                                 }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'blocked' ? 'bg-red-500' : user.status === 'pending' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                                                {user.status === 'blocked' ? '\ucc28\ub2e8' : user.status === 'pending' ? '\uc2b9\uc778 \ub300\uae30' : '\ud65c\ub3d9'}
+                                                {user.status === 'blocked' ? t('usersPage.statusBlocked') : user.status === 'pending' ? t('usersPage.statusPending') : t('usersPage.statusActive')}
                                             </span>
                                         </td>
                                         <td className="p-6 text-right">
@@ -393,14 +648,14 @@ const AdminUsers = () => {
                                                 <button
                                                     onClick={() => navigate(`/admin/users/${user.id}`)}
                                                     className="px-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
-                                                    title={'\uc0c1\uc138 \ud65c\ub3d9 \ubcf4\uae30'}
+                                                    title={t('usersPage.viewDetailTooltip')}
                                                 >
-                                                    <Eye size={16} /> {'\uc0c1\uc138'}
+                                                    <Eye size={16} /> {t('usersPage.viewDetail')}
                                                 </button>
                                                 <button
                                                     onClick={() => openManageModal(user)}
                                                     className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
-                                                    title={'\uacc4\uc815 \uad00\ub9ac'}
+                                                    title={t('usersPage.manageAccount')}
                                                 >
                                                     <MoreHorizontal size={20} />
                                                 </button>
@@ -416,11 +671,11 @@ const AdminUsers = () => {
                 {/* 3-M. Mobile Card List */}
                 <div className="block md:hidden">
                     {loading ? (
-                        <div className="p-10 text-center text-gray-400 font-medium">{'\ub370\uc774\ud130\ub97c \ubd88\ub7ec\uc624\ub294 \uc911\uc785\ub2c8\ub2e4...'}</div>
+                        <div className="p-10 text-center text-gray-400 font-medium">{t('usersPage.loading')}</div>
                     ) : error ? (
                         <div className="p-10 text-center text-red-500 font-bold bg-red-50">{error}</div>
                     ) : filteredUsers.length === 0 ? (
-                        <div className="p-10 text-center text-gray-400 font-medium">{'\uac80\uc0c9 \uacb0\uacfc\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'}</div>
+                        <div className="p-10 text-center text-gray-400 font-medium">{t('usersPage.noResults')}</div>
                     ) : (
                         <div className="divide-y divide-gray-100">
                             {filteredUsers.map(u => (
@@ -443,10 +698,13 @@ const AdminUsers = () => {
                                                     {(u.role === 'admin' || u.role === 'superadmin') && <Shield size={9} />}
                                                     {u.role === 'vendor' && <Store size={9} />}
                                                     {u.role === 'seller' && <ShoppingBag size={9} />}
-                                                    {u.role === 'superadmin' ? '\uc288\ud37c\uad00\ub9ac\uc790' : u.role === 'admin' ? '\uad00\ub9ac\uc790' : u.role === 'vendor' ? '\ubca4\ub354' : '\ube0c\ub79c\ub4dc'}
+                                                    {u.role === 'superadmin' ? t('usersPage.roleSuperAdmin') : u.role === 'admin' ? t('usersPage.roleAdmin') : u.role === 'vendor' ? t('usersPage.roleVendor') : t('usersPage.roleSellerShort')}
                                                 </span>
                                                 {parseInt(u.is_featured) === 1 && (
                                                     <Crown size={12} className="text-amber-500 flex-shrink-0" />
+                                                )}
+                                                {parseInt(u.is_verified) === 1 && (
+                                                    <BadgeCheck size={12} className="text-emerald-500 flex-shrink-0" />
                                                 )}
                                             </div>
                                             <p className="text-[11px] text-gray-400 truncate mt-0.5">{u.email}</p>
@@ -454,7 +712,7 @@ const AdminUsers = () => {
                                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold flex-shrink-0 ${u.status === 'blocked' ? 'bg-red-50 text-red-500' : u.status === 'pending' ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'
                                             }`}>
                                             <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'blocked' ? 'bg-red-400' : u.status === 'pending' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                                            {u.status === 'blocked' ? '\ucc28\ub2e8' : u.status === 'pending' ? '\ub300\uae30' : '\ud65c\ub3d9'}
+                                            {u.status === 'blocked' ? t('usersPage.statusBlocked') : u.status === 'pending' ? t('usersPage.statusPendingShort') : t('usersPage.statusActive')}
                                         </span>
                                     </div>
 
@@ -470,7 +728,7 @@ const AdminUsers = () => {
                                             {u.role === 'seller' && (
                                                 <span className="flex items-center gap-1">
                                                     <Briefcase size={11} className="text-gray-300" />
-                                                    {'\uc2e0\uccad'} <span className="font-bold text-gray-700">{u.app_count || 0}</span>
+                                                    {t('usersPage.applicationShort')} <span className="font-bold text-gray-700">{u.app_count || 0}</span>
                                                 </span>
                                             )}
                                             {u.business_no && (
@@ -482,7 +740,7 @@ const AdminUsers = () => {
                                                 onClick={() => navigate(`/admin/users/${u.id}`)}
                                                 className="px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg active:bg-indigo-100 transition-colors flex items-center gap-1"
                                             >
-                                                <Eye size={12} /> {'\uc0c1\uc138'}
+                                                <Eye size={12} /> {t('usersPage.viewDetail')}
                                             </button>
                                             <button
                                                 onClick={() => openManageModal(u)}
@@ -507,7 +765,7 @@ const AdminUsers = () => {
                             <div>
                                 <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
                                     <Briefcase size={20} className="text-indigo-600" />
-                                    {'\uacc4\uc815 \uad00\ub9ac'}
+                                    {t('usersPage.accountManage')}
                                 </h3>
                                 <p className="text-sm text-gray-500 mt-1 font-medium">{selectedUser.name}</p>
                             </div>
@@ -525,14 +783,14 @@ const AdminUsers = () => {
                                 >
                                     <span className="flex items-center gap-2">
                                         <Edit3 size={16} className="text-blue-600" />
-                                        {'\ucf58\ud150\uce20 \uc218\uc815'}
+                                        {t('usersPage.contentEdit')}
                                     </span>
-                                    <span className="text-xs text-blue-500">{showEditContent ? '\uc811\uae30' : '\ud3bc\uce58\uae30'}</span>
+                                    <span className="text-xs text-blue-500">{showEditContent ? t('usersPage.fold') : t('usersPage.expand')}</span>
                                 </button>
                                 {showEditContent && (
                                     <div className="mt-4 space-y-3">
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 block mb-1">{'\uc774\ub984'}</label>
+                                            <label className="text-xs font-bold text-gray-500 block mb-1">{t('usersPage.labelName')}</label>
                                             <input
                                                 type="text"
                                                 value={editContent.name}
@@ -541,7 +799,7 @@ const AdminUsers = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 block mb-1">{'\uc774\uba54\uc77c'}</label>
+                                            <label className="text-xs font-bold text-gray-500 block mb-1">{t('usersPage.labelEmail')}</label>
                                             <input
                                                 type="email"
                                                 value={editContent.email}
@@ -550,7 +808,7 @@ const AdminUsers = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 block mb-1">{'\uc5f0\ub77d\ucc98'}</label>
+                                            <label className="text-xs font-bold text-gray-500 block mb-1">{t('usersPage.labelPhone')}</label>
                                             <input
                                                 type="text"
                                                 value={editContent.phone}
@@ -563,7 +821,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200"
                                         >
-                                            {'\uc800\uc7a5'}
+                                            {t('usersPage.save')}
                                         </button>
                                     </div>
                                 )}
@@ -574,7 +832,7 @@ const AdminUsers = () => {
                                 <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100">
                                     <label className="text-sm font-bold text-gray-700 block mb-3 flex items-center gap-2">
                                         <Store size={16} className="text-indigo-600" />
-                                        {'\ubca0\ub274 \ub4f1\ub85d \ud55c\ub3c4 \uc124\uc815'}
+                                        {t('usersPage.venueLimitSetting')}
                                     </label>
                                     <div className="flex gap-2">
                                         <input
@@ -589,12 +847,12 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-200"
                                         >
-                                            {'\uc218\uc815'}
+                                            {t('usersPage.modify')}
                                         </button>
                                     </div>
                                     <div className="flex items-center gap-2 mt-3 text-xs font-medium text-indigo-500">
                                         <CheckCircle size={12} />
-                                        <span>{'\ud604\uc7ac \ub4f1\ub85d\ub41c \ubca0\ub274:'} {selectedUser.venue_count || 0}</span>
+                                        <span>{t('usersPage.currentVenues')} {selectedUser.venue_count || 0}</span>
                                     </div>
                                 </div>
                             )}
@@ -608,9 +866,9 @@ const AdminUsers = () => {
                                                 <Crown size={20} className="text-white" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-extrabold text-gray-900">{'\uc0c1\uc704 \ub178\ucd9c (PREMIUM)'}</p>
+                                                <p className="text-sm font-extrabold text-gray-900">{t('usersPage.premiumExposure')}</p>
                                                 <p className="text-xs text-gray-500 mt-0.5">
-                                                    {selectedUser.role === 'vendor' ? '\uacf5\uac04 \uac80\uc0c9 \ud398\uc774\uc9c0' : '\ubca4\ub354 \uac80\uc0c9 \ud398\uc774\uc9c0'}{'\uc5d0\uc11c \uc0c1\ub2e8 \ub178\ucd9c'}
+                                                    {selectedUser.role === 'vendor' ? t('usersPage.premiumVenueSearch') : t('usersPage.premiumVendorSearch')}{t('usersPage.premiumTopExposure')}
                                                 </p>
                                             </div>
                                         </div>
@@ -622,15 +880,392 @@ const AdminUsers = () => {
                                                 : 'bg-gray-200'
                                                 }`}
                                         >
-                                            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${parseInt(selectedUser.is_featured) === 1 ? 'left-7.5' : 'left-0.5'
-                                                }`} style={{ left: parseInt(selectedUser.is_featured) === 1 ? '1.875rem' : '0.125rem' }} />
+                                            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
+                                                style={{ left: parseInt(selectedUser.is_featured) === 1 ? '1.875rem' : '0.125rem' }} />
                                         </button>
                                     </div>
                                     {parseInt(selectedUser.is_featured) === 1 && (
-                                        <div className="mt-3 px-3 py-2 bg-white/60 rounded-xl">
-                                            <p className="text-xs font-bold text-amber-700">{'\ud604\uc7ac \uc0c1\uc704 \ub178\ucd9c \uc911'}</p>
+                                        <div className="mt-4 space-y-3">
+                                            {/* Period Date Inputs */}
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                <Calendar size={12} className="text-amber-600" />
+                                                <span>{t('usersPage.periodSetting')}</span>
+                                                {featuredEndDate && (() => {
+                                                    const dday = getDDayText(featuredEndDate);
+                                                    return dday ? (
+                                                        <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-extrabold ${dday.expired ? 'bg-red-100 text-red-600' : dday.days <= 7 ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-700'}`}>
+                                                            {dday.text}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input type="date" value={featuredStartDate} onChange={e => setFeaturedStartDate(e.target.value)}
+                                                    className="px-3 py-2 border border-amber-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-amber-300/30 bg-white/80" />
+                                                <input type="date" value={featuredEndDate} onChange={e => setFeaturedEndDate(e.target.value)}
+                                                    className="px-3 py-2 border border-amber-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-amber-300/30 bg-white/80" />
+                                            </div>
+                                            {/* Quick Period Buttons */}
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {[{ l: t('usersPage.days7'), d: 7 }, { l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days180'), d: 180 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
+                                                    <button key={p.d} onClick={() => setQuickPeriod(setFeaturedStartDate, setFeaturedEndDate, p.d)}
+                                                        className="px-2.5 py-1 bg-white/70 border border-amber-200 rounded-lg text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">{p.l}</button>
+                                                ))}
+                                            </div>
+                                            <button onClick={() => handleSaveFeaturedPeriod(selectedUser.id)} disabled={actionLoading}
+                                                className="w-full py-2 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 disabled:opacity-50 transition-all shadow-lg shadow-amber-200">
+                                                {t('usersPage.savePeriod')}
+                                            </button>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Verified Badge Toggle (Vendor & Seller Only) */}
+                            {(selectedUser.role === 'vendor' || selectedUser.role === 'seller') && (
+                                <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                                                <BadgeCheck size={20} className="text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-extrabold text-gray-900">{t('usersPage.verifiedBadge')}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{t('usersPage.verifiedDesc')}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleToggleVerified(selectedUser.id, parseInt(selectedUser.is_verified))}
+                                            disabled={actionLoading}
+                                            className={`relative w-14 h-7 rounded-full transition-all duration-300 ${parseInt(selectedUser.is_verified) === 1
+                                                ? 'bg-gradient-to-r from-emerald-400 to-green-500 shadow-lg shadow-emerald-200'
+                                                : 'bg-gray-200'
+                                                }`}
+                                        >
+                                            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
+                                                style={{ left: parseInt(selectedUser.is_verified) === 1 ? '1.875rem' : '0.125rem' }} />
+                                        </button>
+                                    </div>
+                                    {parseInt(selectedUser.is_verified) === 1 && (
+                                        <div className="mt-4 space-y-3">
+                                            {/* Period Date Inputs */}
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                <Calendar size={12} className="text-emerald-600" />
+                                                <span>{t('usersPage.periodSetting')}</span>
+                                                {verifiedEndDate && (() => {
+                                                    const dday = getDDayText(verifiedEndDate);
+                                                    return dday ? (
+                                                        <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-extrabold ${dday.expired ? 'bg-red-100 text-red-600' : dday.days <= 7 ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                            {dday.text}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input type="date" value={verifiedStartDate} onChange={e => setVerifiedStartDate(e.target.value)}
+                                                    className="px-3 py-2 border border-emerald-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-emerald-300/30 bg-white/80" />
+                                                <input type="date" value={verifiedEndDate} onChange={e => setVerifiedEndDate(e.target.value)}
+                                                    className="px-3 py-2 border border-emerald-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-emerald-300/30 bg-white/80" />
+                                            </div>
+                                            {/* Quick Period Buttons */}
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {[{ l: t('usersPage.days7'), d: 7 }, { l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days180'), d: 180 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
+                                                    <button key={p.d} onClick={() => setQuickPeriod(setVerifiedStartDate, setVerifiedEndDate, p.d)}
+                                                        className="px-2.5 py-1 bg-white/70 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">{p.l}</button>
+                                                ))}
+                                            </div>
+                                            <button onClick={() => handleSaveVerifiedPeriod(selectedUser.id)} disabled={actionLoading}
+                                                className="w-full py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-lg shadow-emerald-200">
+                                                {t('usersPage.savePeriod')}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Seller Contact Access Settings (Vendor Only) */}
+                            {selectedUser.role === 'vendor' && (
+                                <div className="p-5 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-2xl border border-cyan-200">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-sky-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-200">
+                                                {contactAccess.can_view ? <Unlock size={20} className="text-white" /> : <Lock size={20} className="text-white" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-extrabold text-gray-900">{t('usersPage.sellerContactAccess')}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{t('usersPage.sellerContactDesc')}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const newVal = contactAccess.can_view ? 0 : 1;
+                                                setContactAccess(prev => ({ ...prev, can_view: newVal }));
+                                                handleUpdateContactAccess(newVal);
+                                            }}
+                                            disabled={actionLoading}
+                                            className={`relative w-14 h-7 rounded-full transition-all duration-300 ${contactAccess.can_view
+                                                ? 'bg-gradient-to-r from-cyan-500 to-sky-600 shadow-lg shadow-cyan-200'
+                                                : 'bg-gray-200'
+                                                }`}
+                                        >
+                                            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
+                                                style={{ left: contactAccess.can_view ? '1.875rem' : '0.125rem' }} />
+                                        </button>
+                                    </div>
+
+                                    {contactAccess.can_view ? (
+                                        <div className="space-y-3">
+                                            {/* Period Date Inputs */}
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                <Calendar size={12} className="text-cyan-600" />
+                                                <span>{t('usersPage.accessPeriod')}</span>
+                                                {contactEndDate && (() => {
+                                                    const dday = getDDayText(contactEndDate);
+                                                    return dday ? (
+                                                        <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-extrabold ${dday.expired ? 'bg-red-100 text-red-600' : dday.days <= 7 ? 'bg-orange-100 text-orange-600' : 'bg-cyan-100 text-cyan-700'}`}>
+                                                            {dday.text}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input type="date" value={contactStartDate} onChange={e => setContactStartDate(e.target.value)}
+                                                    className="px-3 py-2 border border-cyan-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-cyan-300/30 bg-white/80" />
+                                                <input type="date" value={contactEndDate} onChange={e => setContactEndDate(e.target.value)}
+                                                    className="px-3 py-2 border border-cyan-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-cyan-300/30 bg-white/80" />
+                                            </div>
+                                            {/* Quick Period Buttons */}
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {[{ l: t('usersPage.days7'), d: 7 }, { l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days180'), d: 180 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
+                                                    <button key={p.d} onClick={() => setQuickPeriod(setContactStartDate, setContactEndDate, p.d)}
+                                                        className="px-2.5 py-1 bg-white/70 border border-cyan-200 rounded-lg text-[10px] font-bold text-cyan-700 hover:bg-cyan-100 transition-colors">{p.l}</button>
+                                                ))}
+                                            </div>
+
+                                            {/* View Limit */}
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                <Eye size={12} className="text-cyan-600" />
+                                                <span>{t('usersPage.maxViews')}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={editContactLimit}
+                                                    onChange={(e) => setEditContactLimit(parseInt(e.target.value) || 0)}
+                                                    className="flex-1 px-4 py-2 border border-cyan-200 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500/20 font-bold text-gray-800 text-sm"
+                                                    min="0"
+                                                    placeholder={t('usersPage.viewsPlaceholder')}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs font-medium text-cyan-600">
+                                                <UserCheck size={12} />
+                                                <span>{t('usersPage.currentUsage')} {contactAccess.used} / {contactAccess.monthly_limit} {t('usersPage.timesLabel')}</span>
+                                            </div>
+
+                                            <button onClick={() => handleUpdateContactAccess()} disabled={actionLoading}
+                                                className="w-full py-2 bg-cyan-600 text-white rounded-xl text-xs font-bold hover:bg-cyan-700 disabled:opacity-50 transition-all shadow-lg shadow-cyan-200">
+                                                {t('usersPage.saveSettings')}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="px-3 py-2 bg-white/60 rounded-xl">
+                                            <p className="text-xs font-bold text-gray-400">{t('usersPage.accessDisabled')}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── Service Permissions Section ── */}
+                            {(selectedUser.role === 'vendor' || selectedUser.role === 'seller') && (
+                                <div className="p-5 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/50 dark:to-purple-950/50 rounded-2xl border border-violet-200 dark:border-violet-800">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-200 dark:shadow-violet-900">
+                                            <Settings size={20} className="text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-extrabold text-gray-900 dark:text-white">{t('usersPage.paidServices')}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('usersPage.paidServicesDesc')}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {/* Analytics Report — vendor only */}
+                                        {selectedUser.role === 'vendor' && (() => {
+                                            const svc = userServices['analytics_report'] || { enabled: 0, start_date: '', end_date: '' };
+                                            return (
+                                                <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">{t('usersPage.analyticsReport')}</p>
+                                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">{t('usersPage.analyticsReportDesc')}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleToggleService('analytics_report', !svc.enabled, svc.start_date, svc.end_date)}
+                                                            disabled={actionLoading}
+                                                            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${svc.enabled ? 'bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-200 dark:shadow-violet-900' : 'bg-gray-200 dark:bg-gray-600'}`}
+                                                        >
+                                                            <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300"
+                                                                style={{ left: svc.enabled ? '1.5rem' : '0.125rem' }} />
+                                                        </button>
+                                                    </div>
+                                                    {svc.enabled ? (
+                                                        <div className="mt-2 space-y-2">
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <input type="date" value={svc.start_date || ''}
+                                                                    onChange={e => setUserServices(prev => ({ ...prev, analytics_report: { ...svc, start_date: e.target.value } }))}
+                                                                    className="px-2 py-1.5 border border-violet-200 dark:border-violet-700 rounded-lg text-[10px] font-medium text-gray-700 dark:text-gray-300 outline-none bg-white/80 dark:bg-gray-700/80" />
+                                                                <input type="date" value={svc.end_date || ''}
+                                                                    onChange={e => setUserServices(prev => ({ ...prev, analytics_report: { ...svc, end_date: e.target.value } }))}
+                                                                    className="px-2 py-1.5 border border-violet-200 dark:border-violet-700 rounded-lg text-[10px] font-medium text-gray-700 dark:text-gray-300 outline-none bg-white/80 dark:bg-gray-700/80" />
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {[{ l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
+                                                                    <button key={p.d} onClick={() => {
+                                                                        const s = new Date().toISOString().split('T')[0];
+                                                                        const e = new Date(Date.now() + p.d * 86400000).toISOString().split('T')[0];
+                                                                        setUserServices(prev => ({ ...prev, analytics_report: { ...svc, start_date: s, end_date: e } }));
+                                                                    }}
+                                                                        className="px-2 py-0.5 bg-white dark:bg-gray-700 border border-violet-200 dark:border-violet-700 rounded text-[9px] font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors">{p.l}</button>
+                                                                ))}
+                                                            </div>
+                                                            <button onClick={() => handleToggleService('analytics_report', 1, userServices['analytics_report']?.start_date, userServices['analytics_report']?.end_date)}
+                                                                disabled={actionLoading}
+                                                                className="w-full py-1.5 bg-violet-500 text-white rounded-lg text-[10px] font-bold hover:bg-violet-600 disabled:opacity-50 transition-all">
+                                                                {t('usersPage.savePeriod')}
+                                                            </button>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Popular Alerts — seller only */}
+                                        {selectedUser.role === 'seller' && (() => {
+                                            const svc = userServices['popular_alerts'] || { enabled: 0, start_date: '', end_date: '' };
+                                            return (
+                                                <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">{t('usersPage.popularAlerts')}</p>
+                                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">{t('usersPage.popularAlertsDesc')}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleToggleService('popular_alerts', !svc.enabled, svc.start_date, svc.end_date)}
+                                                            disabled={actionLoading}
+                                                            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${svc.enabled ? 'bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-200 dark:shadow-violet-900' : 'bg-gray-200 dark:bg-gray-600'}`}
+                                                        >
+                                                            <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300"
+                                                                style={{ left: svc.enabled ? '1.5rem' : '0.125rem' }} />
+                                                        </button>
+                                                    </div>
+                                                    {svc.enabled ? (
+                                                        <div className="mt-2 space-y-2">
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <input type="date" value={svc.start_date || ''}
+                                                                    onChange={e => setUserServices(prev => ({ ...prev, popular_alerts: { ...svc, start_date: e.target.value } }))}
+                                                                    className="px-2 py-1.5 border border-violet-200 dark:border-violet-700 rounded-lg text-[10px] font-medium text-gray-700 dark:text-gray-300 outline-none bg-white/80 dark:bg-gray-700/80" />
+                                                                <input type="date" value={svc.end_date || ''}
+                                                                    onChange={e => setUserServices(prev => ({ ...prev, popular_alerts: { ...svc, end_date: e.target.value } }))}
+                                                                    className="px-2 py-1.5 border border-violet-200 dark:border-violet-700 rounded-lg text-[10px] font-medium text-gray-700 dark:text-gray-300 outline-none bg-white/80 dark:bg-gray-700/80" />
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {[{ l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
+                                                                    <button key={p.d} onClick={() => {
+                                                                        const s = new Date().toISOString().split('T')[0];
+                                                                        const e = new Date(Date.now() + p.d * 86400000).toISOString().split('T')[0];
+                                                                        setUserServices(prev => ({ ...prev, popular_alerts: { ...svc, start_date: s, end_date: e } }));
+                                                                    }}
+                                                                        className="px-2 py-0.5 bg-white dark:bg-gray-700 border border-violet-200 dark:border-violet-700 rounded text-[9px] font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors">{p.l}</button>
+                                                                ))}
+                                                            </div>
+                                                            <button onClick={() => handleToggleService('popular_alerts', 1, userServices['popular_alerts']?.start_date, userServices['popular_alerts']?.end_date)}
+                                                                disabled={actionLoading}
+                                                                className="w-full py-1.5 bg-violet-500 text-white rounded-lg text-[10px] font-bold hover:bg-violet-600 disabled:opacity-50 transition-all">
+                                                                {t('usersPage.savePeriod')}
+                                                            </button>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Priority Application — seller only */}
+                                        {selectedUser.role === 'seller' && (() => {
+                                            const svc = userServices['priority_application'] || { enabled: 0, start_date: '', end_date: '', auto_apply: 0, monthly_limit: 0, monthly_used: 0 };
+                                            return (
+                                                <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">{t('usersPage.priorityApp')}</p>
+                                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">{t('usersPage.priorityAppDesc')}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleToggleService('priority_application', !svc.enabled, svc.start_date, svc.end_date, svc.auto_apply, svc.monthly_limit)}
+                                                            disabled={actionLoading}
+                                                            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${svc.enabled ? 'bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-200 dark:shadow-amber-900' : 'bg-gray-200 dark:bg-gray-600'}`}
+                                                        >
+                                                            <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300"
+                                                                style={{ left: svc.enabled ? '1.5rem' : '0.125rem' }} />
+                                                        </button>
+                                                    </div>
+                                                    {svc.enabled ? (
+                                                        <div className="mt-2 space-y-2">
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <input type="date" value={svc.start_date || ''}
+                                                                    onChange={e => setUserServices(prev => ({ ...prev, priority_application: { ...svc, start_date: e.target.value } }))}
+                                                                    className="px-2 py-1.5 border border-amber-200 dark:border-amber-700 rounded-lg text-[10px] font-medium text-gray-700 dark:text-gray-300 outline-none bg-white/80 dark:bg-gray-700/80" />
+                                                                <input type="date" value={svc.end_date || ''}
+                                                                    onChange={e => setUserServices(prev => ({ ...prev, priority_application: { ...svc, end_date: e.target.value } }))}
+                                                                    className="px-2 py-1.5 border border-amber-200 dark:border-amber-700 rounded-lg text-[10px] font-medium text-gray-700 dark:text-gray-300 outline-none bg-white/80 dark:bg-gray-700/80" />
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {[{ l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
+                                                                    <button key={p.d} onClick={() => {
+                                                                        const s = new Date().toISOString().split('T')[0];
+                                                                        const e = new Date(Date.now() + p.d * 86400000).toISOString().split('T')[0];
+                                                                        setUserServices(prev => ({ ...prev, priority_application: { ...svc, start_date: s, end_date: e } }));
+                                                                    }}
+                                                                        className="px-2 py-0.5 bg-white dark:bg-gray-700 border border-amber-200 dark:border-amber-700 rounded text-[9px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">{p.l}</button>
+                                                                ))}
+                                                            </div>
+                                                            {/* Monthly Limit */}
+                                                            <div className="p-2 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg border border-amber-100 dark:border-amber-800">
+                                                                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 mb-1">{t('usersPage.monthlyLimit')}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input type="number" min="0" value={svc.monthly_limit || 0}
+                                                                        onChange={e => setUserServices(prev => ({ ...prev, priority_application: { ...svc, monthly_limit: parseInt(e.target.value) || 0 } }))}
+                                                                        className="w-20 px-2 py-1 border border-amber-200 dark:border-amber-700 rounded-lg text-[10px] font-bold text-amber-700 dark:text-amber-300 outline-none bg-white dark:bg-gray-700 text-center" />
+                                                                    <span className="text-[10px] text-gray-500 dark:text-gray-400">{t('usersPage.timesPerMonth')}</span>
+                                                                    {svc.monthly_used !== undefined && svc.monthly_used > 0 && (
+                                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium ml-auto">{t('usersPage.usedThisMonth', { count: svc.monthly_used })}</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {/* Auto-Apply Toggle */}
+                                                            <div className="flex items-center justify-between p-2 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg border border-amber-100 dark:border-amber-800">
+                                                                <div>
+                                                                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400">{t('usersPage.autoApply')}</p>
+                                                                    <p className="text-[9px] text-gray-500 dark:text-gray-400">{t('usersPage.autoApplyDesc')}</p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setUserServices(prev => ({ ...prev, priority_application: { ...svc, auto_apply: svc.auto_apply ? 0 : 1 } }))}
+                                                                    className={`relative w-10 h-5 rounded-full transition-all duration-300 ${svc.auto_apply ? 'bg-amber-400 dark:bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'}`}
+                                                                >
+                                                                    <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-300"
+                                                                        style={{ left: svc.auto_apply ? '1.25rem' : '0.125rem' }} />
+                                                                </button>
+                                                            </div>
+                                                            <button onClick={() => handleToggleService('priority_application', 1, svc.start_date, svc.end_date, svc.auto_apply, svc.monthly_limit)}
+                                                                disabled={actionLoading}
+                                                                className="w-full py-1.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold hover:bg-amber-600 disabled:opacity-50 transition-all">
+                                                                {t('usersPage.saveSettings')}
+                                                            </button>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
                             )}
 

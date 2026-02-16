@@ -6,7 +6,7 @@ session_start();
 // Only allow logged-in users to update their own profile
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
-    echo json_encode(["success" => false, "message" => "로그인이 필요합니다."]);
+    echo json_encode(["success" => false, "message" => "Login required."]);
     exit;
 }
 
@@ -20,7 +20,7 @@ $data = json_decode(file_get_contents("php://input"));
 $user_id = $_SESSION['user_id'];
 
 if (!$data) {
-    echo json_encode(["success" => false, "message" => "잘못된 요청입니다."]);
+    echo json_encode(["success" => false, "message" => "Invalid request."]);
     exit;
 }
 
@@ -75,8 +75,26 @@ try {
         $params[] = htmlspecialchars(strip_tags(trim($data->brandName)));
     }
 
+    if (isset($data->is_public)) {
+        $chk = $conn->query("SHOW COLUMNS FROM users LIKE 'is_public'");
+        if (!$chk->fetch()) {
+            $conn->exec("ALTER TABLE users ADD COLUMN is_public TINYINT(1) DEFAULT 1");
+        }
+        $updates[] = "is_public = ?";
+        $params[] = intval($data->is_public) ? 1 : 0;
+    }
+
+    if (isset($data->country)) {
+        $chk = $conn->query("SHOW COLUMNS FROM users LIKE 'country'");
+        if (!$chk->fetch()) {
+            $conn->exec("ALTER TABLE users ADD COLUMN country VARCHAR(5) DEFAULT NULL");
+        }
+        $updates[] = "country = ?";
+        $params[] = htmlspecialchars(strip_tags(trim($data->country)));
+    }
+
     if (empty($updates)) {
-        echo json_encode(["success" => false, "message" => "수정할 내용이 없습니다."]);
+        echo json_encode(["success" => false, "message" => "No changes to update."]);
         exit;
     }
 
@@ -87,7 +105,7 @@ try {
 
     // Fetch updated user data to return
     $base_cols = "id, name, email, role, status, phone, business_no, profile_image, venue_limit";
-    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name'];
+    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country'];
     foreach ($opt_cols as $oc) {
         $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
         if ($chk->fetch())
@@ -107,7 +125,7 @@ try {
 
     echo json_encode([
         "success" => true,
-        "message" => "프로필이 수정되었습니다.",
+        "message" => "Profile updated.",
         "user" => $updatedUser
     ]);
 

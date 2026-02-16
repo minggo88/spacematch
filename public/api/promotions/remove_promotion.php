@@ -10,7 +10,7 @@ session_start();
 // Admin only
 if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin'])) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => '관리자 권한이 필요합니다.']);
+    echo json_encode(['success' => false, 'message' => 'Admin privileges required.']);
     exit;
 }
 
@@ -20,7 +20,7 @@ $promotion_id = intval($data['promotion_id'] ?? 0);
 $venue_id = intval($data['venue_id'] ?? 0);
 
 if (!$promotion_id && !$venue_id) {
-    echo json_encode(['success' => false, 'message' => 'promotion_id 또는 venue_id가 필요합니다.']);
+    echo json_encode(['success' => false, 'message' => 'promotion_id or venue_id is required.']);
     exit;
 }
 

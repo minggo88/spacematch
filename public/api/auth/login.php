@@ -7,7 +7,17 @@ if (isset($data->email) && isset($data->password)) {
     $email = $data->email;
     $password = $data->password;
 
-    $query = "SELECT id, name, role, status, password FROM users WHERE email = ? LIMIT 0,1";
+    $base_cols = "id, name, role, status, password, email, phone, profile_image, venue_limit";
+
+    // Dynamically include optional columns (same as me.php)
+    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country'];
+    foreach ($opt_cols as $oc) {
+        $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
+        if ($chk->fetch())
+            $base_cols .= ", {$oc}";
+    }
+
+    $query = "SELECT {$base_cols} FROM users WHERE email = ? LIMIT 0,1";
     $stmt = $conn->prepare($query);
     $stmt->bindParam(1, $email);
     $stmt->execute();
@@ -23,10 +33,17 @@ if (isset($data->email) && isset($data->password)) {
         // Let's implement logic to support both for transition.
 
         $password_valid = false;
-        if ($password === $row['password']) {
+        if (password_verify($password, $row['password'])) {
+            // Secure bcrypt hash match
             $password_valid = true;
-        } else if (password_verify($password, $row['password'])) {
+        } else if ($password === $row['password'] && strlen($row['password']) < 60) {
+            // Legacy plain-text password detected — auto-upgrade to bcrypt
             $password_valid = true;
+            try {
+                $newHash = password_hash($password, PASSWORD_BCRYPT);
+                $conn->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newHash, $row['id']]);
+            } catch (PDOException $e) { /* non-critical */
+            }
         }
 
         if ($password_valid) {
@@ -45,14 +62,19 @@ if (isset($data->email) && isset($data->password)) {
             $_SESSION['user_role'] = $row['role'];
             $_SESSION['user_name'] = $row['name'];
 
+            // Track last activity on login
+            try {
+                $colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'last_active_at'");
+                if (!$colCheck->fetch()) {
+                    $conn->exec("ALTER TABLE users ADD COLUMN last_active_at DATETIME NULL DEFAULT NULL");
+                }
+                $conn->prepare("UPDATE users SET last_active_at = NOW() WHERE id = ?")->execute([$row['id']]);
+            } catch (PDOException $e) { /* non-critical */
+            }
+
             // Prepare response data (exclude password)
-            $user_data = array(
-                "id" => $row['id'],
-                "name" => $row['name'],
-                "email" => $email,
-                "role" => $row['role'],
-                "status" => $row['status']
-            );
+            $user_data = $row;
+            unset($user_data['password']);
 
             echo json_encode(array(
                 "success" => true,

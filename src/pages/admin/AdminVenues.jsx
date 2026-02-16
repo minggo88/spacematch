@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '../../context/DataContext';
+import { useTranslation } from 'react-i18next';
 import {
     Plus, X, Search, Filter, MapPin, Calendar,
     MoreHorizontal, Edit3, Trash2, Eye, EyeOff, LayoutGrid, List,
@@ -15,6 +16,7 @@ const API_BASE = '/api';
 
 const AdminVenues = () => {
     const { deleteVenue, fetchVenues } = useData();
+    const { t } = useTranslation('admin');
 
     // Own data fetch from admin endpoint (includes owner_name, owner_email)
     const [adminVenues, setAdminVenues] = useState([]);
@@ -110,7 +112,7 @@ const AdminVenues = () => {
             status: v.status,
             location: v.location,
             price: parseInt(v.price || 0),
-            owner: v.owner_name || '미지정',
+            owner: v.owner_name || t('venuesPage.unassigned'),
             ownerEmail: v.owner_email || '',
             createdAt: v.created_at,
             maxSellers: parseInt(v.max_sellers || 0),
@@ -138,12 +140,12 @@ const AdminVenues = () => {
             const res = await fetch(endpoint, { method: 'POST', body: submitData });
             const data = await res.json();
             if (data.success) {
-                showToast(selectedVenue ? '수정되었습니다' : '등록되었습니다', 'success');
+                showToast(selectedVenue ? t('venuesPage.updatedToast') : t('venuesPage.registeredToast'), 'success');
                 setIsDrawerOpen(false);
                 fetchAdminVenues();
                 fetchVenues();
             } else {
-                showToast(data.message || '오류가 발생했습니다.', 'error');
+                showToast(data.message || t('venuesPage.errorOccurred'), 'error');
             }
         } catch (err) { console.error(err); }
     };
@@ -151,15 +153,15 @@ const AdminVenues = () => {
     const handleDelete = (id) => {
         const venue = adminVenues.find(v => String(v.id) === String(id));
         setConfirmModal({
-            title: '베뉴 삭제',
-            message: `정말 ${venue?.name || '이 베뉴'}를 삭제하시겠습니까?`,
+            title: t('venuesPage.deleteTitle'),
+            message: t('venuesPage.deleteMsg', { name: venue?.name || 'this venue' }),
             type: 'danger',
-            confirmLabel: '삭제',
+            confirmLabel: t('venuesPage.deleteConfirm'),
             onConfirm: () => {
                 setConfirmModal(null);
                 deleteVenue(id);
                 setAdminVenues(prev => prev.filter(v => String(v.id) !== String(id)));
-                showToast('베뉴가 삭제되었습니다.', 'success');
+                showToast(t('venuesPage.deletedToast'), 'success');
             }
         });
     };
@@ -180,14 +182,14 @@ const AdminVenues = () => {
     const handleOpenTypeModal = () => { fetchVenueTypes(); setIsTypeModalOpen(true); };
 
     const handleAddType = () => {
-        if (!newTypeName || !newTypeCode) { showToast('이름과 코드를 모두 입력해주세요.', 'error'); return; }
+        if (!newTypeName || !newTypeCode) { showToast(t('venuesPage.typeAddError'), 'error'); return; }
         fetch(`${API_BASE}/venues/manage_types.php`, {
             method: 'POST',
             body: JSON.stringify({ name: newTypeName, code: newTypeCode })
         })
             .then(res => res.json())
             .then(data => {
-                if (data.success) { setNewTypeName(''); setNewTypeCode(''); fetchVenueTypes(); showToast('유형이 추가되었습니다', 'success'); }
+                if (data.success) { setNewTypeName(''); setNewTypeCode(''); fetchVenueTypes(); showToast(t('venuesPage.typeAddedToast'), 'success'); }
                 else showToast(data.message, 'error');
             });
     };
@@ -208,7 +210,7 @@ const AdminVenues = () => {
             pending: 'bg-amber-100 text-amber-700',
             rejected: 'bg-red-100 text-red-700',
         };
-        const labels = { approved: '운영', pending: '심사중', rejected: '반려' };
+        const labels = { approved: t('venuesPage.statusApproved'), pending: t('venuesPage.statusPending'), rejected: t('venuesPage.statusRejected') };
         return (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${styles[status] || 'bg-gray-100 text-gray-500'}`}>
                 {labels[status] || status}
@@ -225,8 +227,8 @@ const AdminVenues = () => {
                 <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl md:rounded-3xl p-4 md:p-6 text-white shadow-lg shadow-indigo-200/50 flex flex-col justify-between">
                     <div>
                         <div className="flex justify-between items-start">
-                            <h2 className="text-sm font-bold opacity-90">전체 베뉴</h2>
-                            <button onClick={handleOpenTypeModal} className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="베뉴 유형 설정">
+                            <h2 className="text-sm font-bold opacity-90">{t('venuesPage.totalVenues')}</h2>
+                            <button onClick={handleOpenTypeModal} className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title={t('venuesPage.typeSettings')}>
                                 <Settings size={14} />
                             </button>
                         </div>
@@ -236,28 +238,28 @@ const AdminVenues = () => {
                         onClick={() => handleOpenDrawer()}
                         className="mt-3 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm py-2 rounded-xl transition-all font-bold text-xs md:text-sm"
                     >
-                        <Plus size={14} /> 베뉴 등록
+                        <Plus size={14} /> {t('venuesPage.registerVenue')}
                     </button>
                 </div>
 
                 {/* Approved */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-center">
-                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">승인</div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
+                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">{t('venuesPage.statApproved')}</div>
                     <div className="text-xl md:text-2xl font-extrabold text-emerald-600">{stats.approved}</div>
                 </div>
                 {/* Pending */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-center">
-                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">심사 대기</div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
+                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">{t('venuesPage.statPending')}</div>
                     <div className="text-xl md:text-2xl font-extrabold text-amber-600">{stats.pending}</div>
                 </div>
                 {/* Avg Price */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-center">
-                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">평균 임대료</div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
+                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">{t('venuesPage.statAvgRent')}</div>
                     <div className="text-lg md:text-2xl font-extrabold text-gray-900">{`₩${stats.avgPrice.toLocaleString()}`}</div>
                 </div>
                 {/* Vendor Count */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-center">
-                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">등록 벤더</div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
+                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">{t('venuesPage.statVendors')}</div>
                     <div className="flex items-center gap-2">
                         <div className="text-xl md:text-2xl font-extrabold text-indigo-600">{stats.vendorCount}</div>
                         <Users size={16} className="text-indigo-400" />
@@ -266,7 +268,7 @@ const AdminVenues = () => {
             </div>
 
             {/* 2. Control Bar */}
-            <div className="flex flex-col gap-3 md:gap-4 sticky top-0 bg-gray-50/95 backdrop-blur z-10 py-3 md:py-4 border-b border-white/50">
+            <div className="flex flex-col gap-3 md:gap-4 py-3 md:py-4">
 
                 {/* Top Row: Search & Status */}
                 <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4">
@@ -274,24 +276,24 @@ const AdminVenues = () => {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                         <input
                             type="text"
-                            placeholder="베뉴 이름, 위치, 벤더 검색.."
+                            placeholder={t('venuesPage.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 ring-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                            className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:ring-2 ring-indigo-100 dark:ring-indigo-900 focus:border-indigo-500 outline-none transition-all shadow-sm placeholder-gray-400 dark:placeholder-gray-500"
                         />
                     </div>
 
-                    <div className="flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm overflow-x-auto hide-scrollbar">
+                    <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto hide-scrollbar">
                         {['all', 'approved', 'pending', 'rejected'].map(status => (
                             <button
                                 key={status}
                                 onClick={() => setFilterStatus(status)}
                                 className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold whitespace-nowrap transition-all ${filterStatus === status
                                     ? 'bg-indigo-600 text-white shadow-md'
-                                    : 'text-gray-500 hover:bg-gray-50'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                                     }`}
                             >
-                                {status === 'all' ? '전체' : status === 'approved' ? '승인' : status === 'pending' ? '심사' : '반려'}
+                                {status === 'all' ? t('venuesPage.filterAll') : status === 'approved' ? t('venuesPage.filterApproved') : status === 'pending' ? t('venuesPage.filterPending') : t('venuesPage.filterRejected')}
                             </button>
                         ))}
                     </div>
@@ -303,9 +305,9 @@ const AdminVenues = () => {
                     <select
                         value={filterVendor}
                         onChange={(e) => setFilterVendor(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer hover:bg-gray-50 transition-colors max-w-[140px] md:max-w-[200px]"
+                        className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs md:text-sm font-bold text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors max-w-[140px] md:max-w-[200px]"
                     >
-                        <option value="all">모든 벤더</option>
+                        <option value="all">{t('venuesPage.allVendors')}</option>
                         {vendorList.map(([email, name]) => (
                             <option key={email} value={email}>{name}</option>
                         ))}
@@ -315,28 +317,28 @@ const AdminVenues = () => {
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs md:text-sm font-bold text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                        <option value="all">모든 타입</option>
-                        <option value="popup">팝업스토어</option>
-                        <option value="gallery">갤러리</option>
-                        <option value="cafe">카페</option>
-                        <option value="flea_market">플리마켓</option>
-                        <option value="showroom">쇼룸</option>
+                        <option value="all">{t('venuesPage.allTypes')}</option>
+                        <option value="popup">{t('venuesPage.typePopup')}</option>
+                        <option value="gallery">{t('venuesPage.typeGallery')}</option>
+                        <option value="cafe">{t('venuesPage.typeCafe')}</option>
+                        <option value="flea_market">{t('venuesPage.typeFleaMarket')}</option>
+                        <option value="showroom">{t('venuesPage.typeShowroom')}</option>
                     </select>
 
                     {/* Size Filter */}
-                    <div className="hidden md:flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm shrink-0">
+                    <div className="hidden md:flex bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
                         {['all', 'small', 'medium', 'large'].map(size => (
                             <button
                                 key={size}
                                 onClick={() => setFilterCategory(size)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase ${filterCategory === size
-                                    ? 'bg-gray-900 text-white shadow-md'
-                                    : 'text-gray-500 hover:bg-gray-50'
+                                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-md'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                                     }`}
                             >
-                                {size === 'all' ? '전체' : size}
+                                {size === 'all' ? t('venuesPage.filterAll') : size}
                             </button>
                         ))}
                     </div>
@@ -347,29 +349,29 @@ const AdminVenues = () => {
                             <select
                                 value={sortOption}
                                 onChange={(e) => setSortOption(e.target.value)}
-                                className="pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer"
+                                className="pl-3 pr-8 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs md:text-sm font-bold text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer"
                             >
-                                <option value="newest">최신</option>
-                                <option value="oldest">오래된순</option>
-                                <option value="price_high">{"\uAC00\uACA9 \uB192\uC740\uC21C"}</option>
-                                <option value="price_low">{"\uAC00\uACA9 \uB0AE\uC740\uC21C"}</option>
-                                <option value="name_asc">이름</option>
-                                <option value="vendor">벤더</option>
+                                <option value="newest">{t('venuesPage.sortNewest')}</option>
+                                <option value="oldest">{t('venuesPage.sortOldest')}</option>
+                                <option value="price_high">{t('venuesPage.sortPriceHigh')}</option>
+                                <option value="price_low">{t('venuesPage.sortPriceLow')}</option>
+                                <option value="name_asc">{t('venuesPage.sortName')}</option>
+                                <option value="vendor">{t('venuesPage.sortVendor')}</option>
                             </select>
                             <Filter className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                         </div>
 
                         {/* View Mode */}
-                        <div className="flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm shrink-0">
+                        <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700 shadow-sm shrink-0">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-1.5 md:p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:bg-gray-50'}`}
+                                className={`p-1.5 md:p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                             >
                                 <LayoutGrid size={16} />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-1.5 md:p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:bg-gray-50'}`}
+                                className={`p-1.5 md:p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                             >
                                 <List size={16} />
                             </button>
@@ -379,8 +381,8 @@ const AdminVenues = () => {
 
                 {/* Result count */}
                 <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <span className="font-bold text-gray-600">{filteredVenues.length}</span>개 베뉴
-                    {filterVendor !== 'all' && <span className="text-indigo-500">· {vendorList.find(([e]) => e === filterVendor)?.[1]} 벤더</span>}
+                    <span className="font-bold text-gray-600">{filteredVenues.length}</span>{t('venuesPage.venueCount')}
+                    {filterVendor !== 'all' && <span className="text-indigo-500">· {vendorList.find(([e]) => e === filterVendor)?.[1]} {t('venuesPage.vendorFilter')}</span>}
                 </div>
             </div>
 
@@ -394,7 +396,7 @@ const AdminVenues = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-900 text-sm md:text-base">{venueStats.name}</h3>
-                                <p className="text-xs text-gray-500">베뉴 상세 통계</p>
+                                <p className="text-xs text-gray-500">{t('venuesPage.venueDetailStats')}</p>
                             </div>
                         </div>
                         <button onClick={() => setStatsVenue(null)} className="p-2 hover:bg-white/80 rounded-lg transition-colors">
@@ -404,43 +406,43 @@ const AdminVenues = () => {
                     <div className="p-4 md:p-6">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                             <div className="bg-gray-50 rounded-xl p-3 md:p-4">
-                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">상태</div>
+                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">{t('venuesPage.statStatus')}</div>
                                 <StatusBadge status={venueStats.status} />
                             </div>
                             <div className="bg-gray-50 rounded-xl p-3 md:p-4">
-                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">임대료</div>
+                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">{t('venuesPage.statRent')}</div>
                                 <div className="text-base md:text-lg font-bold text-gray-900">{`₩${venueStats.price.toLocaleString()}`}</div>
                             </div>
                             <div className="bg-gray-50 rounded-xl p-3 md:p-4">
-                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">타입</div>
+                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">{t('venuesPage.statType')}</div>
                                 <div className="text-sm font-bold text-gray-700 uppercase">{venueStats.type}</div>
                             </div>
                             <div className="bg-gray-50 rounded-xl p-3 md:p-4">
-                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">모집 정원</div>
-                                <div className="text-base md:text-lg font-bold text-gray-900">{venueStats.maxSellers > 0 ? `${venueStats.maxSellers}명` : '제한없음'}</div>
+                                <div className="text-[10px] md:text-xs text-gray-400 font-bold mb-1">{t('venuesPage.statCapacity')}</div>
+                                <div className="text-base md:text-lg font-bold text-gray-900">{venueStats.maxSellers > 0 ? t('venuesPage.capacityCount', { count: venueStats.maxSellers }) : t('venuesPage.noLimit')}</div>
                             </div>
                         </div>
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex items-center gap-3 bg-indigo-50 rounded-xl p-3 md:p-4">
                                 <Users size={18} className="text-indigo-500 flex-shrink-0" />
                                 <div>
-                                    <div className="text-xs text-gray-500">벤더</div>
+                                    <div className="text-xs text-gray-500">{t('venuesPage.vendorLabel')}</div>
                                     <div className="text-sm font-bold text-gray-900">{venueStats.owner}</div>
                                     <div className="text-[10px] text-gray-400">{venueStats.ownerEmail}</div>
                                 </div>
                                 <div className="ml-auto text-right">
-                                    <div className="text-xs text-gray-500">보유 베뉴</div>
+                                    <div className="text-xs text-gray-500">{t('venuesPage.ownedVenues')}</div>
                                     <div className="text-lg font-bold text-indigo-600">{venueStats.ownerVenueCount}</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 md:p-4">
                                 <MapPin size={18} className="text-gray-400 flex-shrink-0" />
                                 <div className="min-w-0">
-                                    <div className="text-xs text-gray-500">위치</div>
+                                    <div className="text-xs text-gray-500">{t('venuesPage.locationLabel')}</div>
                                     <div className="text-sm font-bold text-gray-900 truncate">{venueStats.location}</div>
                                 </div>
                                 <div className="ml-auto text-right flex-shrink-0">
-                                    <div className="text-xs text-gray-500">등록</div>
+                                    <div className="text-xs text-gray-500">{t('venuesPage.registeredLabel')}</div>
                                     <div className="text-sm font-bold text-gray-700">{venueStats.createdAt ? new Date(venueStats.createdAt).toLocaleDateString('ko-KR') : '-'}</div>
                                 </div>
                             </div>
@@ -450,13 +452,13 @@ const AdminVenues = () => {
                                 onClick={() => { handleOpenDrawer(statsVenue); }}
                                 className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
                             >
-                                <Edit3 size={14} /> 수정하기
+                                <Edit3 size={14} /> {t('venuesPage.editButton')}
                             </button>
                             <button
                                 onClick={() => { setFilterVendor(venueStats.ownerEmail); setStatsVenue(null); }}
                                 className="px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2"
                             >
-                                <Filter size={14} /> 이 벤더 필터
+                                <Filter size={14} /> {t('venuesPage.filterThisVendor')}
                             </button>
                         </div>
                     </div>
@@ -533,7 +535,7 @@ const AdminVenues = () => {
                         className="rounded-2xl md:rounded-3xl border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 transition-all gap-3"
                     >
                         <div className="p-4 bg-gray-100 rounded-full"><Plus size={28} /></div>
-                        <span className="font-bold text-sm">새 베뉴 등록하기</span>
+                        <span className="font-bold text-sm">{t('venuesPage.addNewVenue')}</span>
                     </button>
                 </div>
             ) : (
@@ -576,21 +578,21 @@ const AdminVenues = () => {
                                             <button
                                                 onClick={() => setStatsVenue(venue)}
                                                 className="p-1.5 md:p-2 rounded-lg text-indigo-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                                                title="통계 보기"
+                                                title={t('venuesPage.viewStats')}
                                             >
                                                 <BarChart3 size={14} />
                                             </button>
                                             <button
                                                 onClick={() => handleOpenDrawer(venue)}
                                                 className="p-1.5 md:p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                                                title="수정"
+                                                title={t('venuesPage.editVenue')}
                                             >
                                                 <Edit3 size={14} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(venue.id)}
                                                 className="p-1.5 md:p-2 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                                title="삭제"
+                                                title={t('venuesPage.deleteVenue')}
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -612,8 +614,8 @@ const AdminVenues = () => {
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
                                 <Search size={32} />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">조건에 맞는 베뉴가 없어요</h3>
-                            <p className="text-sm text-gray-500">다른 조건이나 필터를 시도해보세요!</p>
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">{t('venuesPage.noVenuesTitle')}</h3>
+                            <p className="text-sm text-gray-500">{t('venuesPage.noVenuesDesc')}</p>
                         </div>
                     )}
                 </div>
@@ -637,24 +639,24 @@ const AdminVenues = () => {
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsTypeModalOpen(false)}></div>
                         <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scaleIn">
                             <div className="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                <h3 className="text-base md:text-lg font-bold">베뉴 타입 관리</h3>
+                                <h3 className="text-base md:text-lg font-bold">{t('venuesPage.typeManageTitle')}</h3>
                                 <button onClick={() => setIsTypeModalOpen(false)}><X size={20} className="text-gray-400 hover:text-gray-600" /></button>
                             </div>
                             <div className="p-4 md:p-5">
                                 <div className="flex flex-col sm:flex-row gap-2 mb-6">
                                     <input
-                                        placeholder="코드 (예: flea_market)"
+                                        placeholder={t('venuesPage.typeCodePlaceholder')}
                                         className="flex-1 bg-gray-100 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-indigo-500"
                                         value={newTypeCode}
                                         onChange={e => setNewTypeCode(e.target.value)}
                                     />
                                     <input
-                                        placeholder="이름 (예: 플리마켓)"
+                                        placeholder={t('venuesPage.typeNamePlaceholder')}
                                         className="flex-1 bg-gray-100 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-indigo-500"
                                         value={newTypeName}
                                         onChange={e => setNewTypeName(e.target.value)}
                                     />
-                                    <button onClick={handleAddType} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 whitespace-nowrap">추가</button>
+                                    <button onClick={handleAddType} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 whitespace-nowrap">{t('venuesPage.addButton')}</button>
                                 </div>
 
                                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
@@ -668,7 +670,7 @@ const AdminVenues = () => {
                                                 onClick={() => handleToggleType(type.id, type.is_active)}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${type.is_active == 1 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                                             >
-                                                {type.is_active == 1 ? '사용중' : '사용안함'}
+                                                {type.is_active == 1 ? t('venuesPage.typeActive') : t('venuesPage.typeInactive')}
                                             </button>
                                         </div>
                                     ))}

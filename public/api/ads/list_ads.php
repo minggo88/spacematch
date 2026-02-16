@@ -11,16 +11,27 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['ad
 
 try {
     $slot_filter = isset($_GET['slot_id']) ? trim($_GET['slot_id']) : '';
+    $country_filter = isset($_GET['country']) ? trim($_GET['country']) : '';
 
-    $sql = "SELECT * FROM ads";
+    $sql = "SELECT a.*, a.campaign_id, c.name as campaign_name FROM ads a LEFT JOIN ad_campaigns c ON a.campaign_id = c.id";
     $params = [];
+    $conditions = [];
 
     if ($slot_filter) {
-        $sql .= " WHERE slot_id = :slot_id";
+        $conditions[] = "a.slot_id = :slot_id";
         $params[':slot_id'] = $slot_filter;
     }
 
-    $sql .= " ORDER BY slot_id ASC, priority DESC, created_at DESC";
+    if ($country_filter && $country_filter !== 'all') {
+        $conditions[] = "(a.target_countries = 'all' OR FIND_IN_SET(:country, a.target_countries) > 0)";
+        $params[':country'] = $country_filter;
+    }
+
+    if (!empty($conditions)) {
+        $sql .= " WHERE " . implode(" AND ", $conditions);
+    }
+
+    $sql .= " ORDER BY a.slot_id ASC, a.priority DESC, a.created_at DESC";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);

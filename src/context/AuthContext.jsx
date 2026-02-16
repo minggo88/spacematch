@@ -137,6 +137,7 @@ export const AuthProvider = ({ children }) => {
             const response = await fetch(`/api/users/toggle_block.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ email: targetEmail })
             });
             const data = await response.json();

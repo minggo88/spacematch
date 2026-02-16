@@ -13,24 +13,21 @@ header('Content-Type: application/json; charset=utf-8');
 include_once '../db_connect.php';
 session_start();
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "message" => "로그인이 필요합니다."]);
+$identifier = isset($_GET['id']) ? trim($_GET['id']) : '';
+if (empty($identifier)) {
+    echo json_encode(["success" => false, "message" => "Invalid user."]);
     exit;
 }
 
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-if ($id <= 0) {
-    echo json_encode(["success" => false, "message" => "유효하지 않은 사용자 ID입니다."]);
-    exit;
-}
+// Support both numeric ID and name-based lookup
+$is_numeric = ctype_digit($identifier);
 
 try {
     // 1. Build column list dynamically (only PUBLIC fields)
     $base_cols = "id, name, role, status, created_at";
 
     // Check optional columns
-    $optional_cols = ['profile_image', 'category', 'product_category', 'instagram', 'description', 'brand_name'];
+    $optional_cols = ['profile_image', 'category', 'product_category', 'instagram', 'description', 'brand_name', 'email', 'phone'];
     foreach ($optional_cols as $oc) {
         $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
         if ($chk && $chk->fetch()) {
@@ -38,13 +35,29 @@ try {
         }
     }
 
-    $stmt = $conn->prepare("SELECT {$base_cols} FROM users WHERE id = ?");
-    $stmt->execute([$id]);
+    if ($is_numeric) {
+        $stmt = $conn->prepare("SELECT {$base_cols} FROM users WHERE id = ?");
+        $stmt->execute([intval($identifier)]);
+    } else {
+        $stmt = $conn->prepare("SELECT {$base_cols} FROM users WHERE name = ?");
+        $stmt->execute([urldecode($identifier)]);
+    }
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
-        echo json_encode(["success" => false, "message" => "사용자를 찾을 수 없습니다."]);
+        echo json_encode(["success" => false, "message" => "User not found."]);
         exit;
+    }
+
+    // Mask contact info if vendor is viewing a seller profile (NOT admin)
+    $requester_role = $_SESSION['user_role'] ?? '';
+    if ($requester_role === 'vendor' && $user['role'] === 'seller') {
+        if (isset($user['instagram']))
+            $user['instagram'] = '';
+        if (isset($user['phone']))
+            $user['phone'] = '';
+        if (isset($user['email']))
+            $user['email'] = '';
     }
 
     $response = [
@@ -61,7 +74,7 @@ try {
     if ($user['role'] === 'vendor') {
         // Vendor: show approved venues (public info only)
         $vStmt = $conn->prepare("SELECT id, name, location, type, status, price, images FROM venues WHERE owner_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 10");
-        $vStmt->execute([$id]);
+        $vStmt->execute([$user['id']]);
         $venues = $vStmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($venues as &$venue) {
@@ -89,7 +102,7 @@ try {
                 WHERE a.{$app_col} = ? AND a.status = 'approved'
                 ORDER BY a.created_at DESC LIMIT 20
             ");
-            $aStmt->execute([$id]);
+            $aStmt->execute([$user['id']]);
             $applications = $aStmt->fetchAll(PDO::FETCH_ASSOC);
             $response['applications'] = $applications;
             $response['stats'] = ['total_applications' => count($applications)];
@@ -104,7 +117,7 @@ try {
             $tblCheck = $conn->query("SHOW TABLES LIKE 'seller_photos'");
             if ($tblCheck && $tblCheck->fetch()) {
                 $photoStmt = $conn->prepare("SELECT id, image_url, caption FROM seller_photos WHERE user_id = ? ORDER BY sort_order ASC, created_at ASC LIMIT 10");
-                $photoStmt->execute([$id]);
+                $photoStmt->execute([$user['id']]);
                 $response['seller_photos'] = $photoStmt->fetchAll(PDO::FETCH_ASSOC);
             }
         } catch (PDOException $e) {
@@ -122,12 +135,12 @@ try {
 
         if ($tblCheck1 && $tblCheck1->fetch()) {
             $postCountStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM community_posts WHERE user_id = ?");
-            $postCountStmt->execute([$id]);
+            $postCountStmt->execute([$user['id']]);
             $postCount = intval($postCountStmt->fetch(PDO::FETCH_ASSOC)['cnt']);
         }
         if ($tblCheck2 && $tblCheck2->fetch()) {
             $commentCountStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM community_comments WHERE user_id = ?");
-            $commentCountStmt->execute([$id]);
+            $commentCountStmt->execute([$user['id']]);
             $commentCount = intval($commentCountStmt->fetch(PDO::FETCH_ASSOC)['cnt']);
         }
 

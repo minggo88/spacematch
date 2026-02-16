@@ -14,6 +14,7 @@ $data = json_decode(file_get_contents("php://input"));
 if (isset($data->id) && isset($data->status)) {
     $application_id = $data->id;
     $status = $data->status; // 'approved' or 'rejected'
+    $rejection_reason = isset($data->rejection_reason) ? trim($data->rejection_reason) : '';
     $user_id = $_SESSION['user_id'];
     $user_role = $_SESSION['user_role'] ?? '';
 
@@ -37,9 +38,43 @@ if (isset($data->id) && isset($data->status)) {
     }
 
     if ($can_update) {
-        $query = "UPDATE applications SET status = :status WHERE id = :id";
+        // Check 3-day deadline for approved → rejected
+        if ($status === 'rejected') {
+            $checkCurrent = $conn->prepare("SELECT status, selected_period FROM applications WHERE id = :id");
+            $checkCurrent->bindParam(':id', $application_id);
+            $checkCurrent->execute();
+            $currentApp = $checkCurrent->fetch(PDO::FETCH_ASSOC);
+
+            if ($currentApp && $currentApp['status'] === 'approved' && !empty($currentApp['selected_period'])) {
+                $period = json_decode($currentApp['selected_period'], true);
+                if (isset($period['start'])) {
+                    $eventStart = new DateTime($period['start']);
+                    $now = new DateTime();
+                    $daysUntil = $now->diff($eventStart)->days;
+                    $isFuture = $eventStart > $now;
+
+                    if (!$isFuture || $daysUntil < 3) {
+                        echo json_encode(["success" => false, "message" => "행사 시작 3일 전까지만 승인을 취소할 수 있습니다."]);
+                        exit;
+                    }
+                }
+            }
+        }
+
+        // Auto-add rejection_reason column if not exists
+        try {
+            $colCheck = $conn->query("SHOW COLUMNS FROM applications LIKE 'rejection_reason'");
+            if ($colCheck->rowCount() === 0) {
+                $conn->exec("ALTER TABLE applications ADD COLUMN rejection_reason TEXT DEFAULT NULL");
+            }
+        } catch (Exception $e) {
+            // Column may already exist
+        }
+
+        $query = "UPDATE applications SET status = :status, rejection_reason = :reason WHERE id = :id";
         $stmt = $conn->prepare($query);
         $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':reason', $rejection_reason);
         $stmt->bindParam(':id', $application_id);
 
         if ($stmt->execute()) {
@@ -62,6 +97,9 @@ if (isset($data->id) && isset($data->status)) {
                 if ($appData) {
                     $statusMsg = ($status === 'approved') ? '승인' : (($status === 'rejected') ? '반려' : $status);
                     $notifMsg = "입점 신청이 [{$statusMsg}] 처리되었습니다: " . $appData['venue_name'];
+                    if ($status === 'rejected' && !empty($rejection_reason)) {
+                        $notifMsg .= "\n거절 사유: " . $rejection_reason;
+                    }
                     $notifLink = "/seller/applications";
 
                     $notifSql = "INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (:uid, 'application_status', :msg, :link, NOW())";

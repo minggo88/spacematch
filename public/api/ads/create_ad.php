@@ -1,5 +1,8 @@
 <?php
 // Admin: Create ad with image upload
+@ini_set('upload_max_filesize', '500M');
+@ini_set('post_max_size', '500M');
+@ini_set('memory_limit', '512M');
 include_once '../db_connect.php';
 session_start();
 
@@ -16,6 +19,8 @@ $start_date = isset($_POST['start_date']) && $_POST['start_date'] ? $_POST['star
 $end_date = isset($_POST['end_date']) && $_POST['end_date'] ? $_POST['end_date'] : null;
 $is_active = isset($_POST['is_active']) ? intval($_POST['is_active']) : 1;
 $priority = isset($_POST['priority']) ? intval($_POST['priority']) : 0;
+$campaign_id = isset($_POST['campaign_id']) && $_POST['campaign_id'] !== '' ? intval($_POST['campaign_id']) : null;
+$target_countries = isset($_POST['target_countries']) ? trim($_POST['target_countries']) : 'all';
 
 if (empty($slot_id) || empty($title)) {
     echo json_encode(['success' => false, 'message' => 'slot_id and title required']);
@@ -32,9 +37,25 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         exit();
     }
 
-    $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/spacematch/uploads/ads/';
+    // Detect app base path dynamically
+    $doc_root = $_SERVER['DOCUMENT_ROOT'];
+    $script_dir = dirname($_SERVER['SCRIPT_FILENAME']);
+    $app_base = '';
+    if (preg_match('#(/[^/]+)(/api/|/uploads/)#', $_SERVER['SCRIPT_NAME'], $m)) {
+        $app_base = $m[1]; // e.g. '/spacematch'
+    }
+
+    $upload_dir = $doc_root . $app_base . '/uploads/ads/';
     if (!is_dir($upload_dir)) {
-        mkdir($upload_dir, 0755, true);
+        @mkdir($upload_dir, 0755, true);
+    }
+
+    // Fallback to relative path if DOCUMENT_ROOT-based path fails
+    if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
+        $upload_dir = dirname(dirname(__DIR__)) . '/uploads/ads/';
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0755, true);
+        }
     }
 
     $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
@@ -42,20 +63,20 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $filepath = $upload_dir . $filename;
 
     if (move_uploaded_file($_FILES['image']['tmp_name'], $filepath)) {
-        $image_url = '/spacematch/uploads/ads/' . $filename;
+        $image_url = $app_base . '/uploads/ads/' . $filename;
     } else {
-        echo json_encode(['success' => false, 'message' => '이미지 업로드에 실패했습니다.']);
+        echo json_encode(['success' => false, 'message' => 'Image upload failed.']);
         exit();
     }
 } else {
-    echo json_encode(['success' => false, 'message' => '이미지 파일이 필요합니다.']);
+    echo json_encode(['success' => false, 'message' => 'Image file is required.']);
     exit();
 }
 
 try {
     $stmt = $conn->prepare("
-        INSERT INTO ads (slot_id, title, image_url, click_url, start_date, end_date, is_active, priority)
-        VALUES (:slot_id, :title, :image_url, :click_url, :start_date, :end_date, :is_active, :priority)
+        INSERT INTO ads (slot_id, title, image_url, click_url, start_date, end_date, is_active, priority, campaign_id, target_countries)
+        VALUES (:slot_id, :title, :image_url, :click_url, :start_date, :end_date, :is_active, :priority, :campaign_id, :target_countries)
     ");
     $stmt->execute([
         ':slot_id' => $slot_id,
@@ -65,7 +86,9 @@ try {
         ':start_date' => $start_date,
         ':end_date' => $end_date,
         ':is_active' => $is_active,
-        ':priority' => $priority
+        ':priority' => $priority,
+        ':campaign_id' => $campaign_id,
+        ':target_countries' => $target_countries
     ]);
 
     $new_id = $conn->lastInsertId();

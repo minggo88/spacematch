@@ -3,22 +3,53 @@
 $session_lifetime = 86400; // 24시간 (초)
 ini_set('session.gc_maxlifetime', $session_lifetime);
 ini_set('session.cookie_lifetime', $session_lifetime);
+
+// ─── Session Security ───
+ini_set('session.use_strict_mode', 1);           // Reject uninitialized session IDs
+ini_set('session.use_only_cookies', 1);           // No session ID in URL
+ini_set('session.cookie_httponly', 1);             // JavaScript cannot access session cookie
+
 session_set_cookie_params([
     'lifetime' => $session_lifetime,
     'path' => '/',
     'httponly' => true,
-    'samesite' => 'Lax'
+    'samesite' => 'Lax',
+    'secure' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
 ]);
 
-// Dynamic CORS: allow only same-origin or specific domain
-$allowed_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+// ─── Security Headers ───
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: SAMEORIGIN");
+header("X-XSS-Protection: 1; mode=block");
+
+// ─── CORS: Capacitor 모바일 앱 + 웹 도메인 허용 ───
+$allowed_origins = [
+    'capacitor://localhost',     // Capacitor iOS
+    'http://localhost',          // Capacitor Android
+    'https://localhost',         // Capacitor Android (HTTPS)
+];
+
+// 서버 호스트 기반 동적 허용 (기존 웹 호환)
 $server_host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
-if (!empty($allowed_origin) && (strpos($allowed_origin, $server_host) !== false)) {
-    header("Access-Control-Allow-Origin: " . $allowed_origin);
+$request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+$is_allowed = in_array($request_origin, $allowed_origins)
+    || (!empty($request_origin) && !empty($server_host) && strpos($request_origin, $server_host) !== false);
+
+if ($is_allowed && !empty($request_origin)) {
+    header("Access-Control-Allow-Origin: " . $request_origin);
     header("Access-Control-Allow-Credentials: true");
-} else {
-    // Same-origin requests (no Origin header) are allowed by default
-    header("Access-Control-Allow-Origin: *");
+
+    // Capacitor 앱에서는 SameSite=None 필요 (교차 출처 쿠키 허용)
+    if (in_array($request_origin, $allowed_origins)) {
+        session_set_cookie_params([
+            'lifetime' => $session_lifetime,
+            'path' => '/',
+            'httponly' => true,
+            'samesite' => 'None',
+            'secure' => true
+        ]);
+    }
 }
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
@@ -39,9 +70,12 @@ $password = 'qortpdnd91!@';
 try {
     $conn = new PDO("mysql:host=" . $host . ";dbname=" . $db_name . ";charset=utf8mb4", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);   // Use real prepared statements
+    $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $exception) {
     http_response_code(500);
     error_log("DB Connection Error: " . $exception->getMessage());
+    // Do NOT expose internal error details to client
     echo json_encode(array("message" => "서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."));
     exit();
 }

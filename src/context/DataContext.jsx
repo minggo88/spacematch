@@ -18,8 +18,8 @@ export const DataProvider = ({ children }) => {
             try {
                 const notif = new Notification(title, {
                     body,
-                    icon: '/favicon.ico',
-                    badge: '/favicon.ico',
+                    icon: '/favicon.png',
+                    badge: '/favicon.png',
                     tag: 'spacematch-' + Date.now(),
                     requireInteraction: false,
                     silent: false
@@ -89,7 +89,7 @@ export const DataProvider = ({ children }) => {
         let notifInterval = null;
         const startPolling = async () => {
             await fetchNotifications();
-            notifInterval = setInterval(fetchNotifications, 30000);
+            notifInterval = setInterval(fetchNotifications, 10000);
         };
         // Check if session exists before starting polling
         fetch(`${API_BASE}/auth/me.php`, { credentials: 'include' })
@@ -119,11 +119,12 @@ export const DataProvider = ({ children }) => {
 
     const applyForVenue = async (application) => {
         try {
+            const isFormData = application instanceof FormData;
             const res = await fetch(`${API_BASE}/applications/submit_application.php`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(application)
+                ...(isFormData ? {} : { headers: { 'Content-Type': 'application/json' } }),
+                body: isFormData ? application : JSON.stringify(application)
             });
             const data = await res.json();
             if (data.success) {

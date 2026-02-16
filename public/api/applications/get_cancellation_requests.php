@@ -1,6 +1,6 @@
 <?php
-session_start();
 include_once '../db_connect.php';
+session_start();
 header('Content-Type: application/json; charset=utf-8');
 
 if (!isset($_SESSION['user_id'])) {
@@ -36,9 +36,18 @@ try {
         // Continue — table may already exist
     }
 
+    // Check if applications table has venue_name column
+    $has_venue_name = false;
+    try {
+        $col_check = $conn->query("SHOW COLUMNS FROM applications LIKE 'venue_name'");
+        $has_venue_name = $col_check && $col_check->fetch() ? true : false;
+    } catch (Exception $e) { /* applications table may not exist */
+    }
+    $venue_name_col = $has_venue_name ? 'a.venue_name,' : '';
+
     if ($user_role === 'admin' || $user_role === 'superadmin') {
         $query = "SELECT cr.*, 
-                         a.venue_name, a.status as app_status,
+                         {$venue_name_col} a.status as app_status,
                          seller.name as seller_name, seller.email as seller_email,
                          v.name as venue_title, v.location as venue_location,
                          vendor.name as vendor_name,
@@ -54,7 +63,7 @@ try {
         $stmt->execute();
     } elseif ($user_role === 'vendor') {
         $query = "SELECT cr.*, 
-                         a.venue_name, a.status as app_status,
+                         {$venue_name_col} a.status as app_status,
                          seller.name as seller_name, seller.email as seller_email,
                          v.name as venue_title, v.location as venue_location,
                          decider.name as decided_by_name
@@ -69,7 +78,7 @@ try {
         $stmt->execute([$user_id]);
     } else {
         $query = "SELECT cr.*, 
-                         a.venue_name, a.status as app_status,
+                         {$venue_name_col} a.status as app_status,
                          v.name as venue_title, v.location as venue_location,
                          decider.name as decided_by_name
                   FROM cancellation_requests cr

@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(["success" => false, "message" => "로그인이 필요합니다."]);
+    echo json_encode(["success" => false, "message" => "Login required."]);
     exit;
 }
 
@@ -33,7 +33,7 @@ error_log("FILES keys: " . implode(', ', array_keys($_FILES)));
 error_log("SESSION user_id: " . $_SESSION['user_id']);
 
 if (!isset($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
-    echo json_encode(["success" => false, "message" => "이미지 파일이 전송되지 않았습니다."]);
+    echo json_encode(["success" => false, "message" => "No image file received."]);
     exit;
 }
 
@@ -43,16 +43,16 @@ $user_id = $_SESSION['user_id'];
 // Check for upload errors with detailed messages
 if ($file['error'] !== UPLOAD_ERR_OK) {
     $errors = [
-        UPLOAD_ERR_INI_SIZE => "서버 최대 파일 크기 초과",
-        UPLOAD_ERR_FORM_SIZE => "폼 최대 파일 크기 초과",
-        UPLOAD_ERR_PARTIAL => "파일이 부분적으로만 업로드됨",
-        UPLOAD_ERR_NO_TMP_DIR => "임시 폴더 없음",
-        UPLOAD_ERR_CANT_WRITE => "디스크 쓰기 실패",
-        UPLOAD_ERR_EXTENSION => "PHP 확장에 의해 중단"
+        UPLOAD_ERR_INI_SIZE => "Server max file size exceeded",
+        UPLOAD_ERR_FORM_SIZE => "Form max file size exceeded",
+        UPLOAD_ERR_PARTIAL => "File partially uploaded",
+        UPLOAD_ERR_NO_TMP_DIR => "No temp folder",
+        UPLOAD_ERR_CANT_WRITE => "Disk write failed",
+        UPLOAD_ERR_EXTENSION => "Stopped by PHP extension"
     ];
     $msg = isset($errors[$file['error']]) ? $errors[$file['error']] : "Unknown error";
     error_log("Upload error code: " . $file['error'] . " - " . $msg);
-    echo json_encode(["success" => false, "message" => "업로드 에러: " . $msg]);
+    echo json_encode(["success" => false, "message" => "Upload error: " . $msg]);
     exit;
 }
 
@@ -61,7 +61,7 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
 // Extension check only (no finfo dependency)
 $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'svg'])) {
-    echo json_encode(["success" => false, "message" => "이미지 파일만 업로드 가능합니다."]);
+    echo json_encode(["success" => false, "message" => "Only image files are allowed."]);
     exit;
 }
 
@@ -130,7 +130,7 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
 
         echo json_encode([
             "success" => true,
-            "message" => "프로필 이미지가 업로드되었습니다.",
+            "message" => "Profile image uploaded.",
             "imageUrl" => $web_path
         ]);
     } catch (PDOException $e) {
@@ -149,7 +149,7 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
 
     echo json_encode([
         "success" => false,
-        "message" => "파일 저장 실패. 디렉토리 권한을 확인해주세요. (writable: " . (is_writable($upload_base) ? 'Y' : 'N') . ", exists: " . (file_exists($upload_base) ? 'Y' : 'N') . ")"
+        "message" => "File save failed. Check directory permissions. (writable: " . (is_writable($upload_base) ? 'Y' : 'N') . ", exists: " . (file_exists($upload_base) ? 'Y' : 'N') . ")"
     ]);
 }
 ?>

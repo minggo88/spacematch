@@ -1,5 +1,8 @@
 <?php
 // Admin: Update ad
+@ini_set('upload_max_filesize', '500M');
+@ini_set('post_max_size', '500M');
+@ini_set('memory_limit', '512M');
 include_once '../db_connect.php';
 session_start();
 
@@ -22,6 +25,8 @@ $start_date = isset($_POST['start_date']) && $_POST['start_date'] ? $_POST['star
 $end_date = isset($_POST['end_date']) && $_POST['end_date'] ? $_POST['end_date'] : null;
 $is_active = isset($_POST['is_active']) ? intval($_POST['is_active']) : 1;
 $priority = isset($_POST['priority']) ? intval($_POST['priority']) : 0;
+$campaign_id = isset($_POST['campaign_id']) && $_POST['campaign_id'] !== '' ? intval($_POST['campaign_id']) : null;
+$target_countries = isset($_POST['target_countries']) ? trim($_POST['target_countries']) : 'all';
 
 if (empty($slot_id) || empty($title)) {
     echo json_encode(['success' => false, 'message' => 'slot_id and title required']);
@@ -39,9 +44,24 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         exit();
     }
 
-    $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/spacematch/uploads/ads/';
+    // Detect app base path dynamically
+    $doc_root = $_SERVER['DOCUMENT_ROOT'];
+    $app_base = '';
+    if (preg_match('#(/[^/]+)(/api/|/uploads/)#', $_SERVER['SCRIPT_NAME'], $m)) {
+        $app_base = $m[1];
+    }
+
+    $upload_dir = $doc_root . $app_base . '/uploads/ads/';
     if (!is_dir($upload_dir)) {
-        mkdir($upload_dir, 0755, true);
+        @mkdir($upload_dir, 0755, true);
+    }
+
+    // Fallback to relative path if DOCUMENT_ROOT-based path fails
+    if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
+        $upload_dir = dirname(dirname(__DIR__)) . '/uploads/ads/';
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0755, true);
+        }
     }
 
     $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
@@ -49,7 +69,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $filepath = $upload_dir . $filename;
 
     if (move_uploaded_file($_FILES['image']['tmp_name'], $filepath)) {
-        $image_url = '/spacematch/uploads/ads/' . $filename;
+        $image_url = $app_base . '/uploads/ads/' . $filename;
         $image_sql = ', image_url = :image_url';
 
         // Delete old image
@@ -57,9 +77,15 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $old->execute([':id' => $ad_id]);
         $old_row = $old->fetch(PDO::FETCH_ASSOC);
         if ($old_row && $old_row['image_url']) {
-            $old_path = $_SERVER['DOCUMENT_ROOT'] . $old_row['image_url'];
-            if (file_exists($old_path))
+            $old_path = $doc_root . $old_row['image_url'];
+            if (file_exists($old_path)) {
                 @unlink($old_path);
+            } else {
+                // Fallback: try relative path
+                $old_path_rel = dirname(dirname(__DIR__)) . str_replace($app_base, '', $old_row['image_url']);
+                if (file_exists($old_path_rel))
+                    @unlink($old_path_rel);
+            }
         }
     }
 }
@@ -67,7 +93,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 try {
     $sql = "UPDATE ads SET slot_id = :slot_id, title = :title, click_url = :click_url,
             start_date = :start_date, end_date = :end_date, is_active = :is_active,
-            priority = :priority $image_sql WHERE id = :id";
+            priority = :priority, campaign_id = :campaign_id, target_countries = :target_countries $image_sql WHERE id = :id";
 
     $params = [
         ':slot_id' => $slot_id,
@@ -77,6 +103,8 @@ try {
         ':end_date' => $end_date,
         ':is_active' => $is_active,
         ':priority' => $priority,
+        ':campaign_id' => $campaign_id,
+        ':target_countries' => $target_countries,
         ':id' => $ad_id
     ];
 

@@ -46,8 +46,10 @@ try {
     // ── 3b. Auto-migrate columns (safe for all MySQL versions) ──
     $columns_to_add = [
         'real_name' => "VARCHAR(100) DEFAULT NULL",
+        'name_en' => "VARCHAR(100) DEFAULT NULL",
         'business_no' => "VARCHAR(50) DEFAULT NULL",
         'category' => "VARCHAR(100) DEFAULT NULL",
+        'country' => "VARCHAR(5) DEFAULT NULL",
         'instagram' => "VARCHAR(255) DEFAULT NULL",
         'description' => "TEXT DEFAULT NULL",
         'marketing_agreed' => "TINYINT(1) DEFAULT 0",
@@ -69,6 +71,7 @@ try {
     // ── 4. Prepare data ──
     $name = htmlspecialchars(strip_tags($data->name));
     $real_name = isset($data->realName) ? htmlspecialchars(strip_tags($data->realName)) : null;
+    $name_en = isset($data->nameEn) ? htmlspecialchars(strip_tags($data->nameEn)) : null;
     $business_no = isset($data->businessNumber) ? htmlspecialchars(strip_tags($data->businessNumber)) : null;
     $email = htmlspecialchars(strip_tags($data->email));
     $phone = isset($data->phone) ? htmlspecialchars(strip_tags($data->phone)) : null;
@@ -79,30 +82,34 @@ try {
     $initialStatus = ($role === 'vendor') ? 'pending' : 'active';
 
     $category = isset($data->category) ? htmlspecialchars(strip_tags($data->category)) : null;
+    $country = isset($data->country) ? htmlspecialchars(strip_tags($data->country)) : null;
     $instagram = isset($data->instagram) ? htmlspecialchars(strip_tags($data->instagram)) : null;
     $description = isset($data->description) ? htmlspecialchars(strip_tags($data->description)) : null;
     $marketing = (isset($data->marketing_agreed) && $data->marketing_agreed) ? 1 : 0;
     $keywords = null;
     if (isset($data->keywords) && is_array($data->keywords) && count($data->keywords) > 0) {
         $sanitized = array_map(function ($kw) {
-            return htmlspecialchars(strip_tags(trim($kw))); }, $data->keywords);
+            return htmlspecialchars(strip_tags(trim($kw)));
+        }, $data->keywords);
         $sanitized = array_filter($sanitized);
         $keywords = json_encode(array_values($sanitized), JSON_UNESCAPED_UNICODE);
     }
 
     // ── 5. INSERT ──
-    $query = "INSERT INTO users (name, real_name, business_no, email, phone, password, role, category, instagram, description, status, marketing_agreed, venue_limit, keywords) 
-              VALUES (:name, :real_name, :business_no, :email, :phone, :password, :role, :category, :instagram, :description, :status, :marketing_agreed, 3, :keywords)";
+    $query = "INSERT INTO users (name, real_name, name_en, business_no, email, phone, password, role, category, country, instagram, description, status, marketing_agreed, venue_limit, keywords) 
+              VALUES (:name, :real_name, :name_en, :business_no, :email, :phone, :password, :role, :category, :country, :instagram, :description, :status, :marketing_agreed, 3, :keywords)";
 
     $stmt = $conn->prepare($query);
     $stmt->bindParam(":name", $name);
     $stmt->bindParam(":real_name", $real_name);
+    $stmt->bindParam(":name_en", $name_en);
     $stmt->bindParam(":business_no", $business_no);
     $stmt->bindParam(":email", $email);
     $stmt->bindParam(":phone", $phone);
     $stmt->bindParam(":password", $password_hash);
     $stmt->bindParam(":role", $role);
     $stmt->bindParam(":category", $category);
+    $stmt->bindParam(":country", $country);
     $stmt->bindParam(":instagram", $instagram);
     $stmt->bindParam(":description", $description);
     $stmt->bindParam(":status", $initialStatus);
@@ -146,10 +153,10 @@ try {
 } catch (PDOException $e) {
     ob_end_clean();
     error_log("SpaceMatch Register Error: " . $e->getMessage());
-    echo json_encode(array("success" => false, "message" => "DB 오류: " . $e->getMessage()));
+    echo json_encode(array("success" => false, "message" => "회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요."));
 } catch (Exception $e) {
     ob_end_clean();
     error_log("SpaceMatch Register Error: " . $e->getMessage());
-    echo json_encode(array("success" => false, "message" => "서버 오류: " . $e->getMessage()));
+    echo json_encode(array("success" => false, "message" => "회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요."));
 }
 ?>

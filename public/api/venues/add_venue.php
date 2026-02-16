@@ -42,7 +42,30 @@ $event_start = isset($_POST['event_start']) && $_POST['event_start'] !== '' ? $_
 $event_end = isset($_POST['event_end']) && $_POST['event_end'] !== '' ? $_POST['event_end'] : null;
 $event_periods = isset($_POST['event_periods']) ? $_POST['event_periods'] : null;
 $avg_sales = isset($_POST['avg_sales']) ? htmlspecialchars(strip_tags($_POST['avg_sales'])) : '';
+$sales_unit = isset($_POST['sales_unit']) ? htmlspecialchars(strip_tags($_POST['sales_unit'])) : 'monthly';
 $popular_categories = isset($_POST['popular_categories']) ? $_POST['popular_categories'] : '[]';
+$target_customers = isset($_POST['target_customers']) ? $_POST['target_customers'] : '[]';
+
+// Handle attachment file uploads
+$attachment_paths = [];
+if (isset($_FILES['attachments']) && is_array($_FILES['attachments']['name'])) {
+    $attachDir = __DIR__ . '/../../uploads/attachments/';
+    if (!is_dir($attachDir)) {
+        mkdir($attachDir, 0777, true);
+    }
+    for ($i = 0; $i < count($_FILES['attachments']['name']); $i++) {
+        if ($_FILES['attachments']['error'][$i] === UPLOAD_ERR_OK) {
+            $origName = basename($_FILES['attachments']['name'][$i]);
+            $ext = pathinfo($origName, PATHINFO_EXTENSION);
+            $uniqueName = 'att_' . time() . '_' . $i . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+            $destPath = $attachDir . $uniqueName;
+            if (move_uploaded_file($_FILES['attachments']['tmp_name'][$i], $destPath)) {
+                $attachment_paths[] = 'uploads/attachments/' . $uniqueName;
+            }
+        }
+    }
+}
+$attachments_json = json_encode($attachment_paths);
 
 // Auto-extract region from address if not provided
 if (empty($region) && !empty($location)) {
@@ -289,12 +312,56 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $columns .= ", avg_sales";
         $values .= ", :avg_sales";
 
+        // Auto-migrate: add sales_unit column
+        $col_su = $conn->query("SHOW COLUMNS FROM venues LIKE 'sales_unit'");
+        if (!$col_su->fetch()) {
+            $conn->exec("ALTER TABLE venues ADD COLUMN sales_unit VARCHAR(20) DEFAULT 'monthly'");
+        }
+        $columns .= ", sales_unit";
+        $values .= ", :sales_unit";
+
         $col_pop = $conn->query("SHOW COLUMNS FROM venues LIKE 'popular_categories'");
         if (!$col_pop->fetch()) {
             $conn->exec("ALTER TABLE venues ADD COLUMN popular_categories TEXT DEFAULT NULL");
         }
         $columns .= ", popular_categories";
         $values .= ", :popular_categories";
+
+        // Auto-migrate: add target_customers column
+        $col_tc = $conn->query("SHOW COLUMNS FROM venues LIKE 'target_customers'");
+        if (!$col_tc->fetch()) {
+            $conn->exec("ALTER TABLE venues ADD COLUMN target_customers TEXT DEFAULT NULL");
+        }
+        $columns .= ", target_customers";
+        $values .= ", :target_customers";
+
+        // Auto-migrate: add attachments column
+        $col_att = $conn->query("SHOW COLUMNS FROM venues LIKE 'attachments'");
+        if (!$col_att->fetch()) {
+            $conn->exec("ALTER TABLE venues ADD COLUMN attachments TEXT DEFAULT NULL");
+        }
+        $columns .= ", attachments";
+        $values .= ", :attachments";
+
+        // Auto-migrate: add is_premium column
+        $col_prem = $conn->query("SHOW COLUMNS FROM venues LIKE 'is_premium'");
+        if (!$col_prem->fetch()) {
+            $conn->exec("ALTER TABLE venues ADD COLUMN is_premium TINYINT(1) DEFAULT 0");
+        }
+        // Check if vendor has active premium_space subscription
+        $is_premium = 0;
+        if ($role === 'vendor') {
+            try {
+                $prem_stmt = $conn->prepare("SELECT p.id FROM payments p JOIN payment_plans pp ON p.plan_id = pp.id WHERE p.user_id = ? AND pp.category = 'premium_space' AND p.status = 'confirmed' ORDER BY p.created_at DESC LIMIT 1");
+                $prem_stmt->execute([$owner_id]);
+                if ($prem_stmt->fetch()) {
+                    $is_premium = 1;
+                }
+            } catch (Exception $e) { /* ignore */
+            }
+        }
+        $columns .= ", is_premium";
+        $values .= ", :is_premium";
 
         $query = "INSERT INTO venues ({$columns}" . ($has_region ? ', region' : '') . ") VALUES ({$values}" . ($has_region ? ', :region' : '') . ")";
 
@@ -334,7 +401,11 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $stmt->bindParam(":event_end", $event_end);
         $stmt->bindParam(":event_periods", $event_periods);
         $stmt->bindParam(":avg_sales", $avg_sales);
+        $stmt->bindParam(":sales_unit", $sales_unit);
         $stmt->bindParam(":popular_categories", $popular_categories);
+        $stmt->bindParam(":target_customers", $target_customers);
+        $stmt->bindParam(":attachments", $attachments_json);
+        $stmt->bindParam(":is_premium", $is_premium);
 
         if ($stmt->execute()) {
             // [NOTIFICATION] Notify admins when a vendor registers a new venue
@@ -361,6 +432,21 @@ if ($name && $location && ($price !== null && $price !== '')) {
                 } catch (Exception $e) {
                     // Don't block venue creation if notification fails
                 }
+            }
+
+            // [SPACE ALERTS] Notify subscribed sellers with matching preferences
+            try {
+                include_once __DIR__ . '/../notifications/trigger_alerts.php';
+                $newVenueId = $conn->lastInsertId();
+                triggerSpaceAlerts($conn, [
+                    'id' => $newVenueId,
+                    'name' => $name,
+                    'region' => $region,
+                    'type' => $type,
+                    'price' => $price,
+                ]);
+            } catch (Exception $e) {
+                // Don't block venue creation if alert fails
             }
 
             echo json_encode(array("success" => true, "message" => "베뉴가 등록되었습니다.", "id" => $conn->lastInsertId()));

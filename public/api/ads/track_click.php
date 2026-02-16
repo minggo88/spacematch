@@ -12,8 +12,15 @@ if ($ad_id <= 0) {
 }
 
 try {
-    $stmt = $conn->prepare("UPDATE ads SET clicks = clicks + 1 WHERE id = :id");
+    $stmt = $conn->prepare("UPDATE ads SET click_count = click_count + 1 WHERE id = :id");
     $stmt->execute([':id' => $ad_id]);
+
+    // Also record in daily stats
+    $daily = $conn->prepare("
+        INSERT INTO ad_daily_stats (ad_id, stat_date, clicks) VALUES (:id, CURDATE(), 1)
+        ON DUPLICATE KEY UPDATE clicks = clicks + 1
+    ");
+    $daily->execute([':id' => $ad_id]);
     echo json_encode(['success' => true]);
 } catch (PDOException $e) {
     http_response_code(500);

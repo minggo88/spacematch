@@ -1,0 +1,22 @@
+# ─── API Directory Security ───
+
+# Deny access to the database config file directly
+<Files "db_connect.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Deny access to any remaining debug/test files
+<FilesMatch "^(debug|test|create_superadmin).*\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Block .htaccess itself from being served
+<Files ".htaccess">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Prevent directory listing
+Options -Indexes

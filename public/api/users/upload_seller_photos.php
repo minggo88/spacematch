@@ -41,8 +41,8 @@ $countStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM seller_photos WHERE use
 $countStmt->execute([$user_id]);
 $count = $countStmt->fetch(PDO::FETCH_ASSOC)['cnt'];
 
-if ($count >= 5) {
-    echo json_encode(["success" => false, "message" => "최대 5장까지 업로드 가능합니다."]);
+if ($count >= 10) {
+    echo json_encode(["success" => false, "message" => "최대 10장까지 업로드 가능합니다."]);
     exit;
 }
 
@@ -75,11 +75,27 @@ if ($file['size'] > 10 * 1024 * 1024) {
     exit;
 }
 
-// Create upload directory
-$target_dir = "../../uploads/seller_photos/";
-if (!file_exists($target_dir)) {
-    mkdir($target_dir, 0777, true);
+// Create upload directory using DOCUMENT_ROOT for reliable absolute path
+$doc_root = $_SERVER['DOCUMENT_ROOT'];
+$target_dir = $doc_root . '/spacematch/uploads/seller_photos/';
+
+// Fallback to relative path if DOCUMENT_ROOT fails
+if (!$doc_root || $doc_root === '') {
+    $target_dir = '../../uploads/seller_photos/';
 }
+
+if (!file_exists($target_dir)) {
+    $created = @mkdir($target_dir, 0777, true);
+    if (!$created) {
+        error_log("[upload_seller_photos] Failed to create dir: $target_dir");
+        $target_dir = '../../uploads/seller_photos/';
+        if (!file_exists($target_dir)) {
+            @mkdir($target_dir, 0777, true);
+        }
+    }
+}
+
+error_log("[upload_seller_photos] Upload dir: $target_dir | exists: " . (file_exists($target_dir) ? 'yes' : 'no'));
 
 // Generate unique filename
 $extension = pathinfo($file['name'], PATHINFO_EXTENSION);

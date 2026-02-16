@@ -59,11 +59,20 @@ try {
 } catch (PDOException $e) { /* ignore */
 }
 
+// Auto-migrate: add is_premium column if not exists
+try {
+    $col = $conn->query("SHOW COLUMNS FROM venues LIKE 'is_premium'");
+    if (!$col->fetch()) {
+        $conn->exec("ALTER TABLE venues ADD COLUMN is_premium TINYINT(1) DEFAULT 0");
+    }
+} catch (PDOException $e) { /* ignore */
+}
+
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 
 if ($id) {
     $query = "SELECT v.*, 
-              u.name as owner_name,
+              u.name as owner_name, u.country as owner_country,
               (SELECT COUNT(*) FROM applications a WHERE a.venue_id = v.id AND a.status = 'approved') as approved_count
               FROM venues v
               LEFT JOIN users u ON v.owner_id = u.id
@@ -82,11 +91,11 @@ if ($id) {
 } else {
     // Only show approved venues in the public market
     $query = "SELECT v.*, 
-              u.name as owner_name,
+              u.name as owner_name, u.country as owner_country,
               (SELECT COUNT(*) FROM applications a WHERE a.venue_id = v.id AND a.status = 'approved') as approved_count
               FROM venues v
               LEFT JOIN users u ON v.owner_id = u.id
-              WHERE v.status = 'approved' ORDER BY v.created_at DESC";
+              WHERE v.status = 'approved' ORDER BY v.is_premium DESC, v.created_at DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Flame, TrendingUp, Search, Plus, X, Calendar, Store,
     MapPin, Trash2, Edit3, ArrowUpDown, Clock, CheckCircle,
@@ -9,18 +10,19 @@ import Toast from '../../components/Toast';
 
 const API_BASE = '/api';
 
-const TIER_CONFIG = {
-    hot_top: { label: '핫보 모집', color: 'bg-gradient-to-r from-orange-500 to-red-500', textColor: 'text-orange-600', bgLight: 'bg-orange-50 border-orange-200' },
-    hot_mid: { label: '엄선한 모집 정보', color: 'bg-gradient-to-r from-violet-500 to-purple-600', textColor: 'text-violet-600', bgLight: 'bg-violet-50 border-violet-200' },
-    category_featured: { label: '카테고리 상위', color: 'bg-gradient-to-r from-teal-500 to-cyan-600', textColor: 'text-teal-600', bgLight: 'bg-teal-50 border-teal-200' },
+const TIER_CONFIG_KEYS = {
+    hot_top: { labelKey: 'promotionsPage.tierHotTop', color: 'bg-gradient-to-r from-orange-500 to-red-500', textColor: 'text-orange-600', bgLight: 'bg-orange-50 border-orange-200' },
+    hot_mid: { labelKey: 'promotionsPage.tierHotMid', color: 'bg-gradient-to-r from-violet-500 to-purple-600', textColor: 'text-violet-600', bgLight: 'bg-violet-50 border-violet-200' },
+    category_featured: { labelKey: 'promotionsPage.tierCategoryFeatured', color: 'bg-gradient-to-r from-teal-500 to-cyan-600', textColor: 'text-teal-600', bgLight: 'bg-teal-50 border-teal-200' },
 };
 
-const TYPE_LABELS = {
-    popup: '팝업스토어', gallery: '갤러리', cafe: '카페',
-    showroom: '쇼룸', fleamarket: '플리마켓', store: '매장'
+const TYPE_LABEL_KEYS = {
+    popup: 'promotionsPage.typePopup', gallery: 'promotionsPage.typeGallery', cafe: 'promotionsPage.typeCafe',
+    showroom: 'promotionsPage.typeShowroom', fleamarket: 'promotionsPage.typeFleamarket', store: 'promotionsPage.typeStore'
 };
 
 const AdminPromotions = () => {
+    const { t } = useTranslation('admin');
     const [promotions, setPromotions] = useState([]);
     const [allVenues, setAllVenues] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ const AdminPromotions = () => {
                 setAllVenues(json.venues || []);
             }
         } catch (err) {
-            console.error('프로모션 데이터 로드 실패:', err);
+            console.error(t('promotionsPage.loadFailed'), err);
         } finally {
             setLoading(false);
         }
@@ -101,7 +103,7 @@ const AdminPromotions = () => {
 
     const handleSubmit = async () => {
         if (!form.venue_id || !form.start_date || !form.end_date) {
-            showToast('필수 항목을 모두 입력해주세요', 'error');
+            showToast(t('promotionsPage.requiredFields'), 'error');
             return;
         }
         try {
@@ -115,21 +117,21 @@ const AdminPromotions = () => {
             if (json.success) {
                 setShowModal(false);
                 fetchData();
-                showToast('프로모션이 등록되었습니다!', 'success');
+                showToast(t('promotionsPage.promotionRegistered'), 'success');
             } else {
-                showToast(json.message || '오류가 발생했습니다.', 'error');
+                showToast(json.message || t('promotionsPage.errorOccurred'), 'error');
             }
         } catch (err) {
-            showToast('서버 연결에 실패했습니다.', 'error');
+            showToast(t('promotionsPage.serverError'), 'error');
         }
     };
 
     const handleRemove = async (promotionId) => {
         setConfirmModal({
-            title: '프로모션 삭제',
-            message: '이 프로모션을 삭제하시겠습니까?',
+            title: t('promotionsPage.deletePromotion'),
+            message: t('promotionsPage.deleteConfirm'),
             type: 'danger',
-            confirmLabel: '삭제',
+            confirmLabel: t('promotionsPage.deleteLabel'),
             onConfirm: async () => {
                 setConfirmModal(null);
                 try {
@@ -142,10 +144,10 @@ const AdminPromotions = () => {
                     const json = await res.json();
                     if (json.success) {
                         fetchData();
-                        showToast('프로모션이 삭제되었습니다.', 'success');
+                        showToast(t('promotionsPage.promotionDeleted'), 'success');
                     }
                 } catch (err) {
-                    showToast('서버 연결에 실패했습니다.', 'error');
+                    showToast(t('promotionsPage.serverError'), 'error');
                 }
             }
         });
@@ -190,15 +192,15 @@ const AdminPromotions = () => {
                 <div className="flex-1">
                     <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                         <Flame size={24} className="text-orange-500" />
-                        모집 관리</h1>
-                    <p className="text-sm text-gray-500 mt-1">베뉴별 상세 정보 또는 한정 모집 영역으로 홍보하고 노출 기간을 관리합니다.</p>
+                        {t('promotionsPage.title')}</h1>
+                    <p className="text-sm text-gray-500 mt-1">{t('promotionsPage.subtitle')}</p>
                 </div>
                 <button
                     onClick={handleOpenAdd}
                     className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
                 >
                     <Plus size={18} />
-                    프로모션 추가
+                    {t('promotionsPage.addPromotion')}
                 </button>
             </div>
 
@@ -206,25 +208,25 @@ const AdminPromotions = () => {
             <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="bg-white rounded-xl p-4 border border-gray-100 text-center">
                     <p className="text-2xl font-black text-gray-900">{promotions.length}</p>
-                    <p className="text-xs text-gray-500 font-medium">전체 프로모션</p>
+                    <p className="text-xs text-gray-500 font-medium">{t('promotionsPage.totalPromotions')}</p>
                 </div>
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 text-center">
                     <p className="text-2xl font-black text-emerald-600">{activeCount}</p>
-                    <p className="text-xs text-emerald-600 font-medium">활성</p>
+                    <p className="text-xs text-emerald-600 font-medium">{t('promotionsPage.active')}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
                     <p className="text-2xl font-black text-gray-400">{expiredCount}</p>
-                    <p className="text-xs text-gray-400 font-medium">만료</p>
+                    <p className="text-xs text-gray-400 font-medium">{t('promotionsPage.expired')}</p>
                 </div>
             </div>
 
             {/* Filter Tabs */}
             <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
                 {[
-                    { value: '', label: '전체' },
-                    { value: 'hot_top', label: '핫보' },
-                    { value: 'hot_mid', label: '엄선한 모집' },
-                    { value: 'category_featured', label: '카테고리 상위' },
+                    { value: '', label: t('promotionsPage.filterAll') },
+                    { value: 'hot_top', label: t('promotionsPage.filterHot') },
+                    { value: 'hot_mid', label: t('promotionsPage.filterCurated') },
+                    { value: 'category_featured', label: t('promotionsPage.filterCategoryFeatured') },
                 ].map(tab => (
                     <button
                         key={tab.value}
@@ -244,15 +246,15 @@ const AdminPromotions = () => {
                 {filteredPromotions.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
                         <Store size={40} className="mx-auto text-gray-300 mb-3" />
-                        <p className="text-gray-400 font-medium">등록된 프로모션이 없습니다.</p>
+                        <p className="text-gray-400 font-medium">{t('promotionsPage.noPromotions')}</p>
                         <button onClick={handleOpenAdd} className="text-indigo-600 font-bold text-sm mt-2 hover:underline">
-                            + 새 프로모션 추가하기
+                            {t('promotionsPage.addNewPromotion')}
                         </button>
                     </div>
                 ) : (
                     filteredPromotions.map(promo => {
                         const isExpired = promo.promo_status === 'expired';
-                        const tierConf = TIER_CONFIG[promo.tier];
+                        const tierConf = TIER_CONFIG_KEYS[promo.tier];
                         const daysLeft = Math.ceil((new Date(promo.end_date) - new Date()) / (1000 * 60 * 60 * 24));
                         return (
                             <div key={promo.id}
@@ -275,19 +277,19 @@ const AdminPromotions = () => {
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <h3 className="font-bold text-gray-900 truncate">{promo.venue_name}</h3>
                                                 <span className={`px-2 py-0.5 ${tierConf.color} text-white rounded-md text-xs font-bold`}>
-                                                    {tierConf.label}
+                                                    {t(tierConf.labelKey)}
                                                 </span>
                                                 {promo.tier === 'category_featured' && promo.featured_category && (
                                                     <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-md text-xs font-bold">
-                                                        {TYPE_LABELS[promo.featured_category] || promo.featured_category}
+                                                        {t(TYPE_LABEL_KEYS[promo.featured_category]) || promo.featured_category}
                                                     </span>
                                                 )}
                                                 {isExpired && (
-                                                    <span className="px-2 py-0.5 bg-gray-200 text-gray-500 rounded-md text-xs font-bold">만료</span>
+                                                    <span className="px-2 py-0.5 bg-gray-200 text-gray-500 rounded-md text-xs font-bold">{t('promotionsPage.expired')}</span>
                                                 )}
                                             </div>
                                             <p className="text-xs text-gray-400 truncate mt-0.5">
-                                                {promo.venue_location} · {TYPE_LABELS[promo.venue_type] || promo.venue_type}
+                                                {promo.venue_location} · {t(TYPE_LABEL_KEYS[promo.venue_type]) || promo.venue_type}
                                             </p>
                                             {promo.admin_note && (
                                                 <p className="text-xs text-orange-600 font-medium mt-1 truncate flex items-center gap-1">
@@ -306,7 +308,7 @@ const AdminPromotions = () => {
                                             </p>
                                             {!isExpired && (
                                                 <p className={`text-xs font-bold mt-0.5 ${daysLeft <= 3 ? 'text-red-500' : daysLeft <= 7 ? 'text-orange-500' : 'text-emerald-600'}`}>
-                                                    {daysLeft <= 0 ? '오늘 만료' : `${daysLeft}일 남음`}
+                                                    {daysLeft <= 0 ? t('promotionsPage.expiresToday') : t('promotionsPage.daysLeft', { days: daysLeft })}
                                                 </p>
                                             )}
                                         </div>
@@ -314,14 +316,14 @@ const AdminPromotions = () => {
                                             <button
                                                 onClick={() => handleOpenEdit(promo)}
                                                 className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                                title="수정"
+                                                title={t('promotionsPage.editTitle')}
                                             >
                                                 <Edit3 size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleRemove(promo.id)}
                                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                title="삭제"
+                                                title={t('promotionsPage.deleteTitle')}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -342,7 +344,7 @@ const AdminPromotions = () => {
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-black text-gray-900">
-                                    {editTarget ? '프로모션 수정' : '프로모션 추가'}
+                                    {editTarget ? t('promotionsPage.editPromotion') : t('promotionsPage.addPromotionTitle')}
                                 </h2>
                                 <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
                                     <X size={18} />
@@ -351,13 +353,13 @@ const AdminPromotions = () => {
 
                             {/* Venue Select */}
                             <div className="mb-5">
-                                <label className="text-sm font-bold text-gray-700 mb-2 block">베뉴 선택 *</label>
+                                <label className="text-sm font-bold text-gray-700 mb-2 block">{t('promotionsPage.selectVenue')}</label>
                                 {!editTarget && (
                                     <div className="relative mb-2">
                                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
                                             type="text"
-                                            placeholder="베뉴 검색.."
+                                            placeholder={t('promotionsPage.searchVenue')}
                                             value={searchVenue}
                                             onChange={e => setSearchVenue(e.target.value)}
                                             className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -366,7 +368,7 @@ const AdminPromotions = () => {
                                 )}
                                 <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-xl">
                                     {availableVenues.length === 0 ? (
-                                        <p className="text-center py-4 text-sm text-gray-400">선택 가능한 베뉴가 없습니다.</p>
+                                        <p className="text-center py-4 text-sm text-gray-400">{t('promotionsPage.noAvailableVenues')}</p>
                                     ) : (
                                         availableVenues.map(v => (
                                             <button
@@ -386,9 +388,9 @@ const AdminPromotions = () => {
 
                             {/* Tier Select */}
                             <div className="mb-5">
-                                <label className="text-sm font-bold text-gray-700 mb-2 block">노출 등급 *</label>
+                                <label className="text-sm font-bold text-gray-700 mb-2 block">{t('promotionsPage.exposureTier')}</label>
                                 <div className="grid grid-cols-3 gap-2">
-                                    {Object.entries(TIER_CONFIG).map(([key, conf]) => (
+                                    {Object.entries(TIER_CONFIG_KEYS).map(([key, conf]) => (
                                         <button
                                             key={key}
                                             onClick={() => setForm(prev => ({ ...prev, tier: key, featured_category: key === 'category_featured' ? prev.featured_category : '' }))}
@@ -397,15 +399,15 @@ const AdminPromotions = () => {
                                                 : 'border-gray-200 text-gray-500 hover:border-gray-300'
                                                 }`}
                                         >
-                                            {conf.label}
+                                            {t(conf.labelKey)}
                                         </button>
                                     ))}
                                 </div>
                                 {form.tier === 'category_featured' && (
                                     <div className="mt-3">
-                                        <label className="text-xs font-bold text-teal-700 mb-1.5 block">카테고리 선택 *</label>
+                                        <label className="text-xs font-bold text-teal-700 mb-1.5 block">{t('promotionsPage.selectCategory')}</label>
                                         <div className="grid grid-cols-3 gap-2">
-                                            {Object.entries(TYPE_LABELS).map(([key, label]) => (
+                                            {Object.entries(TYPE_LABEL_KEYS).map(([key, labelKey]) => (
                                                 <button
                                                     key={key}
                                                     onClick={() => setForm(prev => ({ ...prev, featured_category: key }))}
@@ -414,7 +416,7 @@ const AdminPromotions = () => {
                                                         : 'border-gray-200 text-gray-500 hover:border-gray-300'
                                                         }`}
                                                 >
-                                                    {label}
+                                                    {t(labelKey)}
                                                 </button>
                                             ))}
                                         </div>
@@ -424,10 +426,10 @@ const AdminPromotions = () => {
 
                             {/* Date Range */}
                             <div className="mb-5">
-                                <label className="text-sm font-bold text-gray-700 mb-2 block">노출 기간 *</label>
+                                <label className="text-sm font-bold text-gray-700 mb-2 block">{t('promotionsPage.exposurePeriod')}</label>
                                 <div className="grid grid-cols-2 gap-3 mb-2">
                                     <div>
-                                        <label className="text-xs text-gray-400 mb-1 block">시작일</label>
+                                        <label className="text-xs text-gray-400 mb-1 block">{t('promotionsPage.startDate')}</label>
                                         <input
                                             type="date"
                                             value={form.start_date}
@@ -436,7 +438,7 @@ const AdminPromotions = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-400 mb-1 block">종료</label>
+                                        <label className="text-xs text-gray-400 mb-1 block">{t('promotionsPage.endDate')}</label>
                                         <input
                                             type="date"
                                             value={form.end_date}
@@ -465,21 +467,21 @@ const AdminPromotions = () => {
 
                             {/* Admin Note */}
                             <div className="mb-5">
-                                <label className="text-sm font-bold text-gray-700 mb-2 block">관리자 메모 / 카피라이트</label>
+                                <label className="text-sm font-bold text-gray-700 mb-2 block">{t('promotionsPage.adminNote')}</label>
                                 <input
                                     type="text"
                                     value={form.admin_note}
                                     onChange={e => setForm(prev => ({ ...prev, admin_note: e.target.value }))}
-                                    placeholder="예: 강남 최고 인기 팝업 공간!"
+                                    placeholder={t('promotionsPage.adminNotePlaceholder')}
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                     maxLength={100}
                                 />
-                                <p className="text-xs text-gray-400 mt-1">공개 페이지에 표시됩니다 (선택사항)</p>
+                                <p className="text-xs text-gray-400 mt-1">{t('promotionsPage.adminNotePublic')}</p>
                             </div>
 
                             {/* Display Order */}
                             <div className="mb-6">
-                                <label className="text-sm font-bold text-gray-700 mb-2 block">정렬 순서</label>
+                                <label className="text-sm font-bold text-gray-700 mb-2 block">{t('promotionsPage.sortOrder')}</label>
                                 <input
                                     type="number"
                                     value={form.display_order}
@@ -487,7 +489,7 @@ const AdminPromotions = () => {
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                     min={0}
                                 />
-                                <p className="text-xs text-gray-400 mt-1">낮은 숫자가 먼저 노출됩니다 (0이 최우선)</p>
+                                <p className="text-xs text-gray-400 mt-1">{t('promotionsPage.sortOrderDesc')}</p>
                             </div>
 
                             {/* Actions */}
@@ -496,13 +498,13 @@ const AdminPromotions = () => {
                                     onClick={handleSubmit}
                                     className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors"
                                 >
-                                    {editTarget ? '수정 완료' : '프로모션 등록'}
+                                    {editTarget ? t('promotionsPage.editComplete') : t('promotionsPage.registerPromotion')}
                                 </button>
                                 <button
                                     onClick={() => setShowModal(false)}
                                     className="px-5 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
                                 >
-                                    취소
+                                    {t('promotionsPage.cancel')}
                                 </button>
                             </div>
                         </div>

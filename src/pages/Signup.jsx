@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Lock, Building, Tag, Instagram, Phone, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { User, Mail, Lock, Building, Tag, Instagram, Phone, AlertCircle, Globe, Home } from 'lucide-react';
 import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
 import KeywordSelector from '../components/KeywordSelector';
 import {
@@ -13,13 +14,16 @@ import {
 const Signup = () => {
     const navigate = useNavigate();
     const { signup, login } = useAuth();
+    const { t } = useTranslation('auth');
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         realName: '',
         name: '',
+        nameEn: '',
         businessNumber: '',
         phone: '',
+        country: 'ko',
         category: 'fashion',
         instagram: '',
         description: '',
@@ -75,12 +79,12 @@ const Signup = () => {
         setTouched({ realName: true, name: true, businessNumber: true, phone: true, email: true, password: true });
 
         if (Object.keys(errors).length > 0) {
-            setError('입력 정보를 다시 확인해주세요.');
+            setError(t('formValidationError'));
             return;
         }
 
         if (!isRequiredAgreed(agreements, 'seller')) {
-            setError('필수 약관에 모두 동의해야 가입이 가능합니다.');
+            setError(t('termsRequired'));
             return;
         }
 
@@ -108,26 +112,26 @@ const Signup = () => {
     };
 
     const inputClass = (name) =>
-        `w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${touched[name] && fieldErrors[name]
-            ? 'border-red-400 focus:ring-red-200 bg-red-50/30'
+        `w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-colors bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${touched[name] && fieldErrors[name]
+            ? 'border-red-400 focus:ring-red-200 dark:border-red-500 dark:focus:ring-red-800 bg-red-50/30 dark:bg-red-900/20'
             : touched[name] && !fieldErrors[name] && formData[name]
-                ? 'border-green-400 focus:ring-green-200'
-                : 'border-gray-200 focus:ring-primary'
+                ? 'border-green-400 focus:ring-green-200 dark:border-green-500 dark:focus:ring-green-800'
+                : 'border-gray-200 dark:border-gray-600 focus:ring-primary'
         }`;
 
     const hasFormErrors = Object.values(fieldErrors).some(e => e);
     const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'seller');
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-secondary py-10 px-4">
-            <div className="w-full max-w-lg p-6 md:p-8 bg-white rounded-xl shadow-lg">
+        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900 py-10 px-4">
+            <div className="w-full max-w-lg p-6 md:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
-                    <p className="text-gray-500 mt-2">셀러로 시작하기</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">{t('sellerSignupTitle')}</p>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm flex items-center gap-2">
+                    <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm flex items-center gap-2">
                         <AlertCircle size={16} />
                         {error}
                     </div>
@@ -136,7 +140,7 @@ const Signup = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">실명 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('realName')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -146,13 +150,13 @@ const Signup = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     className={inputClass('realName')}
-                                    placeholder="홍길동"
+                                    placeholder={t('namePlaceholder')}
                                 />
                             </div>
                             <FieldError name="realName" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">브랜드명 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('brandNameLabel')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -162,7 +166,7 @@ const Signup = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     className={inputClass('name')}
-                                    placeholder="브랜드명"
+                                    placeholder={t('brandPlaceholder')}
                                 />
                             </div>
                             <FieldError name="name" />
@@ -171,7 +175,7 @@ const Signup = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">사업자등록번호 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('businessNumber')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -188,7 +192,7 @@ const Signup = () => {
                             <FieldError name="businessNumber" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">전화번호 <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -207,7 +211,7 @@ const Signup = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">이메일 <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('email')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
@@ -225,7 +229,7 @@ const Signup = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('password')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
@@ -236,13 +240,55 @@ const Signup = () => {
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 className={inputClass('password')}
-                                placeholder="8자 이상 입력"
+                                placeholder={t('passwordPlaceholder')}
                             />
                         </div>
                         <FieldError name="password" />
                     </div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
+                    {/* Country Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('country')} <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <select
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 appearance-none"
+                            >
+                                <option value="ko">🇰🇷 대한민국 (Korea)</option>
+                                <option value="vi">🇻🇳 Việt Nam</option>
+                                <option value="ja">🇯🇵 日本 (Japan)</option>
+                                <option value="en">🇺🇸 United States</option>
+                                <option value="en-GB">🇬🇧 United Kingdom</option>
+                                <option value="en-CA">🇨🇦 Canada (English)</option>
+                                <option value="fr-CA">🇨🇦 Canada (Français)</option>
+                                <option value="th">🇹🇭 ประเทศไทย (Thailand)</option>
+                                <option value="km">🇰🇭 កម្ពុជា (Cambodia)</option>
+                                <option value="ru">🇷🇺 Россия (Russia)</option>
+                                <option value="uk">🇺🇦 Україна (Ukraine)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* English Name */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('nameEn')} <span className="text-gray-400 dark:text-gray-500 text-xs">({t('optional')})</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
+                            <input
+                                name="nameEn"
+                                value={formData.nameEn}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                                placeholder={t('nameEnPlaceholder')}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('nameEnHelp')}</p>
+                    </div>
+
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('categoryLabel')}</label>
                     <div className="relative space-y-2">
                         <div className="relative">
                             <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -257,24 +303,24 @@ const Signup = () => {
                                         setFormData({ ...formData, category: val });
                                     }
                                 }}
-                                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white appearance-none"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 appearance-none"
                             >
-                                <option value="fashion">패션/잡화</option>
-                                <option value="beauty">뷰티</option>
-                                <option value="food">푸드/음료</option>
-                                <option value="living">리빙/라이프스타일</option>
-                                <option value="art">아트/디자인</option>
-                                <option value="stationery">문구/오피스</option>
-                                <option value="digital">디지털/가전</option>
-                                <option value="activity">스포츠/액티비티</option>
-                                <option value="eco">친환경/제로웨이스트</option>
-                                <option value="pet">반려동물</option>
-                                <option value="kids">키즈/육아</option>
-                                <option value="handmade">핸드메이드/수공예</option>
-                                <option value="vintage">빈티지/중고</option>
-                                <option value="perfume">향수/디퓨저</option>
-                                <option value="book">도서/매거진</option>
-                                <option value="other">기타 (직접 입력)</option>
+                                <option value="fashion">{t('categories.fashion')}</option>
+                                <option value="beauty">{t('categories.beauty')}</option>
+                                <option value="food">{t('categories.food')}</option>
+                                <option value="living">{t('categories.living')}</option>
+                                <option value="art">{t('categories.art')}</option>
+                                <option value="stationery">{t('categories.stationery')}</option>
+                                <option value="digital">{t('categories.digital')}</option>
+                                <option value="activity">{t('categories.activity')}</option>
+                                <option value="eco">{t('categories.eco')}</option>
+                                <option value="pet">{t('categories.pet')}</option>
+                                <option value="kids">{t('categories.kids')}</option>
+                                <option value="handmade">{t('categories.handmade')}</option>
+                                <option value="vintage">{t('categories.vintage')}</option>
+                                <option value="perfume">{t('categories.perfume')}</option>
+                                <option value="book">{t('categories.book')}</option>
+                                <option value="other">{t('categories.other')}</option>
                             </select>
                         </div>
 
@@ -285,36 +331,36 @@ const Signup = () => {
                                 name="category"
                                 value={formData.category}
                                 onChange={handleChange}
-                                placeholder="판매 품목을 직접 입력해주세요 (예: 수제 비누)"
-                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-gray-50"
+                                placeholder={t('customCategoryPlaceholder')}
+                                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                                 required
                             />
                         )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">인스타그램 계정</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('instagramAccount')}</label>
                         <div className="relative">
                             <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
                                 name="instagram"
                                 value={formData.instagram}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                                 placeholder="@brand_official"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">브랜드 설명</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('brandDescription')}</label>
                         <textarea
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
                             rows="3"
-                            className="w-full p-4 border rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none"
-                            placeholder="브랜드에 대해 간단히 소개해 주세요."
+                            className="w-full p-4 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                            placeholder={t('brandDescPlaceholder')}
                         ></textarea>
                     </div>
 
@@ -337,20 +383,27 @@ const Signup = () => {
                         disabled={!isValid}
                         className={`w-full py-3 rounded-lg font-semibold transition-colors shadow-md ${isValid
                             ? 'bg-primary text-white hover:bg-indigo-700'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                             }`}
                     >
-                        가입하기
+                        {t('submitSignup')}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
-                        이미 계정이 있으신가요?{' '}
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {t('alreadyHaveAccount')}{' '}
                         <Link to="/login" className="text-primary hover:underline font-medium">
-                            로그인하기
+                            {t('goToLogin')}
                         </Link>
                     </p>
+                    <Link
+                        to="/"
+                        className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+                    >
+                        <Home size={16} />
+                        {t('goHome')}
+                    </Link>
                 </div>
             </div>
         </div>

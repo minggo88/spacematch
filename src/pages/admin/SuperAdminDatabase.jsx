@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Database, Table2, BarChart3, HardDrive, Rows3, Search, ChevronLeft, ChevronRight,
-    Pencil, Trash2, Check, X, RefreshCw, Server, Shield, Key, Hash, Type,
+    Pencil, Trash2, Check, X, RefreshCw, Server, Shield, Key, Hash, Type, CheckSquare,
     Calendar, Link2, ArrowUpDown, ArrowUp, ArrowDown, Eye, Code, Columns3,
     Info, Filter, Layers, ChevronDown, CheckCircle, XCircle
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const formatDate = (d) => {
 };
 
 const SuperAdminDatabase = () => {
+    const { t } = useTranslation('admin');
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -62,6 +64,11 @@ const SuperAdminDatabase = () => {
     const [editValue, setEditValue] = useState('');
     const [saving, setSaving] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+    // Batch selection
+    const [selectedRows, setSelectedRows] = useState(new Set());
+    const [batchDeleting, setBatchDeleting] = useState(false);
+    const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
 
     // Detail panel for a specific table in dashboard
     const [detailTable, setDetailTable] = useState(null);
@@ -123,6 +130,8 @@ const SuperAdminDatabase = () => {
         setSortCol('');
         setSortDir('ASC');
         setActiveTab(tab);
+        setSelectedRows(new Set());
+        setBatchDeleteConfirm(false);
         if (tab === 'tables') fetchTableData(tableName, 1, '', '', 'ASC');
         if (tab === 'structure') fetchStructure(tableName);
     };
@@ -136,13 +145,13 @@ const SuperAdminDatabase = () => {
         fetchTableData(selectedTable, 1, searchTerm, colName, newDir);
     };
 
-    const handlePageChange = (p) => { setCurrentPage(p); fetchTableData(selectedTable, p, searchTerm, sortCol, sortDir); };
-    const handleSearch = () => { setCurrentPage(1); fetchTableData(selectedTable, 1, searchTerm, sortCol, sortDir); };
+    const handlePageChange = (p) => { setCurrentPage(p); setSelectedRows(new Set()); setBatchDeleteConfirm(false); fetchTableData(selectedTable, p, searchTerm, sortCol, sortDir); };
+    const handleSearch = () => { setCurrentPage(1); setSelectedRows(new Set()); setBatchDeleteConfirm(false); fetchTableData(selectedTable, 1, searchTerm, sortCol, sortDir); };
 
     // Edit
     const isDevMode = dbEnv === 'development';
     const startEdit = (rowIdx, field, val) => {
-        if (isDevMode) { showToast('⚙️ DEV 모드에서는 데이터 수정이 불가능합니다.\nPROD 모드로 전환해주세요.', 'error'); return; }
+        if (isDevMode) { showToast(t('superAdminDbPage.devEditError'), 'error'); return; }
         setEditingCell({ row: rowIdx, field }); setEditValue(val || '');
     };
     const cancelEdit = () => { setEditingCell(null); setEditValue(''); };
@@ -168,7 +177,7 @@ const SuperAdminDatabase = () => {
 
     // Delete
     const handleDelete = async (pv) => {
-        if (isDevMode) { showToast('\u26a0\ufe0f DEV \ubaa8\ub4dc\uc5d0\uc11c\ub294 \ub370\uc774\ud130 \uc0ad\uc81c\uac00 \ubd88\uac00\ub2a5\ud569\ub2c8\ub2e4.\nPROD \ubaa8\ub4dc\ub85c \uc804\ud658\ud574\uc8fc\uc138\uc694.', 'error'); return; }
+        if (isDevMode) { showToast(t('superAdminDbPage.devDeleteError'), 'error'); return; }
         try {
             const res = await fetch(`${API_BASE}/database/database_info.php?action=delete_row&db=${dbEnv}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
@@ -179,29 +188,71 @@ const SuperAdminDatabase = () => {
         } catch (e) { console.error(e); }
     };
 
+    // Batch Delete
+    const toggleRowSelect = (pkValue) => {
+        setSelectedRows(prev => {
+            const next = new Set(prev);
+            if (next.has(pkValue)) next.delete(pkValue);
+            else next.add(pkValue);
+            return next;
+        });
+    };
+    const toggleSelectAll = () => {
+        if (!tableData?.rows || !tableData.primary_key) return;
+        const allPKs = tableData.rows.map(r => r[tableData.primary_key]);
+        const allSelected = allPKs.every(pk => selectedRows.has(pk));
+        if (allSelected) {
+            setSelectedRows(new Set());
+        } else {
+            setSelectedRows(new Set(allPKs));
+        }
+    };
+    const handleBatchDelete = async () => {
+        if (isDevMode) { showToast(t('superAdminDbPage.devDeleteError'), 'error'); return; }
+        if (selectedRows.size === 0) return;
+        setBatchDeleting(true);
+        try {
+            const res = await fetch(`${API_BASE}/database/database_info.php?action=batch_delete&db=${dbEnv}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                body: JSON.stringify({ table: selectedTable, primary_key: tableData.primary_key, primary_values: Array.from(selectedRows) })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(t('superAdminDbPage.batchDeleteSuccess', { count: data.affected_rows }));
+                setSelectedRows(new Set());
+                setBatchDeleteConfirm(false);
+                fetchTableData(selectedTable, currentPage, searchTerm, sortCol, sortDir);
+                fetchOverview();
+            } else {
+                showToast(data.error || t('superAdminDbPage.deleteFailed'), 'error');
+            }
+        } catch (e) { console.error(e); showToast(t('superAdminDbPage.deleteError'), 'error'); }
+        setBatchDeleting(false);
+    };
+
     // Dashboard - table categories
     const tableCategories = useMemo(() => {
         if (!overview?.tables) return [];
         const cats = {
-            '\uc0ac\uc6a9\uc790': { icon: '\ud83d\udc64', tables: [], keywords: ['user', 'session', 'profile'] },
-            '\uacf5\uac04/\ubca0\ub274': { icon: '\ud83c\udfe2', tables: [], keywords: ['venue', 'space', 'room'] },
-            '\uc2e0\uccad/\uc785\uc810': { icon: '\ud83d\udcdd', tables: [], keywords: ['application', 'apply', 'request'] },
-            '\ucee4\ubba4\ub2c8\ud2f0': { icon: '\ud83d\udcac', tables: [], keywords: ['community', 'post', 'comment'] },
-            '\uc54c\ub9bc': { icon: '\ud83d\udd14', tables: [], keywords: ['notification', 'alert'] },
-            '\ud504\ub85c\ubaa8\uc158': { icon: '\ud83c\udf1f', tables: [], keywords: ['promotion', 'recruit', 'campaign'] },
-            '\uae30\ud0c0': { icon: '\ud83d\udce6', tables: [], keywords: [] }
+            [t('superAdminDbPage.catUsers')]: { icon: '\ud83d\udc64', tables: [], keywords: ['user', 'session', 'profile'] },
+            [t('superAdminDbPage.catVenues')]: { icon: '\ud83c\udfe2', tables: [], keywords: ['venue', 'space', 'room'] },
+            [t('superAdminDbPage.catApplications')]: { icon: '\ud83d\udcdd', tables: [], keywords: ['application', 'apply', 'request'] },
+            [t('superAdminDbPage.catCommunity')]: { icon: '\ud83d\udcac', tables: [], keywords: ['community', 'post', 'comment'] },
+            [t('superAdminDbPage.catNotifications')]: { icon: '\ud83d\udd14', tables: [], keywords: ['notification', 'alert'] },
+            [t('superAdminDbPage.catPromotions')]: { icon: '\ud83c\udf1f', tables: [], keywords: ['promotion', 'recruit', 'campaign'] },
+            [t('superAdminDbPage.catOther')]: { icon: '\ud83d\udce6', tables: [], keywords: [] }
         };
-        overview.tables.forEach(t => {
-            const name = t.name.toLowerCase();
+        overview.tables.forEach(tbl => {
+            const name = tbl.name.toLowerCase();
             let placed = false;
             for (const [catName, cat] of Object.entries(cats)) {
-                if (catName !== '\uae30\ud0c0' && cat.keywords.some(kw => name.includes(kw))) {
-                    cat.tables.push(t);
+                if (catName !== t('superAdminDbPage.catOther') && cat.keywords.some(kw => name.includes(kw))) {
+                    cat.tables.push(tbl);
                     placed = true;
                     break;
                 }
             }
-            if (!placed) cats['\uae30\ud0c0'].tables.push(t);
+            if (!placed) cats[t('superAdminDbPage.catOther')].tables.push(tbl);
         });
         return Object.entries(cats).filter(([, c]) => c.tables.length > 0);
     }, [overview]);
@@ -213,8 +264,8 @@ const SuperAdminDatabase = () => {
             <div className="flex items-center justify-center h-full">
                 <div className="text-center text-gray-500">
                     <Shield size={48} className="mx-auto mb-4 text-red-400" />
-                    <p className="font-bold text-lg">{"\uc811\uadfc \uad8c\ud55c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4"}</p>
-                    <p className="text-sm mt-1">{"\uc288\ud37c\uad00\ub9ac\uc790\ub9cc \uc811\uadfc \uac00\ub2a5\ud569\ub2c8\ub2e4."}</p>
+                    <p className="font-bold text-lg">{t('superAdminDbPage.noAccess')}</p>
+                    <p className="text-sm mt-1">{t('superAdminDbPage.superAdminOnly')}</p>
                 </div>
             </div>
         );
@@ -227,10 +278,10 @@ const SuperAdminDatabase = () => {
                 <div>
                     <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
                         <Database className="text-indigo-600" size={28} />
-                        {"\ub370\uc774\ud130\ubca0\uc774\uc2a4 \uad00\ub9ac"}
+                        {t('superAdminDbPage.title')}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        {"\uc288\ud37c\uad00\ub9ac\uc790 \uc804\uc6a9"}
+                        {t('superAdminDbPage.subtitle')}
                         {overview && <span className="ml-2 text-xs text-gray-400">&middot; MySQL {overview.version} &middot; {overview.charset}</span>}
                     </p>
                 </div>
@@ -238,14 +289,14 @@ const SuperAdminDatabase = () => {
                     <div className="flex bg-gray-100 rounded-xl p-1">
                         <button onClick={() => setDbEnv('development')}
                             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${dbEnv === 'development' ? 'bg-amber-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-                            <Eye size={13} /> Dev <span className="text-[10px] opacity-75">{"\uc77d\uae30\uc804\uc6a9"}</span>
+                            <Eye size={13} /> Dev <span className="text-[10px] opacity-75">{t('superAdminDbPage.readOnly')}</span>
                         </button>
                         <button onClick={() => setDbEnv('production')}
                             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${dbEnv === 'production' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-                            <Server size={13} /> Prod <span className="text-[10px] opacity-75">{"\uc218\uc815\uac00\ub2a5"}</span>
+                            <Server size={13} /> Prod <span className="text-[10px] opacity-75">{t('superAdminDbPage.editable')}</span>
                         </button>
                     </div>
-                    <button onClick={fetchOverview} className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors" title={"\uc0c8\ub85c\uace0\uce68"}>
+                    <button onClick={fetchOverview} className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors" title={t('superAdminDbPage.refresh')}>
                         <RefreshCw size={16} className={`text-gray-600 ${loadingOverview ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
@@ -254,9 +305,9 @@ const SuperAdminDatabase = () => {
             {/* Tabs */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
                 {[
-                    { key: 'dashboard', icon: BarChart3, label: '\ub300\uc2dc\ubcf4\ub4dc', shortLabel: '\ub300\uc2dc\ubcf4\ub4dc' },
-                    { key: 'tables', icon: Table2, label: '\ud14c\uc774\ube14 \ube0c\ub77c\uc6b0\uc800', shortLabel: '\ud14c\uc774\ube14' },
-                    { key: 'structure', icon: Columns3, label: '\ud14c\uc774\ube14 \uad6c\uc870', shortLabel: '\uad6c\uc870' },
+                    { key: 'dashboard', icon: BarChart3, label: t('superAdminDbPage.tabDashboard'), shortLabel: t('superAdminDbPage.tabDashboardShort') },
+                    { key: 'tables', icon: Table2, label: t('superAdminDbPage.tabTables'), shortLabel: t('superAdminDbPage.tabTablesShort') },
+                    { key: 'structure', icon: Columns3, label: t('superAdminDbPage.tabStructure'), shortLabel: t('superAdminDbPage.tabStructureShort') },
                 ].map(tab => (
                     <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                         className={`flex-1 px-2 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 ${activeTab === tab.key ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -272,16 +323,16 @@ const SuperAdminDatabase = () => {
                 <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
                     <Eye size={18} className="text-amber-600 flex-shrink-0" />
                     <div>
-                        <p className="text-sm font-bold text-amber-800">{"DEV \ubaa8\ub4dc \u2014 \uc77d\uae30 \uc804\uc6a9"}</p>
-                        <p className="text-xs text-amber-600">{"\ub370\uc774\ud130\ub97c \uc548\uc804\ud558\uac8c \uc870\ud68c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \uc218\uc815\u00b7\uc0ad\uc81c \uae30\ub2a5\uc740 \ube44\ud65c\uc131\ud654\ub429\ub2c8\ub2e4."}</p>
+                        <p className="text-sm font-bold text-amber-800">{t('superAdminDbPage.devModeTitle')}</p>
+                        <p className="text-xs text-amber-600">{t('superAdminDbPage.devModeDesc')}</p>
                     </div>
                 </div>
             ) : (
                 <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
                     <Shield size={18} className="text-red-600 flex-shrink-0" />
                     <div>
-                        <p className="text-sm font-bold text-red-800">{"PROD \ubaa8\ub4dc \u2014 \uc2e4\uc81c \ub370\uc774\ud130\ubca0\uc774\uc2a4"}</p>
-                        <p className="text-xs text-red-600">{"\ubcc0\uacbd\uc0ac\ud56d\uc774 \uc989\uc2dc \uc6b4\uc601 \uc0ac\uc774\ud2b8\uc5d0 \ubc18\uc601\ub429\ub2c8\ub2e4. \uc218\uc815\u00b7\uc0ad\uc81c \uc2dc \uc8fc\uc758\ud558\uc138\uc694."}</p>
+                        <p className="text-sm font-bold text-red-800">{t('superAdminDbPage.prodModeTitle')}</p>
+                        <p className="text-xs text-red-600">{t('superAdminDbPage.prodModeDesc')}</p>
                     </div>
                 </div>
             )}
@@ -296,12 +347,12 @@ const SuperAdminDatabase = () => {
                             {/* Summary Cards */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                                 {[
-                                    { label: '\ub370\uc774\ud130\ubca0\uc774\uc2a4', value: overview.database, icon: Database, color: 'indigo', small: true },
-                                    { label: '\ud14c\uc774\ube14 \uc218', value: overview.table_count, icon: Table2, color: 'violet' },
-                                    { label: '\uc804\uccb4 \ud589 \uc218', value: overview.total_rows.toLocaleString(), icon: Rows3, color: 'emerald' },
-                                    { label: '\uc804\uccb4 \ucee8\ub7fc', value: overview.total_columns, icon: Columns3, color: 'blue' },
-                                    { label: '\ub370\uc774\ud130 \ud06c\uae30', value: formatSize(overview.total_data_kb), icon: HardDrive, color: 'amber' },
-                                    { label: '\uc778\ub371\uc2a4 \ud06c\uae30', value: formatSize(overview.total_index_kb), icon: Key, color: 'pink' },
+                                    { label: t('superAdminDbPage.database'), value: overview.database, icon: Database, color: 'indigo', small: true },
+                                    { label: t('superAdminDbPage.tableCount'), value: overview.table_count, icon: Table2, color: 'violet' },
+                                    { label: t('superAdminDbPage.totalRows'), value: overview.total_rows.toLocaleString(), icon: Rows3, color: 'emerald' },
+                                    { label: t('superAdminDbPage.totalColumns'), value: overview.total_columns, icon: Columns3, color: 'blue' },
+                                    { label: t('superAdminDbPage.dataSize'), value: formatSize(overview.total_data_kb), icon: HardDrive, color: 'amber' },
+                                    { label: t('superAdminDbPage.indexSize'), value: formatSize(overview.total_index_kb), icon: Key, color: 'pink' },
                                 ].map((card, i) => (
                                     <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
                                         <div className={`w-9 h-9 bg-${card.color}-100 rounded-xl flex items-center justify-center mb-2`}>
@@ -317,7 +368,7 @@ const SuperAdminDatabase = () => {
                             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                                 <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
                                     <HardDrive size={18} className="text-indigo-500" />
-                                    {"\ud14c\uc774\ube14 \ud06c\uae30 \ubd84\ud3ec"}
+                                    {t('superAdminDbPage.tableSizeDist')}
                                 </h3>
                                 <div className="flex gap-1 h-8 rounded-xl overflow-hidden bg-gray-100">
                                     {overview.tables
@@ -374,8 +425,8 @@ const SuperAdminDatabase = () => {
                                                                 <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded font-medium hidden sm:inline">{table.engine}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[10px] sm:text-[11px] text-gray-400 flex-wrap">
-                                                                <span>{table.column_count} {"\ucee8\ub7fc"}</span>
-                                                                <span>{table.indexes.length} {"\uc778\ub371\uc2a4"}</span>
+                                                                <span>{table.column_count} {t('superAdminDbPage.columns')}</span>
+                                                                <span>{table.indexes.length} {t('superAdminDbPage.indexes')}</span>
                                                                 <span className="hidden sm:inline">{table.foreign_keys.length} FK</span>
                                                                 <span>{formatSize(table.size_kb)}</span>
                                                             </div>
@@ -384,11 +435,11 @@ const SuperAdminDatabase = () => {
                                                             <p className="text-sm font-bold text-gray-600">{table.row_count.toLocaleString()}</p>
                                                             <div className="hidden sm:flex gap-1">
                                                                 <button onClick={(e) => { e.stopPropagation(); openTable(table.name, 'tables'); }}
-                                                                    className="p-1.5 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors" title={"\ud14c\uc774\ube14 \ubcf4\uae30"}>
+                                                                    className="p-1.5 hover:bg-indigo-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors" title={t('superAdminDbPage.viewTable')}>
                                                                     <Eye size={14} />
                                                                 </button>
                                                                 <button onClick={(e) => { e.stopPropagation(); openTable(table.name, 'structure'); }}
-                                                                    className="p-1.5 hover:bg-violet-100 rounded-lg text-gray-400 hover:text-violet-600 transition-colors" title={"\uad6c\uc870 \ubcf4\uae30"}>
+                                                                    className="p-1.5 hover:bg-violet-100 rounded-lg text-gray-400 hover:text-violet-600 transition-colors" title={t('superAdminDbPage.viewStructure')}>
                                                                     <Code size={14} />
                                                                 </button>
                                                             </div>
@@ -404,11 +455,11 @@ const SuperAdminDatabase = () => {
                                                     <div className="flex gap-2 mt-2 sm:hidden">
                                                         <button onClick={(e) => { e.stopPropagation(); openTable(table.name, 'tables'); }}
                                                             className="flex-1 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded-lg flex items-center justify-center gap-1">
-                                                            <Eye size={12} /> {"\ud14c\uc774\ube14"}
+                                                            <Eye size={12} /> {t('superAdminDbPage.table')}
                                                         </button>
                                                         <button onClick={(e) => { e.stopPropagation(); openTable(table.name, 'structure'); }}
                                                             className="flex-1 py-1.5 text-[10px] font-bold text-violet-600 bg-violet-50 rounded-lg flex items-center justify-center gap-1">
-                                                            <Code size={12} /> {"\uad6c\uc870"}
+                                                            <Code size={12} /> {t('superAdminDbPage.structure')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -419,7 +470,7 @@ const SuperAdminDatabase = () => {
                             </div>
                         </>
                     ) : (
-                        <div className="text-center py-20 text-gray-400">{"\ub370\uc774\ud130\ub97c \ubd88\ub7ec\uc62c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4."}</div>
+                        <div className="text-center py-20 text-gray-400">{t('superAdminDbPage.noData')}</div>
                     )}
                 </div>
             )}
@@ -430,18 +481,18 @@ const SuperAdminDatabase = () => {
                     <div className="flex flex-col sm:flex-row gap-3">
                         <select value={selectedTable || ''} onChange={(e) => e.target.value && openTable(e.target.value, 'tables')}
                             className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                            <option value="">{"\ud14c\uc774\ube14\uc744 \uc120\ud0dd\ud558\uc138\uc694.."}</option>
-                            {overview?.tables?.map(t => <option key={t.name} value={t.name}>{t.name} ({t.row_count.toLocaleString()} {"\ud589"}, {t.column_count} {"\ucee8\ub7fc"})</option>)}
+                            <option value="">{t('superAdminDbPage.selectTable')}</option>
+                            {overview?.tables?.map(t2 => <option key={t2.name} value={t2.name}>{t2.name} ({t2.row_count.toLocaleString()} {t('superAdminDbPage.rows')}, {t2.column_count} {t('superAdminDbPage.columns')})</option>)}
                         </select>
                         {selectedTable && (
                             <div className="flex gap-2">
                                 <div className="relative flex-1 sm:flex-none">
                                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input type="text" placeholder={"\uac80\uc0c9.."} value={searchTerm}
+                                    <input type="text" placeholder={t('superAdminDbPage.search')} value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                         className="pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                                 </div>
-                                <button onClick={handleSearch} className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors">{"\uac80\uc0c9"}</button>
+                                <button onClick={handleSearch} className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors">{t('superAdminDbPage.searchBtn')}</button>
                             </div>
                         )}
                     </div>
@@ -454,15 +505,36 @@ const SuperAdminDatabase = () => {
                                 <div>
                                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                                         {tableData.table}
-                                        <span className="text-xs font-normal text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{tableData.total_rows.toLocaleString()} {"\ud589"}</span>
+                                        <span className="text-xs font-normal text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{tableData.total_rows.toLocaleString()} {t('superAdminDbPage.totalRowCount')}</span>
                                     </h3>
                                     <p className="text-[11px] text-gray-400 mt-0.5">
-                                        {"\ud398\uc774\uc9c0"} {tableData.page}/{tableData.total_pages} &middot; PK: <span className="font-medium text-indigo-500">{tableData.primary_key || 'N/A'}</span>
-                                        {sortCol && <span> &middot; {"\uc815\ub82c"}: <span className="font-medium">{sortCol} {sortDir}</span></span>}
+                                        {t('superAdminDbPage.page')} {tableData.page}/{tableData.total_pages} &middot; PK: <span className="font-medium text-indigo-500">{tableData.primary_key || 'N/A'}</span>
+                                        {sortCol && <span> &middot; {t('superAdminDbPage.sortLabel')}: <span className="font-medium">{sortCol} {sortDir}</span></span>}
                                     </p>
                                 </div>
-                                <button onClick={() => fetchTableData(selectedTable, currentPage, searchTerm, sortCol, sortDir)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw size={14} className="text-gray-400" /></button>
+                                <div className="flex items-center gap-2">
+                                    {!isDevMode && tableData.primary_key && selectedRows.size > 0 && (
+                                        batchDeleteConfirm ? (
+                                            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                                                <span className="text-xs font-bold text-red-700">{t('superAdminDbPage.deleteCount', { count: selectedRows.size })}</span>
+                                                <button onClick={handleBatchDelete} disabled={batchDeleting}
+                                                    className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">
+                                                    {batchDeleting ? t('superAdminDbPage.deleting') : t('superAdminDbPage.confirm')}
+                                                </button>
+                                                <button onClick={() => setBatchDeleteConfirm(false)}
+                                                    className="px-3 py-1 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-300 transition-colors">{t('superAdminDbPage.cancel')}</button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setBatchDeleteConfirm(true)}
+                                                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 border border-red-200 transition-colors">
+                                                <Trash2 size={13} />
+                                                {selectedRows.size}{t('superAdminDbPage.selectedDelete', { count: selectedRows.size }).replace(String(selectedRows.size), '')}
+                                            </button>
+                                        )
+                                    )}
+                                    <button onClick={() => fetchTableData(selectedTable, currentPage, searchTerm, sortCol, sortDir)}
+                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw size={14} className="text-gray-400" /></button>
+                                </div>
                             </div>
 
                             {/* Desktop Table */}
@@ -470,6 +542,14 @@ const SuperAdminDatabase = () => {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-gray-50">
+                                            {!isDevMode && tableData.primary_key && (
+                                                <th className="px-2 py-3 text-center bg-gray-50 z-10 w-8">
+                                                    <input type="checkbox"
+                                                        checked={tableData.rows.length > 0 && tableData.rows.every(r => selectedRows.has(r[tableData.primary_key]))}
+                                                        onChange={toggleSelectAll}
+                                                        className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                </th>
+                                            )}
                                             <th className="px-2 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 w-8">#</th>
                                             {tableData.columns.map(col => (
                                                 <th key={col.Field} className="px-2.5 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 transition-colors"
@@ -482,146 +562,181 @@ const SuperAdminDatabase = () => {
                                                     <div className={`text-[9px] font-medium normal-case mt-0.5 ${typeColor(col.Type)} inline-block px-1 rounded`}>{col.Type}</div>
                                                 </th>
                                             ))}
-                                            <th className="px-2 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider w-16">{"\uc791\uc5c5"}</th>
+                                            <th className="px-2 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider w-16">{t('superAdminDbPage.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {tableData.rows.map((row, rowIdx) => (
-                                            <React.Fragment key={rowIdx}>
-                                                <tr className={`hover:bg-indigo-50/30 transition-colors ${expandedRow === rowIdx ? 'bg-indigo-50/20' : ''}`}>
-                                                    <td className="px-2 py-2 text-[10px] text-gray-400 sticky left-0 bg-white z-10">
-                                                        <button onClick={() => setExpandedRow(expandedRow === rowIdx ? null : rowIdx)}
-                                                            className="hover:text-indigo-600 transition-colors font-medium">
-                                                            {(currentPage - 1) * 50 + rowIdx + 1}
-                                                        </button>
-                                                    </td>
-                                                    {tableData.columns.map(col => {
-                                                        const isEditing = editingCell?.row === rowIdx && editingCell?.field === col.Field;
-                                                        const isPK = col.Field === tableData.primary_key;
-                                                        const val = row[col.Field];
-                                                        return (
-                                                            <td key={col.Field} className="px-2.5 py-2">
-                                                                {isEditing ? (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)}
-                                                                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                                                                            className="px-2 py-1 border border-indigo-300 rounded-lg text-xs w-full min-w-[80px] focus:outline-none focus:ring-2 focus:ring-indigo-200" autoFocus />
-                                                                        <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check size={12} /></button>
-                                                                        <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={12} /></button>
+                                        {tableData.rows.map((row, rowIdx) => {
+                                            const pkVal = tableData.primary_key ? row[tableData.primary_key] : null;
+                                            const isSelected = pkVal !== null && selectedRows.has(pkVal);
+                                            return (
+                                                <React.Fragment key={rowIdx}>
+                                                    <tr className={`hover:bg-indigo-50/30 transition-colors ${expandedRow === rowIdx ? 'bg-indigo-50/20' : ''} ${isSelected ? 'bg-indigo-50/40' : ''}`}>
+                                                        {!isDevMode && tableData.primary_key && (
+                                                            <td className="px-2 py-2 text-center">
+                                                                <input type="checkbox" checked={isSelected}
+                                                                    onChange={() => toggleRowSelect(pkVal)}
+                                                                    className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                            </td>
+                                                        )}
+                                                        <td className="px-2 py-2 text-[10px] text-gray-400 sticky left-0 bg-white z-10">
+                                                            <button onClick={() => setExpandedRow(expandedRow === rowIdx ? null : rowIdx)}
+                                                                className="hover:text-indigo-600 transition-colors font-medium">
+                                                                {(currentPage - 1) * 50 + rowIdx + 1}
+                                                            </button>
+                                                        </td>
+                                                        {tableData.columns.map(col => {
+                                                            const isEditing = editingCell?.row === rowIdx && editingCell?.field === col.Field;
+                                                            const isPK = col.Field === tableData.primary_key;
+                                                            const val = row[col.Field];
+                                                            return (
+                                                                <td key={col.Field} className="px-2.5 py-2">
+                                                                    {isEditing ? (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)}
+                                                                                onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                                                                className="px-2 py-1 border border-indigo-300 rounded-lg text-xs w-full min-w-[80px] focus:outline-none focus:ring-2 focus:ring-indigo-200" autoFocus />
+                                                                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check size={12} /></button>
+                                                                            <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={12} /></button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className={`max-w-[180px] truncate text-xs ${isPK ? 'font-bold text-indigo-600' : 'text-gray-700'} ${!isPK && tableData.primary_key && !isDevMode ? 'cursor-pointer hover:text-indigo-600' : ''}`}
+                                                                            onClick={() => !isPK && tableData.primary_key && !isDevMode && startEdit(rowIdx, col.Field, val)}
+                                                                            title={val != null ? String(val) : 'NULL'}>
+                                                                            {val != null ? (
+                                                                                String(val).length > 45 ? String(val).substring(0, 45) + '\u2026' : String(val)
+                                                                            ) : <span className="text-gray-300 italic text-[10px]">NULL</span>}
+                                                                        </div>
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        {!isDevMode && <td className="px-2 py-2 text-center">
+                                                            {tableData.primary_key && (
+                                                                deleteConfirm === row[tableData.primary_key] ? (
+                                                                    <div className="flex items-center gap-1 justify-center">
+                                                                        <button onClick={() => handleDelete(row[tableData.primary_key])} className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold">{t('superAdminDbPage.confirm')}</button>
+                                                                        <button onClick={() => setDeleteConfirm(null)} className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-bold">{t('superAdminDbPage.cancel')}</button>
                                                                     </div>
                                                                 ) : (
-                                                                    <div className={`max-w-[180px] truncate text-xs ${isPK ? 'font-bold text-indigo-600' : 'text-gray-700'} ${!isPK && tableData.primary_key && !isDevMode ? 'cursor-pointer hover:text-indigo-600' : ''}`}
-                                                                        onClick={() => !isPK && tableData.primary_key && !isDevMode && startEdit(rowIdx, col.Field, val)}
-                                                                        title={val != null ? String(val) : 'NULL'}>
-                                                                        {val != null ? (
-                                                                            String(val).length > 45 ? String(val).substring(0, 45) + '\u2026' : String(val)
-                                                                        ) : <span className="text-gray-300 italic text-[10px]">NULL</span>}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                    {!isDevMode && <td className="px-2 py-2 text-center">
-                                                        {tableData.primary_key && (
-                                                            deleteConfirm === row[tableData.primary_key] ? (
-                                                                <div className="flex items-center gap-1 justify-center">
-                                                                    <button onClick={() => handleDelete(row[tableData.primary_key])} className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold">{"\ud655\uc778"}</button>
-                                                                    <button onClick={() => setDeleteConfirm(null)} className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-bold">{"\ucde8\uc18c"}</button>
-                                                                </div>
-                                                            ) : (
-                                                                <button onClick={() => setDeleteConfirm(row[tableData.primary_key])} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
-                                                                    <Trash2 size={13} />
-                                                                </button>
-                                                            )
-                                                        )}
-                                                    </td>}
-                                                </tr>
-                                                {expandedRow === rowIdx && (
-                                                    <tr>
-                                                        <td colSpan={tableData.columns.length + 2} className="px-5 py-4 bg-indigo-50/30 border-y border-indigo-100">
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                                                {tableData.columns.map(col => (
-                                                                    <div key={col.Field} className="bg-white rounded-lg border border-gray-100 px-3 py-2">
-                                                                        <div className="flex items-center gap-1.5 mb-1">
-                                                                            {col.Key === 'PRI' && <Key size={10} className="text-amber-500" />}
-                                                                            <span className="text-[10px] font-bold text-gray-500 uppercase">{col.Field}</span>
-                                                                            <span className={`text-[9px] px-1 rounded border ${typeColor(col.Type)}`}>{col.Type}</span>
-                                                                        </div>
-                                                                        <p className="text-sm text-gray-800 break-all whitespace-pre-wrap">
-                                                                            {row[col.Field] != null ? String(row[col.Field]) : <span className="text-gray-300 italic">NULL</span>}
-                                                                        </p>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </td>
+                                                                    <button onClick={() => setDeleteConfirm(row[tableData.primary_key])} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
+                                                                        <Trash2 size={13} />
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                        </td>}
                                                     </tr>
-                                                )}
-                                            </React.Fragment>
-                                        ))}
+                                                    {expandedRow === rowIdx && (
+                                                        <tr>
+                                                            <td colSpan={tableData.columns.length + (isDevMode || !tableData.primary_key ? 2 : 3)} className="px-5 py-4 bg-indigo-50/30 border-y border-indigo-100">
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                    {tableData.columns.map(col => (
+                                                                        <div key={col.Field} className="bg-white rounded-lg border border-gray-100 px-3 py-2">
+                                                                            <div className="flex items-center gap-1.5 mb-1">
+                                                                                {col.Key === 'PRI' && <Key size={10} className="text-amber-500" />}
+                                                                                <span className="text-[10px] font-bold text-gray-500 uppercase">{col.Field}</span>
+                                                                                <span className={`text-[9px] px-1 rounded border ${typeColor(col.Type)}`}>{col.Type}</span>
+                                                                            </div>
+                                                                            <p className="text-sm text-gray-800 break-all whitespace-pre-wrap">
+                                                                                {row[col.Field] != null ? String(row[col.Field]) : <span className="text-gray-300 italic">NULL</span>}
+                                                                            </p>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>);
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
 
                             {/* Mobile Card View */}
                             <div className="md:hidden divide-y divide-gray-100">
-                                {tableData.rows.map((row, rowIdx) => (
-                                    <div key={rowIdx} className="p-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                                                #{(currentPage - 1) * 50 + rowIdx + 1}
-                                                {tableData.primary_key && ` \u00b7 ${tableData.primary_key}: ${row[tableData.primary_key]}`}
-                                            </span>
-                                            <div className="flex items-center gap-1">
-                                                {!isDevMode && tableData.primary_key && (
-                                                    deleteConfirm === row[tableData.primary_key] ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <button onClick={() => handleDelete(row[tableData.primary_key])} className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold">{"\ud655\uc778"}</button>
-                                                            <button onClick={() => setDeleteConfirm(null)} className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-bold">{"\ucde8\uc18c"}</button>
-                                                        </div>
-                                                    ) : (
-                                                        <button onClick={() => setDeleteConfirm(row[tableData.primary_key])} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    )
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            {tableData.columns.slice(0, expandedRow === rowIdx ? undefined : 5).map(col => {
-                                                const val = row[col.Field];
-                                                const isPK = col.Field === tableData.primary_key;
-                                                const isEditing = editingCell?.row === rowIdx && editingCell?.field === col.Field;
-                                                return (
-                                                    <div key={col.Field} className="flex gap-2 text-xs">
-                                                        <span className={`w-24 flex-shrink-0 font-bold truncate ${isPK ? 'text-amber-600' : 'text-gray-400'}`}>
-                                                            {isPK && '\ud83d\udd11 '}{col.Field}
-                                                        </span>
-                                                        {isEditing ? (
-                                                            <div className="flex items-center gap-1 flex-1">
-                                                                <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)}
-                                                                    onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                                                                    className="px-2 py-0.5 border border-indigo-300 rounded text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-200" autoFocus />
-                                                                <button onClick={saveEdit} disabled={saving} className="p-0.5 text-emerald-600"><Check size={12} /></button>
-                                                                <button onClick={cancelEdit} className="p-0.5 text-gray-400"><X size={12} /></button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className={`flex-1 text-gray-700 truncate ${!isPK && tableData.primary_key ? 'cursor-pointer active:text-indigo-600' : ''}`}
-                                                                onClick={() => !isPK && tableData.primary_key && startEdit(rowIdx, col.Field, val)}>
-                                                                {val != null ? String(val) : <span className="text-gray-300 italic">NULL</span>}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                        {tableData.columns.length > 5 && (
-                                            <button onClick={() => setExpandedRow(expandedRow === rowIdx ? null : rowIdx)}
-                                                className="mt-2 text-[10px] font-bold text-indigo-500 hover:text-indigo-700">
-                                                {expandedRow === rowIdx ? '\uc811\uae30' : `+${tableData.columns.length - 5}\uac1c \ub354\ubcf4\uae30`}
-                                            </button>
+                                {/* Mobile: Select All */}
+                                {!isDevMode && tableData.primary_key && tableData.rows.length > 0 && (
+                                    <div className="p-3 bg-gray-50 flex items-center justify-between">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox"
+                                                checked={tableData.rows.every(r => selectedRows.has(r[tableData.primary_key]))}
+                                                onChange={toggleSelectAll}
+                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                            <span className="text-xs font-bold text-gray-600">{t('superAdminDbPage.selectAll')}</span>
+                                        </label>
+                                        {selectedRows.size > 0 && (
+                                            <span className="text-xs font-bold text-indigo-600">{t('superAdminDbPage.selectedCount', { count: selectedRows.size })}</span>
                                         )}
                                     </div>
-                                ))}
+                                )}
+                                {tableData.rows.map((row, rowIdx) => {
+                                    const pkVal = tableData.primary_key ? row[tableData.primary_key] : null;
+                                    const isSelected = pkVal !== null && selectedRows.has(pkVal);
+                                    return (
+                                        <div key={rowIdx} className={`p-4 ${isSelected ? 'bg-indigo-50/40' : ''}`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    {!isDevMode && tableData.primary_key && (
+                                                        <input type="checkbox" checked={isSelected}
+                                                            onChange={() => toggleRowSelect(pkVal)}
+                                                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                                    )}
+                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                                        #{(currentPage - 1) * 50 + rowIdx + 1}
+                                                        {tableData.primary_key && ` · ${tableData.primary_key}: ${row[tableData.primary_key]}`}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    {!isDevMode && tableData.primary_key && (
+                                                        deleteConfirm === row[tableData.primary_key] ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <button onClick={() => handleDelete(row[tableData.primary_key])} className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold">{t('superAdminDbPage.confirm')}</button>
+                                                                <button onClick={() => setDeleteConfirm(null)} className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-bold">{t('superAdminDbPage.cancel')}</button>
+                                                            </div>
+                                                        ) : (
+                                                            <button onClick={() => setDeleteConfirm(row[tableData.primary_key])} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                {tableData.columns.slice(0, expandedRow === rowIdx ? undefined : 5).map(col => {
+                                                    const val = row[col.Field];
+                                                    const isPK = col.Field === tableData.primary_key;
+                                                    const isEditing = editingCell?.row === rowIdx && editingCell?.field === col.Field;
+                                                    return (
+                                                        <div key={col.Field} className="flex gap-2 text-xs">
+                                                            <span className={`w-24 flex-shrink-0 font-bold truncate ${isPK ? 'text-amber-600' : 'text-gray-400'}`}>
+                                                                {isPK && '\ud83d\udd11 '}{col.Field}
+                                                            </span>
+                                                            {isEditing ? (
+                                                                <div className="flex items-center gap-1 flex-1">
+                                                                    <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)}
+                                                                        onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                                                        className="px-2 py-0.5 border border-indigo-300 rounded text-xs flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-200" autoFocus />
+                                                                    <button onClick={saveEdit} disabled={saving} className="p-0.5 text-emerald-600"><Check size={12} /></button>
+                                                                    <button onClick={cancelEdit} className="p-0.5 text-gray-400"><X size={12} /></button>
+                                                                </div>
+                                                            ) : (
+                                                                <span className={`flex-1 text-gray-700 truncate ${!isPK && tableData.primary_key ? 'cursor-pointer active:text-indigo-600' : ''}`}
+                                                                    onClick={() => !isPK && tableData.primary_key && startEdit(rowIdx, col.Field, val)}>
+                                                                    {val != null ? String(val) : <span className="text-gray-300 italic">NULL</span>}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            {tableData.columns.length > 5 && (
+                                                <button onClick={() => setExpandedRow(expandedRow === rowIdx ? null : rowIdx)}
+                                                    className="mt-2 text-[10px] font-bold text-indigo-500 hover:text-indigo-700">
+                                                    {expandedRow === rowIdx ? t('superAdminDbPage.fold') : t('superAdminDbPage.showMore', { count: tableData.columns.length - 5 })}
+                                                </button>
+                                            )}
+                                        </div>);
+                                })}
                             </div>
 
                             {/* Pagination */}
@@ -653,8 +768,8 @@ const SuperAdminDatabase = () => {
                     ) : (
                         <div className="text-center py-20">
                             <Table2 size={48} className="mx-auto mb-4 text-gray-300" />
-                            <p className="text-gray-400 font-medium">{"\ud14c\uc774\ube14\uc744 \uc120\ud0dd\ud558\uba74 \ub370\uc774\ud130\ub97c \ud655\uc778\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4"}</p>
-                            <p className="text-xs text-gray-300 mt-1">{"\uc140\uc744 \ud074\ub9ad\ud558\uc5ec \uc9c1\uc811 \uc218\uc815\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4"}</p>
+                            <p className="text-gray-400 font-medium">{t('superAdminDbPage.selectTablePrompt')}</p>
+                            <p className="text-xs text-gray-300 mt-1">{t('superAdminDbPage.clickToEdit')}</p>
                         </div>
                     )}
                 </div>
@@ -665,8 +780,8 @@ const SuperAdminDatabase = () => {
                 <div className="space-y-4">
                     <select value={selectedTable || ''} onChange={(e) => e.target.value && openTable(e.target.value, 'structure')}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                        <option value="">{"\ud14c\uc774\ube14\uc744 \uc120\ud0dd\ud558\uc138\uc694.."}</option>
-                        {overview?.tables?.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                        <option value="">{t('superAdminDbPage.selectTable')}</option>
+                        {overview?.tables?.map(t2 => <option key={t2.name} value={t2.name}>{t2.name}</option>)}
                     </select>
 
                     {loadingStructure ? (
@@ -687,12 +802,12 @@ const SuperAdminDatabase = () => {
                                         <thead>
                                             <tr className="bg-gray-50">
                                                 <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">#</th>
-                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{"\ucee8\ub7fc"}</th>
-                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{"\ud0c0\uc785"}</th>
-                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">NULL</th>
-                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{"\ud0a4"}</th>
-                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{"\uae30\ubcf8\uac12"}</th>
-                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{"\ucd94\uac00 \uc815\ubcf4"}</th>
+                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{t('superAdminDbPage.column')}</th>
+                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{t('superAdminDbPage.type')}</th>
+                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{t('superAdminDbPage.null')}</th>
+                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{t('superAdminDbPage.key')}</th>
+                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{t('superAdminDbPage.default')}</th>
+                                                <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase">{t('superAdminDbPage.extra')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
@@ -722,7 +837,7 @@ const SuperAdminDatabase = () => {
                                                             </span>
                                                         ) : <span className="text-gray-300">-</span>}
                                                     </td>
-                                                    <td className="px-4 py-2.5 text-xs text-gray-600">{col.Default !== null ? String(col.Default) : <span className="text-gray-300 italic">{"\uc5c6\uc74c"}</span>}</td>
+                                                    <td className="px-4 py-2.5 text-xs text-gray-600">{col.Default !== null ? String(col.Default) : <span className="text-gray-300 italic">{t('superAdminDbPage.noDefault')}</span>}</td>
                                                     <td className="px-4 py-2.5 text-xs text-gray-600">{col.Extra || <span className="text-gray-300">-</span>}</td>
                                                 </tr>
                                             ))}
@@ -750,7 +865,7 @@ const SuperAdminDatabase = () => {
                                                 <span className={`font-medium ${col.Null === 'YES' ? 'text-emerald-600' : 'text-red-500'}`}>
                                                     NULL: {col.Null === 'YES' ? '\u2714' : '\u2716'}
                                                 </span>
-                                                {col.Default !== null && <span className="text-gray-500">{"\uae30\ubcf8\uac12"}: {String(col.Default)}</span>}
+                                                {col.Default !== null && <span className="text-gray-500">{t('superAdminDbPage.defaultLabel')}: {String(col.Default)}</span>}
                                                 {col.Extra && <span className="text-gray-500">{col.Extra}</span>}
                                             </div>
                                         </div>
@@ -764,7 +879,7 @@ const SuperAdminDatabase = () => {
                                     <div className="px-5 py-4 border-b border-gray-100">
                                         <h3 className="font-bold text-gray-900 flex items-center gap-2">
                                             <Key size={18} className="text-amber-500" />
-                                            {"\uc778\ub371\uc2a4 \uc815\ubcf4"}
+                                            {t('superAdminDbPage.indexInfo')}
                                             <span className="text-xs font-normal text-gray-400">{structureData.indexes.length}</span>
                                         </h3>
                                     </div>
@@ -776,7 +891,7 @@ const SuperAdminDatabase = () => {
                                                     <div className="flex flex-wrap gap-2 mt-1 text-[11px]">
                                                         <span className="text-gray-600 font-medium">{idx.Column_name}</span>
                                                         <span className="text-gray-400">{idx.Index_type}</span>
-                                                        {idx.Cardinality && <span className="text-gray-400">{"\uce74\ub514\ub110\ub9ac\ud2f0"}: {idx.Cardinality}</span>}
+                                                        {idx.Cardinality && <span className="text-gray-400">{t('superAdminDbPage.cardinality')}: {idx.Cardinality}</span>}
                                                     </div>
                                                 </div>
                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${!idx.Non_unique ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -806,8 +921,8 @@ const SuperAdminDatabase = () => {
                     ) : (
                         <div className="text-center py-20">
                             <Columns3 size={48} className="mx-auto mb-4 text-gray-300" />
-                            <p className="text-gray-400 font-medium">{"\ud14c\uc774\ube14\uc744 \uc120\ud0dd\ud558\uba74 \uad6c\uc870\ub97c \ud655\uc778\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4"}</p>
-                            <p className="text-xs text-gray-300 mt-1">{"\ucee8\ub7fc, \uc778\ub371\uc2a4, DDL \ub4f1 \uc0c1\uc138 \uc815\ubcf4\ub97c \uc81c\uacf5\ud569\ub2c8\ub2e4"}</p>
+                            <p className="text-gray-400 font-medium">{t('superAdminDbPage.selectTableStructure')}</p>
+                            <p className="text-xs text-gray-300 mt-1">{t('superAdminDbPage.structureDetail')}</p>
                         </div>
                     )}
                 </div>

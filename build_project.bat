@@ -1,64 +1,65 @@
 @echo off
+chcp 65001 >nul
 echo ==========================================
 echo       SpaceMatch Frontend Build Tool
+echo       (Smart Delta Upload Edition)
 echo ==========================================
 echo.
-echo 1. Installing dependencies (this may take a while)...
+
+echo 1. Installing dependencies...
 call npm install
 if %errorlevel% neq 0 (
-    echo.
     echo [ERROR] npm install failed!
     pause
     exit /b %errorlevel%
 )
 
 echo.
-echo 2. Cleaning cache and building...
-chcp 65001
+echo 2. Syncing MediaFile assets to public...
+if exist "MediaFile" (
+    xcopy /E /I /Y "MediaFile" "public" >nul 2>&1
+    echo    MediaFile assets synced.
+)
+
+echo.
+echo 3. Cleaning cache and building...
 if exist "node_modules\.vite" rd /s /q "node_modules\.vite"
 if exist "dist" rd /s /q "dist"
+if exist ".build_snapshot.json" del /f ".build_snapshot.json"
 
-echo running npm run build...
 call npm run build
 if %errorlevel% neq 0 (
-    echo.
     echo [ERROR] Build failed!
     pause
     exit /b %errorlevel%
 )
 
 echo.
-echo 3. Copying backend API files to dist...
-xcopy /E /I /Y "public\api" "dist\api"
-if %errorlevel% neq 0 (
-    echo.
-    echo [WARNING] API file copy had issues, but build succeeded.
-)
+echo 4. Cleaning unnecessary files from dist...
+if exist "dist\api\migrations" rd /s /q "dist\api\migrations"
+echo    Removed migrations folder from dist.
+
+REM --- Ensure .user.ini is present ---
+if exist "public\.user.ini" copy /Y "public\.user.ini" "dist\.user.ini" >nul 2>&1
+if exist "public\api\.user.ini" copy /Y "public\api\.user.ini" "dist\api\.user.ini" >nul 2>&1
 
 echo.
-echo 4. Copying other public assets to dist...
-if exist "public\uploads" xcopy /E /I /Y "public\uploads" "dist\uploads"
-
+echo 5. Detecting changed files (Delta Upload)...
 echo.
-echo 5. Cleaning up unnecessary files from dist...
-if exist "dist\debug_users.php" del /q "dist\debug_users.php"
-if exist "dist\diagnose.php" del /q "dist\diagnose.php"
-if exist "dist\fix_applications.php" del /q "dist\fix_applications.php"
-if exist "dist\fix_db.php" del /q "dist\fix_db.php"
-if exist "dist\migrate_applications.php" del /q "dist\migrate_applications.php"
-if exist "dist\migrate_user_enhancements.php" del /q "dist\migrate_user_enhancements.php"
-if exist "dist\migrate_venues.php" del /q "dist\migrate_venues.php"
-if exist "dist\setup.php" del /q "dist\setup.php"
-echo    Removed debug/migration PHP files from dist.
+
+REM --- Run the delta detection script ---
+node build_delta.cjs
 
 echo.
 echo ==========================================
-echo [SUCCESS] Build completed successfully!
-echo The files are in the 'dist' folder.
-echo Backend API files have been copied automatically.
-echo You can now upload the 'dist' folder to your server.
+echo [SUCCESS] Build completed!
+echo.
+echo   - dist\          : Full build output
+echo   - upload\        : Changed files only (FTP upload target)
+echo   - upload_log.txt : List of changed files
+echo.
+echo Upload the 'upload' folder to your FTP server.
 echo ==========================================
 echo.
-echo Press any key to open the dist folder...
 pause >nul
-start "" "%~dp0dist"
+start "" "%~dp0upload"

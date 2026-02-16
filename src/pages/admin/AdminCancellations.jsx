@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { AlertTriangle, CheckCircle, XCircle, Clock, Search, User, MapPin, Store, ChevronDown, ChevronUp, MessageSquare, Shield, ArrowRight, FileText, X } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -7,6 +8,7 @@ import Toast from '../../components/Toast';
 const API_BASE = '/api';
 
 const AdminCancellations = () => {
+    const { t } = useTranslation('admin');
     const { user } = useAuth();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,17 +33,17 @@ const AdminCancellations = () => {
             const data = await res.json();
             if (data.success) setRequests(data.requests || []);
         } catch (err) {
-            console.error('취소 신청 로드 실패:', err);
+            console.error(t('cancellationsPage.loadFailed'), err);
         } finally {
             setLoading(false);
         }
     };
 
     const handleAction = async (requestId, action) => {
-        const actionLabel = action === 'approved' ? '승인' : '거절';
+        const actionLabel = action === 'approved' ? t('cancellationsPage.approve') : t('cancellationsPage.reject');
         setConfirmModal({
-            title: `취소 신청 ${actionLabel}`,
-            message: `이 취소 신청을 ${actionLabel}하시겠습니까?`,
+            title: action === 'approved' ? t('cancellationsPage.approveTitle') : t('cancellationsPage.rejectTitle'),
+            message: action === 'approved' ? t('cancellationsPage.approveConfirm') : t('cancellationsPage.rejectConfirm'),
             type: action === 'approved' ? 'success' : 'danger',
             confirmLabel: actionLabel,
             onConfirm: async () => {
@@ -55,8 +57,8 @@ const AdminCancellations = () => {
                     });
                     const data = await res.json();
                     if (data.success) { showToast(data.message, 'success'); setDecisionNote(''); setExpandedId(null); fetchRequests(); }
-                    else { showToast(data.message || '처리에 실패했습니다.', 'error'); }
-                } catch { showToast('오류가 발생했습니다.', 'error'); }
+                    else { showToast(data.message || t('cancellationsPage.processFailed'), 'error'); }
+                } catch { showToast(t('cancellationsPage.errorOccurred'), 'error'); }
                 finally { setProcessing(null); }
             }
         });
@@ -91,20 +93,20 @@ const AdminCancellations = () => {
     const relativeTime = (str) => {
         if (!str) return '';
         const diff = Math.floor((new Date() - new Date(str)) / 1000);
-        if (diff < 60) return '방금 전';
-        if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-        if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+        if (diff < 60) return t('cancellationsPage.justNow');
+        if (diff < 3600) return t('cancellationsPage.minutesAgo', { count: Math.floor(diff / 60) });
+        if (diff < 86400) return t('cancellationsPage.hoursAgo', { count: Math.floor(diff / 3600) });
+        if (diff < 604800) return t('cancellationsPage.daysAgo', { count: Math.floor(diff / 86400) });
         return formatDate(str);
     };
 
-    const isVendor = user?.role === 'vendor';
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
     const tabConfig = [
-        { id: 'pending', label: '대기중', count: stats.pending, icon: <Clock size={14} />, activeColor: 'bg-amber-500 text-white', dotColor: 'bg-amber-500' },
-        { id: 'approved', label: '승인됨', count: stats.approved, icon: <CheckCircle size={14} />, activeColor: 'bg-emerald-500 text-white', dotColor: 'bg-emerald-500' },
-        { id: 'rejected', label: '거절됨', count: stats.rejected, icon: <XCircle size={14} />, activeColor: 'bg-red-500 text-white', dotColor: 'bg-red-500' },
-        { id: 'all', label: '전체', count: stats.total, icon: <FileText size={14} />, activeColor: 'bg-gray-800 text-white', dotColor: 'bg-gray-500' },
+        { id: 'pending', label: t('cancellationsPage.tabPending'), count: stats.pending, icon: <Clock size={14} />, activeColor: 'bg-amber-500 text-white', dotColor: 'bg-amber-500' },
+        { id: 'approved', label: t('cancellationsPage.tabApproved'), count: stats.approved, icon: <CheckCircle size={14} />, activeColor: 'bg-emerald-500 text-white', dotColor: 'bg-emerald-500' },
+        { id: 'rejected', label: t('cancellationsPage.tabRejected'), count: stats.rejected, icon: <XCircle size={14} />, activeColor: 'bg-red-500 text-white', dotColor: 'bg-red-500' },
+        { id: 'all', label: t('cancellationsPage.tabAll'), count: stats.total, icon: <FileText size={14} />, activeColor: 'bg-gray-800 text-white', dotColor: 'bg-gray-500' },
     ];
 
     return (
@@ -113,15 +115,15 @@ const AdminCancellations = () => {
             <div className="mb-8">
                 <div className="flex items-start gap-4 mb-1">
                     <div className="w-11 h-11 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-200/40 flex-shrink-0">
-                        {isVendor ? <Shield size={20} /> : <AlertTriangle size={20} />}
+                        {isAdmin ? <Shield size={20} /> : <AlertTriangle size={20} />}
                     </div>
                     <div>
                         <p className="text-amber-600 font-bold text-xs tracking-widest uppercase mb-0.5">Cancellation Requests</p>
                         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-                            취소 신청 {isVendor ? '' : '모니터링'}
+                            {isAdmin ? t('cancellationsPage.titleMonitoring') : t('cancellationsPage.title')}
                         </h1>
                         <p className="text-gray-500 text-sm font-medium mt-1">
-                            {isVendor ? '나의 입점 취소 신청을 확인하고 처리하세요.' : '전체 취소 신청 현황을 모니터링합니다.'}
+                            {isAdmin ? t('cancellationsPage.subtitleAdmin') : t('cancellationsPage.subtitleVendor')}
                         </p>
                     </div>
                 </div>
@@ -130,10 +132,10 @@ const AdminCancellations = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
                 {[
-                    { label: '전체', value: stats.total, icon: <MessageSquare size={16} />, gradient: 'from-slate-600 to-slate-800', light: 'bg-slate-50 border-slate-100' },
-                    { label: '대기중', value: stats.pending, icon: <Clock size={16} />, gradient: 'from-amber-500 to-orange-500', light: 'bg-amber-50 border-amber-100', pulse: stats.pending > 0 },
-                    { label: '승인됨', value: stats.approved, icon: <CheckCircle size={16} />, gradient: 'from-emerald-500 to-green-600', light: 'bg-emerald-50 border-emerald-100' },
-                    { label: '거절됨', value: stats.rejected, icon: <XCircle size={16} />, gradient: 'from-red-500 to-rose-600', light: 'bg-red-50 border-red-100' },
+                    { label: t('cancellationsPage.statsTotal'), value: stats.total, icon: <MessageSquare size={16} />, gradient: 'from-slate-600 to-slate-800', light: 'bg-slate-50 border-slate-100' },
+                    { label: t('cancellationsPage.statsPending'), value: stats.pending, icon: <Clock size={16} />, gradient: 'from-amber-500 to-orange-500', light: 'bg-amber-50 border-amber-100', pulse: stats.pending > 0 },
+                    { label: t('cancellationsPage.statsApproved'), value: stats.approved, icon: <CheckCircle size={16} />, gradient: 'from-emerald-500 to-green-600', light: 'bg-emerald-50 border-emerald-100' },
+                    { label: t('cancellationsPage.statsRejected'), value: stats.rejected, icon: <XCircle size={16} />, gradient: 'from-red-500 to-rose-600', light: 'bg-red-50 border-red-100' },
                 ].map((stat, i) => (
                     <div key={i} className={`relative overflow-hidden ${stat.light} border rounded-2xl p-4 group hover:shadow-md transition-all`}>
                         <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`}></div>
@@ -156,7 +158,7 @@ const AdminCancellations = () => {
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
-                        type="text" placeholder="\uc774\ub984, \uacf5\uac04\uba85, \uc0ac\uc720 \uac80\uc0c9.."
+                        type="text" placeholder={t('cancellationsPage.searchPlaceholder')}
                         value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all"
                     />
@@ -180,16 +182,16 @@ const AdminCancellations = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-24 gap-3">
                     <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-amber-500 border-t-transparent"></div>
-                    <p className="text-sm text-gray-400 font-medium">신청 목록을 불러오는 중...</p>
+                    <p className="text-sm text-gray-400 font-medium">{t('cancellationsPage.loadingRequests')}</p>
                 </div>
             ) : filteredRequests.length === 0 ? (
                 <div className="text-center py-20">
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <AlertTriangle size={32} className="text-gray-300" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">취소 요청이 없습니다</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{t('cancellationsPage.noRequests')}</h3>
                     <p className="text-gray-500 text-sm">
-                        {activeTab !== 'all' ? '다른 상태를 확인해보세요.' : '아직 접수된 취소 요청이 없습니다.'}
+                        {activeTab !== 'all' ? t('cancellationsPage.noRequestsOtherTab') : t('cancellationsPage.noRequestsAll')}
                     </p>
                 </div>
             ) : (
@@ -235,7 +237,7 @@ const AdminCancellations = () => {
                                                     req.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
                                                         'bg-red-50 text-red-500'}`}
                                             >
-                                                {isPending ? '대기' : req.status === 'approved' ? '승인' : '거절'}
+                                                {isPending ? t('cancellationsPage.statusPending') : req.status === 'approved' ? t('cancellationsPage.statusApproved') : t('cancellationsPage.statusRejected')}
                                             </span>
                                             <span className="text-[11px] text-gray-400">{relativeTime(req.created_at)}</span>
                                         </div>
@@ -258,7 +260,7 @@ const AdminCancellations = () => {
                                         <div className="p-4 md:p-5 space-y-4">
                                             {/* Reason */}
                                             <div>
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">취소 사유</label>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">{t('cancellationsPage.cancelReason')}</label>
                                                 <div className="bg-white rounded-xl p-4 text-sm text-gray-700 leading-relaxed border border-gray-100 shadow-sm">
                                                     {req.reason}
                                                 </div>
@@ -295,7 +297,7 @@ const AdminCancellations = () => {
                                                     <div className="flex items-center gap-2 mb-1">
                                                         {req.status === 'approved' ? <CheckCircle size={14} /> : <XCircle size={14} />}
                                                         <span className="text-sm font-bold">
-                                                            {req.status === 'approved' ? '취소 승인됨' : '취소 거절됨'}
+                                                            {req.status === 'approved' ? t('cancellationsPage.approvedResult') : t('cancellationsPage.rejectedResult')}
                                                         </span>
                                                         {req.decided_by_name && (
                                                             <span className="text-xs opacity-60">by {req.decided_by_name}</span>
@@ -310,11 +312,11 @@ const AdminCancellations = () => {
                                             {isPending && (
                                                 <div className="pt-2 space-y-3">
                                                     <div>
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">결정 사유 (선택)</label>
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">{t('cancellationsPage.decisionNote')}</label>
                                                         <textarea
                                                             value={decisionNote}
                                                             onChange={e => setDecisionNote(e.target.value)}
-                                                            placeholder="승인 또는 거절 사유를 입력해주세요..."
+                                                            placeholder={t('cancellationsPage.decisionPlaceholder')}
                                                             rows={2}
                                                             className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-300 resize-none transition-all"
                                                         />
@@ -326,7 +328,7 @@ const AdminCancellations = () => {
                                                             className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl text-sm font-bold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-200/50 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
                                                         >
                                                             <CheckCircle size={16} />
-                                                            {processing === req.id ? '처리 중...' : '취소 승인'}
+                                                            {processing === req.id ? t('cancellationsPage.processing') : t('cancellationsPage.approveCancel')}
                                                         </button>
                                                         <button
                                                             onClick={() => handleAction(req.id, 'rejected')}
@@ -334,7 +336,7 @@ const AdminCancellations = () => {
                                                             className="flex-1 py-3 bg-white text-red-600 border-2 border-red-200 rounded-xl text-sm font-bold hover:bg-red-50 hover:border-red-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                                                         >
                                                             <XCircle size={16} />
-                                                            {processing === req.id ? '처리 중...' : '취소 거절'}
+                                                            {processing === req.id ? t('cancellationsPage.processing') : t('cancellationsPage.rejectCancel')}
                                                         </button>
                                                     </div>
                                                 </div>

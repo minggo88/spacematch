@@ -3,10 +3,13 @@
 include_once '../db_connect.php';
 session_start();
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['admin', 'superadmin'])) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit();
+// POST requires admin/superadmin; GET is public (needed by AdSlot component)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['admin', 'superadmin'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit();
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

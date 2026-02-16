@@ -14,7 +14,7 @@ if (isset($_SESSION['user_id'])) {
     // Build column list dynamically for optional fields
     $base_cols = "id, name, email, role, status, phone, business_no, profile_image, venue_limit";
 
-    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name'];
+    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country'];
     foreach ($opt_cols as $oc) {
         $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
         if ($chk->fetch())
@@ -32,6 +32,16 @@ if (isset($_SESSION['user_id'])) {
         // Update session if needed
         $_SESSION['user_role'] = $row['role'];
         $_SESSION['user_name'] = $row['name'];
+
+        // ── Track last activity for online status ──
+        try {
+            $colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'last_active_at'");
+            if (!$colCheck->fetch()) {
+                $conn->exec("ALTER TABLE users ADD COLUMN last_active_at DATETIME NULL DEFAULT NULL");
+            }
+            $conn->prepare("UPDATE users SET last_active_at = NOW() WHERE id = ?")->execute([$user_id]);
+        } catch (PDOException $e) { /* non-critical */
+        }
 
         echo json_encode(array(
             "success" => true,

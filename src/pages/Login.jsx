@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Lock, Mail, Home } from 'lucide-react';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -9,12 +10,12 @@ const Login = () => {
     const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation('auth');
 
     const handleSubmit = (e) => {
         e.preventDefault();
         login(email, password).then(result => {
             if (result.success) {
-                // Route based on user role
                 const role = result.user?.role;
                 if (role === 'superadmin' || role === 'admin') {
                     navigate('/admin');
@@ -30,11 +31,11 @@ const Login = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-secondary p-4">
-            <div className="w-full max-w-md p-6 md:p-8 bg-white rounded-xl shadow-lg">
+        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-[#0f1117] p-4">
+            <div className="w-full max-w-md p-6 md:p-8 bg-white dark:bg-[#1a1b2e] rounded-xl shadow-lg dark:shadow-black/40 dark:border dark:border-[#2e3050]">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
-                    <p className="text-gray-500 mt-2">관리자 및 셀러 로그인</p>
+                    <p className="text-gray-500 mt-2">{t('loginSubtitle')}</p>
                 </div>
 
                 {error && (
@@ -45,7 +46,7 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('email')}</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
@@ -60,7 +61,7 @@ const Login = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('password')}</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
@@ -78,15 +79,25 @@ const Login = () => {
                         type="submit"
                         className="w-full py-3 bg-primary text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors shadow-md hover:shadow-lg"
                     >
-                        로그인
+                        {t('login')}
                     </button>
                 </form>
 
-                <div className="mt-6 text-center">
+                <div className="mt-4 flex justify-center gap-4 text-sm">
+                    <Link to="/find-email" className="text-gray-500 hover:text-primary transition-colors">
+                        {t('findEmailTitle')}
+                    </Link>
+                    <span className="text-gray-300">|</span>
+                    <Link to="/reset-password" className="text-gray-500 hover:text-primary transition-colors">
+                        {t('resetPasswordTitle')}
+                    </Link>
+                </div>
+
+                <div className="mt-4 text-center">
                     <p className="text-sm text-gray-600">
-                        아직 계정이 없으신가요?{' '}
+                        {t('noAccount')}{' '}
                         <Link to="/signup" className="text-primary hover:underline font-medium">
-                            회원가입
+                            {t('signup')}
                         </Link>
                     </p>
                     <a
@@ -95,8 +106,15 @@ const Login = () => {
                         rel="noopener noreferrer"
                         className="mt-4 block w-full py-2 text-center bg-yellow-400 text-gray-800 rounded-lg hover:bg-yellow-500 font-medium transition-colors"
                     >
-                        💬 문의하기
+                        💬 {t('inquiry')}
                     </a>
+                    <Link
+                        to="/"
+                        className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+                    >
+                        <Home size={16} />
+                        {t('goHome')}
+                    </Link>
                 </div>
             </div>
         </div>

@@ -53,6 +53,7 @@ try {
     $query = "
         SELECT 
             v.*,
+            u.country as owner_country,
             COALESCE(wc.wish_count, 0) AS wish_count,
             COALESCE(ac.app_count, 0) AS app_count,
             (
@@ -61,6 +62,7 @@ try {
                 CASE WHEN v.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 10 ELSE 0 END
             ) AS trending_score
         FROM venues v
+        LEFT JOIN users u ON v.owner_id = u.id
         LEFT JOIN (
             SELECT venue_id, COUNT(*) AS wish_count 
             FROM venue_wishlist 

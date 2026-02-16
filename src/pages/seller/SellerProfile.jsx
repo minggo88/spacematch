@@ -1,28 +1,45 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { User, Mail, Phone, Building, Lock, Save, Camera, Tag, Instagram, ImagePlus, Trash2 } from 'lucide-react';
-
-const CATEGORY_OPTIONS = [
-    { value: 'fashion', label: '패션/잡화' },
-    { value: 'beauty', label: '뷰티' },
-    { value: 'food', label: '푸드/음료' },
-    { value: 'living', label: '리빙/라이프스타일' },
-    { value: 'art', label: '아트/디자인' },
-    { value: 'stationery', label: '문구/스테이셔너리' },
-    { value: 'digital', label: '디지털/전자기기' },
-    { value: 'activity', label: '스포츠/액티비티' },
-    { value: 'eco', label: '친환경/에코라이프' },
-    { value: 'pet', label: '반려동물' },
-    { value: 'kids', label: '키즈/유아' },
-    { value: 'handmade', label: '핸드메이드/수공예' },
-    { value: 'vintage', label: '빈티지/중고' },
-    { value: 'perfume', label: '향수/디퓨저' },
-    { value: 'book', label: '도서/매거진' },
-    { value: 'other', label: '기타' }
-];
+import { useToast } from '../../context/ToastContext';
+import { useTranslation } from 'react-i18next';
+import { User, Mail, Phone, Building, Lock, Save, Camera, Tag, Instagram, ImagePlus, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Globe } from 'lucide-react';
 
 const SellerProfile = () => {
     const { user, updateUserProfile, refreshUser, changePassword } = useAuth();
+    const { showToast } = useToast();
+    const { t } = useTranslation('seller');
+
+    const CATEGORY_OPTIONS = [
+        { value: 'fashion', label: t('profilePage.categoryFashion') },
+        { value: 'beauty', label: t('profilePage.categoryBeauty') },
+        { value: 'food', label: t('profilePage.categoryFood') },
+        { value: 'living', label: t('profilePage.categoryLiving') },
+        { value: 'art', label: t('profilePage.categoryArt') },
+        { value: 'stationery', label: t('profilePage.categoryStationery') },
+        { value: 'digital', label: t('profilePage.categoryDigital') },
+        { value: 'activity', label: t('profilePage.categoryActivity') },
+        { value: 'eco', label: t('profilePage.categoryEco') },
+        { value: 'pet', label: t('profilePage.categoryPet') },
+        { value: 'kids', label: t('profilePage.categoryKids') },
+        { value: 'handmade', label: t('profilePage.categoryHandmade') },
+        { value: 'vintage', label: t('profilePage.categoryVintage') },
+        { value: 'perfume', label: t('profilePage.categoryPerfume') },
+        { value: 'book', label: t('profilePage.categoryBook') },
+        { value: 'other', label: t('profilePage.categoryOther') }
+    ];
+    const COUNTRY_OPTIONS_LIST = [
+        { value: 'ko', label: '🇰🇷 대한민국 (Korea)' },
+        { value: 'vi', label: '🇻🇳 Việt Nam' },
+        { value: 'ja', label: '🇯🇵 日本 (Japan)' },
+        { value: 'en', label: '🇺🇸 United States' },
+        { value: 'en-GB', label: '🇬🇧 United Kingdom' },
+        { value: 'en-CA', label: '🇨🇦 Canada (English)' },
+        { value: 'fr-CA', label: '🇨🇦 Canada (Français)' },
+        { value: 'th', label: '🇹🇭 ประเทศไทย (Thailand)' },
+        { value: 'km', label: '🇰🇭 កម្ពុជា (Cambodia)' },
+        { value: 'ru', label: '🇷🇺 Россия (Russia)' },
+        { value: 'uk', label: '🇺🇦 Україна (Ukraine)' },
+    ];
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
 
@@ -34,7 +51,8 @@ const SellerProfile = () => {
         phone: user.phone || '',
         description: user.description || '',
         category: user.category || '',
-        instagram: user.instagram || ''
+        instagram: user.instagram || '',
+        country: user.country || 'ko'
     });
     const [saving, setSaving] = useState(false);
     const [sellerPhotos, setSellerPhotos] = useState([]);
@@ -42,6 +60,13 @@ const SellerProfile = () => {
     const photoInputRef = useRef(null);
 
     const [previewImage, setPreviewImage] = useState(user.profile_image || null);
+
+    // Visibility toggle state
+    const [isPublic, setIsPublic] = useState(() => {
+        const val = user.is_public;
+        return val === undefined || val === null || val === '1' || val === 1 ? true : false;
+    });
+    const [togglingVisibility, setTogglingVisibility] = useState(false);
 
     // Sync local profile + preview with user context whenever it changes
     useEffect(() => {
@@ -52,11 +77,15 @@ const SellerProfile = () => {
             phone: user.phone || '',
             description: user.description || '',
             category: user.category || '',
-            instagram: user.instagram || ''
+            instagram: user.instagram || '',
+            country: user.country || 'ko'
         });
         if (user.profile_image) {
             setPreviewImage(user.profile_image);
         }
+        // Sync visibility
+        const val = user.is_public;
+        setIsPublic(val === undefined || val === null || val === '1' || val === 1 ? true : false);
     }, [user]);
 
     // Fetch seller product photos
@@ -82,6 +111,17 @@ const SellerProfile = () => {
 
     const handleChange = (e) => {
         setProfile({ ...profile, [e.target.name]: e.target.value });
+    };
+
+    const handlePhoneChange = (e) => {
+        const raw = e.target.value.replace(/[^0-9]/g, '');
+        let formatted = raw;
+        if (raw.length > 3 && raw.length <= 7) {
+            formatted = raw.slice(0, 3) + '-' + raw.slice(3);
+        } else if (raw.length > 7) {
+            formatted = raw.slice(0, 3) + '-' + raw.slice(3, 7) + '-' + raw.slice(7, 11);
+        }
+        setProfile({ ...profile, phone: formatted });
     };
 
     const handlePasswordChange = (e) => {
@@ -116,7 +156,7 @@ const SellerProfile = () => {
                 data = JSON.parse(responseText);
             } catch (parseErr) {
                 console.error('Failed to parse response:', responseText);
-                alert('서버 응답 오류 (JSON 파싱 실패). 콘솔을 확인해주세요.');
+                showToast(t('profilePage.serverParseError'), 'error');
                 // Keep local preview even if server response parsing fails
                 return;
             }
@@ -125,16 +165,16 @@ const SellerProfile = () => {
                 // Use server URL for persistent display
                 setPreviewImage(data.imageUrl);
                 await refreshUser();
-                alert('프로필 사진이 변경되었습니다.');
+                showToast(t('profilePage.profileImageUpdated'), 'success');
             } else {
                 // Revert preview on failure
                 setPreviewImage(user.profile_image || null);
-                alert(data.message || '프로필 업로드 실패');
+                showToast(data.message || t('profilePage.profileUploadFailed'), 'error');
             }
         } catch (error) {
             console.error('Upload error:', error);
             setPreviewImage(user.profile_image || null);
-            alert('업로드 중 오류: ' + error.message);
+            showToast(t('profilePage.uploadError') + error.message, 'error');
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -147,42 +187,60 @@ const SellerProfile = () => {
     };
 
     const handlePhotoUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
 
-        if (sellerPhotos.length >= 5) {
-            alert('\uCD5C\uB300 5\uC7A5\uAE4C\uC9C0 \uC5C5\uB85C\uB4DC \uAC00\uB2A5\uD569\uB2C8\uB2E4.');
+        const remaining = 10 - sellerPhotos.length;
+        if (remaining <= 0) {
+            showToast(t('profilePage.maxPhotos'), 'warning');
             return;
         }
 
-        setPhotoUploading(true);
-        const formData = new FormData();
-        formData.append('photo', file);
-
-        try {
-            const res = await fetch('/api/users/upload_seller_photos.php', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                setSellerPhotos(prev => [...prev, data.photo]);
-                alert('사진이 업로드되었습니다.');
-            } else {
-                alert(data.message || '사진 업로드에 실패했습니다.');
-            }
-        } catch (err) {
-            console.error('Photo upload error:', err);
-            alert('사진 업로드 중 오류가 발생했습니다.');
-        } finally {
-            setPhotoUploading(false);
-            e.target.value = '';
+        const toUpload = files.slice(0, remaining);
+        if (files.length > remaining) {
+            showToast(t('profilePage.remainingPhotos', { count: remaining }), 'warning');
         }
+
+        setPhotoUploading(true);
+        let successCount = 0;
+        let lastError = null;
+
+        for (const file of toUpload) {
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            try {
+                const res = await fetch('/api/users/upload_seller_photos.php', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setSellerPhotos(prev => [...prev, data.photo]);
+                    successCount++;
+                } else {
+                    lastError = data.message || t('profilePage.photoUploadFailed');
+                }
+            } catch (err) {
+                console.error('Photo upload error:', err);
+                lastError = t('profilePage.photoUploadError');
+            }
+        }
+
+        if (successCount > 0) {
+            showToast(t('profilePage.photosUploaded', { count: successCount }), 'success');
+        }
+        if (lastError) {
+            showToast(lastError, 'error');
+        }
+
+        setPhotoUploading(false);
+        e.target.value = '';
     };
 
     const handleDeletePhoto = async (photoId) => {
-        if (!confirm('이 사진을 삭제하시겠습니까?')) return;
+        if (!confirm(t('profilePage.deletePhotoConfirm'))) return;
         try {
             const res = await fetch('/api/users/delete_seller_photo.php', {
                 method: 'POST',
@@ -194,10 +252,28 @@ const SellerProfile = () => {
             if (data.success) {
                 setSellerPhotos(prev => prev.filter(p => p.id !== photoId));
             } else {
-                alert(data.message || '삭제에 실패했습니다.');
+                showToast(data.message || t('profilePage.deleteFailed'), 'error');
             }
         } catch (err) {
-            alert('\uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.');
+            showToast(t('common:error'), 'error');
+        }
+    };
+
+    const movePhoto = async (index, direction) => {
+        const newPhotos = [...sellerPhotos];
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= newPhotos.length) return;
+        [newPhotos[index], newPhotos[targetIndex]] = [newPhotos[targetIndex], newPhotos[index]];
+        setSellerPhotos(newPhotos);
+        try {
+            await fetch('/api/users/reorder_seller_photos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ order: newPhotos.map(p => p.id) })
+            });
+        } catch (err) {
+            console.error('Reorder error:', err);
         }
     };
 
@@ -209,13 +285,13 @@ const SellerProfile = () => {
             if (result?.success !== false) {
                 // Re-fetch user from server to ensure AuthContext is fully synced
                 await refreshUser();
-                alert('프로필이 성공적으로 업데이트되었습니다.');
+                showToast(t('profilePage.profileUpdated'), 'success');
             } else {
-                alert(result.message || '프로필 업데이트에 실패했습니다.');
+                showToast(result.message || t('profilePage.profileUpdateFailed'), 'error');
             }
         } catch (error) {
             console.error('Profile update failed:', error);
-            alert('프로필 업데이트에 실패했습니다.');
+            showToast(t('profilePage.profileUpdateFailed'), 'error');
         } finally {
             setSaving(false);
         }
@@ -223,16 +299,35 @@ const SellerProfile = () => {
 
     const submitPasswordChange = () => {
         if (passwordData.newPassword.length < 4) {
-            alert('비밀번호는 4자 이상이어야 합니다.');
+            showToast(t('profilePage.passwordMinLength'), 'warning');
             return;
         }
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            alert('\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.');
+            showToast(t('profilePage.passwordMismatch'), 'warning');
             return;
         }
         changePassword(user.email, passwordData.newPassword);
         setPasswordData({ newPassword: '', confirmPassword: '' });
-        alert('\uBE44\uBC00\uBC88\uD638\uAC00 \uBCC0\uACBD\uB418\uC5C8\uC2B5\uB2C8\uB2E4.');
+        showToast(t('profilePage.passwordChanged'), 'success');
+    };
+
+    const toggleVisibility = async () => {
+        setTogglingVisibility(true);
+        try {
+            const newValue = isPublic ? 0 : 1;
+            const result = await updateUserProfile({ is_public: newValue });
+            if (result?.success !== false) {
+                setIsPublic(!isPublic);
+                await refreshUser();
+            } else {
+                showToast(result.message || t('profilePage.visibilityFailed'), 'error');
+            }
+        } catch (error) {
+            console.error('Visibility toggle failed:', error);
+            showToast(t('profilePage.visibilityError'), 'error');
+        } finally {
+            setTogglingVisibility(false);
+        }
     };
 
     return (
@@ -281,6 +376,46 @@ const SellerProfile = () => {
                 </div>
             </div>
 
+            {/* Visibility Toggle Card */}
+            {user.role === 'seller' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-5 md:p-6 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300 ${isPublic
+                                ? 'bg-emerald-50 text-emerald-600'
+                                : 'bg-gray-100 text-gray-400'
+                                }`}>
+                                {isPublic ? <Eye size={22} /> : <EyeOff size={22} />}
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900">{t('profilePage.visibilityTitle')}</h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    {isPublic
+                                        ? t('profilePage.visibilityPublic')
+                                        : t('profilePage.visibilityHidden')}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={toggleVisibility}
+                            disabled={togglingVisibility}
+                            className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-offset-1 disabled:opacity-50 flex-shrink-0 ${isPublic
+                                ? 'bg-emerald-500 focus:ring-emerald-500/20'
+                                : 'bg-gray-300 focus:ring-gray-300/20'
+                                }`}
+                        >
+                            <span className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${isPublic ? 'translate-x-6' : 'translate-x-0'
+                                }`}>
+                                {togglingVisibility && (
+                                    <div className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+                                )}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Profile Form */}
                 <div className="lg:col-span-2 space-y-8">
@@ -288,14 +423,14 @@ const SellerProfile = () => {
                         <div className="p-6 border-b border-gray-100">
                             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                                 <User className="text-indigo-500" size={20} />
-                                기본 정보 설정
+                                {t('profilePage.basicInfo')}
                             </h3>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-5 md:p-8 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">담당자 이름</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('profilePage.contactName')}</label>
                                     <input
                                         type="text"
                                         name="name"
@@ -306,14 +441,14 @@ const SellerProfile = () => {
                                 </div>
                                 {!['admin', 'superadmin'].includes(user.role) && (
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">브랜드명</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('profilePage.brandName')}</label>
                                         <input
                                             type="text"
                                             name="brandName"
                                             value={profile.brandName}
                                             onChange={handleChange}
                                             className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none font-medium"
-                                            placeholder="브랜드 이름을 입력하세요"
+                                            placeholder={t('profilePage.brandPlaceholder')}
                                         />
                                     </div>
                                 )}
@@ -321,7 +456,7 @@ const SellerProfile = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">이메일 계정</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('profilePage.emailAccount')}</label>
                                     <div className="relative opacity-60">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input
@@ -333,18 +468,38 @@ const SellerProfile = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">연락처</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('profilePage.phone')}</label>
                                     <div className="relative">
                                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input
                                             type="tel"
                                             name="phone"
                                             value={profile.phone}
-                                            onChange={handleChange}
+                                            onChange={handlePhoneChange}
+                                            placeholder="010-0000-0000"
+                                            maxLength={13}
                                             className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none font-medium"
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Country */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    <Globe size={14} className="inline mr-1 text-indigo-500" />
+                                    {t('profilePage.country', '국가')}
+                                </label>
+                                <select
+                                    name="country"
+                                    value={profile.country}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none font-medium appearance-none"
+                                >
+                                    {COUNTRY_OPTIONS_LIST.map(c => (
+                                        <option key={c.value} value={c.value}>{c.label}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             {/* Category & Instagram */}
@@ -353,7 +508,7 @@ const SellerProfile = () => {
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">
                                             <Tag size={14} className="inline mr-1 text-indigo-500" />
-                                            품목 카테고리
+                                            {t('profilePage.categoryLabel')}
                                         </label>
                                         <select
                                             name="category"
@@ -361,7 +516,7 @@ const SellerProfile = () => {
                                             onChange={handleChange}
                                             className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none font-medium appearance-none"
                                         >
-                                            <option value="">카테고리 선택</option>
+                                            <option value="">{t('profilePage.categorySelect')}</option>
                                             {CATEGORY_OPTIONS.map(c => (
                                                 <option key={c.value} value={c.value}>{c.label}</option>
                                             ))}
@@ -370,7 +525,7 @@ const SellerProfile = () => {
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">
                                             <Instagram size={14} className="inline mr-1 text-pink-500" />
-                                            인스타그램
+                                            {t('profilePage.instagram')}
                                         </label>
                                         <input
                                             type="text"
@@ -389,13 +544,28 @@ const SellerProfile = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         <ImagePlus size={14} className="inline mr-1 text-emerald-500" />
-                                        상품 사진 (최대 5장)
+                                        {t('profilePage.productPhotos')}
                                     </label>
-                                    <p className="text-xs text-gray-400 mb-3">판매 중인 상품 또는 브랜드 사진을 등록해 주세요. 벤더가 셀러 검색 시 사진을 확인합니다.</p>
+                                    <p className="text-xs text-gray-400 mb-3">{t('profilePage.productPhotosDesc')}</p>
                                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                                        {sellerPhotos.map(photo => (
+                                        {sellerPhotos.map((photo, idx) => (
                                             <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                                                <img src={photo.image_url} alt="상품" className="w-full h-full object-cover" />
+                                                <img src={photo.image_url} alt={t('profilePage.productAlt')} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
+                                                <div className="absolute top-1 left-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {idx > 0 && (
+                                                        <button type="button" onClick={() => movePhoto(idx, -1)}
+                                                            className="p-1 bg-white/90 rounded-md shadow hover:bg-white transition-colors">
+                                                            <ArrowUp size={12} className="text-gray-700" />
+                                                        </button>
+                                                    )}
+                                                    {idx < sellerPhotos.length - 1 && (
+                                                        <button type="button" onClick={() => movePhoto(idx, 1)}
+                                                            className="p-1 bg-white/90 rounded-md shadow hover:bg-white transition-colors">
+                                                            <ArrowDown size={12} className="text-gray-700" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeletePhoto(photo.id)}
@@ -403,9 +573,10 @@ const SellerProfile = () => {
                                                 >
                                                     <Trash2 size={12} />
                                                 </button>
+                                                <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">{idx + 1}</span>
                                             </div>
                                         ))}
-                                        {sellerPhotos.length < 5 && (
+                                        {sellerPhotos.length < 10 && (
                                             <button
                                                 type="button"
                                                 onClick={() => photoInputRef.current?.click()}
@@ -417,7 +588,8 @@ const SellerProfile = () => {
                                                 ) : (
                                                     <>
                                                         <ImagePlus size={24} />
-                                                        <span className="text-xs mt-1 font-medium">추가</span>
+                                                        <span className="text-xs mt-1 font-medium">{t('profilePage.addPhoto')}</span>
+                                                        <span className="text-[10px] text-gray-300">{sellerPhotos.length}/10</span>
                                                     </>
                                                 )}
                                             </button>
@@ -429,16 +601,17 @@ const SellerProfile = () => {
                                         onChange={handlePhotoUpload}
                                         className="hidden"
                                         accept="image/*"
+                                        multiple
                                     />
                                 </div>
                             )}
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                                    {['admin', 'superadmin'].includes(user.role) ? '소개' : '브랜드 소개 및 판매 정보'}
+                                    {['admin', 'superadmin'].includes(user.role) ? t('profilePage.descriptionAdmin') : t('profilePage.descriptionSeller')}
                                 </label>
                                 {!['admin', 'superadmin'].includes(user.role) && (
-                                    <p className="text-xs text-gray-400 mb-2">판매하시는 상품, 판매 방식, 브랜드 스토리를 자유롭게 작성해 주세요. 벤더가 셀러 검색 시 이 정보를 확인합니다.</p>
+                                    <p className="text-xs text-gray-400 mb-2">{t('profilePage.descriptionHint')}</p>
                                 )}
                                 <textarea
                                     name="description"
@@ -446,13 +619,13 @@ const SellerProfile = () => {
                                     onChange={handleChange}
                                     rows="5"
                                     className="w-full p-4 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none font-medium resize-none"
-                                    placeholder="핸드메이드 소품을 제작하고 있습니다. 주로 창업박람회와 플리마켓에 참여하며, 온라인 쇼핑몰도 운영 중입니다. 소량 맞춤 제작도 가능합니다."
+                                    placeholder={t('profilePage.descriptionPlaceholder')}
                                 ></textarea>
                             </div>
 
                             <div className="pt-4 flex justify-end">
                                 <button type="submit" disabled={saving} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:-translate-y-0.5 transition-all flex items-center gap-2 disabled:opacity-50">
-                                    <Save size={18} /> {saving ? '저장 중..' : '정보 저장하기'}
+                                    <Save size={18} /> {saving ? t('profilePage.saving') : t('profilePage.saveInfo')}
                                 </button>
                             </div>
                         </form>
@@ -465,29 +638,29 @@ const SellerProfile = () => {
                         <div className="p-6 border-b border-gray-100">
                             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                                 <Lock className="text-rose-500" size={20} />
-                                보안 설정
+                                {t('profilePage.securitySettings')}
                             </h3>
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">새 비밀번호</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('profilePage.newPassword')}</label>
                                 <input
                                     type="password"
                                     name="newPassword"
                                     value={passwordData.newPassword}
                                     onChange={handlePasswordChange}
-                                    placeholder="새 비밀번호 입력"
+                                    placeholder={t('profilePage.newPasswordPlaceholder')}
                                     className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none font-medium"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">비밀번호 확인</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('profilePage.confirmPassword')}</label>
                                 <input
                                     type="password"
                                     name="confirmPassword"
                                     value={passwordData.confirmPassword}
                                     onChange={handlePasswordChange}
-                                    placeholder="비밀번호 다시 입력"
+                                    placeholder={t('profilePage.confirmPasswordPlaceholder')}
                                     className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none font-medium"
                                 />
                             </div>
@@ -496,7 +669,7 @@ const SellerProfile = () => {
                                 type="button"
                                 className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all mt-2"
                             >
-                                비밀번호 변경
+                                {t('profilePage.changePassword')}
                             </button>
                         </div>
                     </div>

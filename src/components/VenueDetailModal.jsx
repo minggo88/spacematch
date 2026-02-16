@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, MapPin, Heart, Sparkles, ChevronLeft, ChevronRight, Store, Share2, Link2, Check, ExternalLink, Users, Calendar, Ruler, Clock, Coins, Tag, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { X, MapPin, Heart, Sparkles, ChevronLeft, ChevronRight, Store, Share2, Link2, Check, ExternalLink, Users, Calendar, Ruler, Clock, Coins, Tag, BarChart3, User } from 'lucide-react';
 import KakaoMap from './KakaoMap';
 
 const CATEGORY_OPTIONS = { food: '음식/요리', fashion: '패션/의류', beauty: '뷰티/화장품', art: '예술/공예', digital: '디지털/전자', lifestyle: '라이프스타일', pet: '반려동물', kids: '키즈/유아', sports: '스포츠/아웃도어', book: '도서/문구', eco: '친환경/에코', local: '지역특산물', health: '건강/웰빙', handmade: '핸드메이드', vintage: '빈티지/레트로', other: '기타' };
-const typeLabels = { popup: '팝업스토어', gallery: '갤러리', cafe: '카페', showroom: '쇼룸', fleamarket: '플리마켓', store: '매장' };
-const sizeLabels = { small: '소형 (10평 미만)', medium: '중형 (10~30평)', large: '대형 (30평 이상)' };
 
 const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied, isWishlisted, getPricingUnitLabel, isVendor = false }) => {
+    const { t } = useTranslation();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -32,20 +33,20 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
     const prevImage = () => setCurrentImageIndex(i => (i === 0 ? images.length - 1 : i - 1));
     const nextImage = () => setCurrentImageIndex(i => (i === images.length - 1 ? 0 : i + 1));
 
-    // Type labels
+    // Type labels (i18n)
     const typeLabels = {
-        popup: '팝업스토어', gallery: '갤러리', cafe: '카페',
-        showroom: '쇼룸', fleamarket: '플리마켓', store: '매장'
+        popup: t('venueDetail.typePopup'), gallery: t('venueDetail.typeGallery'), cafe: t('venueDetail.typeCafe'),
+        showroom: t('venueDetail.typeShowroom'), fleamarket: t('venueDetail.typeFleamarket'), store: t('venueDetail.typeStore')
     };
 
-    // Size labels
+    // Size labels (i18n)
     const sizeLabels = {
-        small: '소형 (10평 미만)', medium: '중형 (10~30평)', large: '대형 (30평 이상)'
+        small: t('venueDetail.sizeSmall'), medium: t('venueDetail.sizeMedium'), large: t('venueDetail.sizeLarge')
     };
 
-    // Pricing unit labels
+    // Pricing unit labels (i18n)
     const unitLabels = {
-        daily: '/일', weekly: '/주', monthly: '/월'
+        daily: t('venueDetail.unitDaily'), weekly: t('venueDetail.unitWeekly'), monthly: t('venueDetail.unitMonthly')
     };
 
     // Share handlers
@@ -202,7 +203,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
                                 <Store size={64} strokeWidth={1} />
-                                <span className="mt-4 text-sm">등록된 이미지가 없습니다</span>
+                                <span className="mt-4 text-sm">{t('venueDetail.noImages')}</span>
                             </div>
                         )}
                     </div>
@@ -229,10 +230,10 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                         <div className="mb-5 pb-5 border-b border-gray-100">
                             <div className="flex items-end gap-1 mb-3">
                                 {Number(venue.price) === 0 ? (
-                                    <span className="text-2xl font-bold text-emerald-600">무료</span>
+                                    <span className="text-2xl font-bold text-emerald-600">{t('venueDetail.free')}</span>
                                 ) : (
                                     <>
-                                        <span className="text-sm text-gray-500 font-medium">월 임대료</span>
+                                        <span className="text-sm text-gray-500 font-medium">{t('venueDetail.monthlyRent')}</span>
                                         <span className="text-2xl font-bold text-indigo-600 ml-1">{`₩${Number(venue.price).toLocaleString()}`}</span>
                                         <span className="text-gray-400 font-medium mb-0.5 text-sm">{unitLabels[venue.pricing_unit] || (getPricingUnitLabel ? getPricingUnitLabel(venue.pricing_unit) : '')}</span>
                                     </>
@@ -244,14 +245,14 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                 <div className="flex items-center justify-between">
                                     <span className={`text-sm font-bold flex items-center gap-1.5 ${commissionRate > 0 ? 'text-orange-700' : 'text-gray-500'}`}>
                                         <BarChart3 size={14} />
-                                        수수료
+                                        {t('venueDetail.commission')}
                                     </span>
                                     <span className={`text-lg font-extrabold ${commissionRate > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
-                                        {commissionRate > 0 ? `${commissionRate}%` : '없음'}
+                                        {commissionRate > 0 ? `${commissionRate}%` : t('venueDetail.noCommission')}
                                     </span>
                                 </div>
                                 {commissionRate > 0 && (
-                                    <p className="text-xs text-orange-500 mt-1">매출 기반 수수료가 적용됩니다</p>
+                                    <p className="text-xs text-orange-500 mt-1">{t('venueDetail.commissionNote')}</p>
                                 )}
                             </div>
                         </div>
@@ -261,14 +262,14 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                             <div className="mb-5 pb-5 border-b border-gray-100">
                                 <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                                     <Tag size={16} className="text-indigo-500" />
-                                    공간 상세 정보
+                                    {t('venueDetail.spaceDetails')}
                                 </h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     {/* 공간 유형 */}
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <Store size={12} className="text-gray-400" />
-                                            <span className="text-[11px] font-medium text-gray-500">공간 유형</span>
+                                            <span className="text-[11px] font-medium text-gray-500">{t('venueDetail.spaceType')}</span>
                                         </div>
                                         <span className="text-sm font-bold text-gray-800">{typeLabels[venue.type] || venue.type}</span>
                                     </div>
@@ -276,33 +277,33 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <MapPin size={12} className="text-gray-400" />
-                                            <span className="text-[11px] font-medium text-gray-500">지역</span>
+                                            <span className="text-[11px] font-medium text-gray-500">{t('venueDetail.region')}</span>
                                         </div>
-                                        <span className="text-sm font-bold text-gray-800">{venue.region || "미정"}</span>
+                                        <span className="text-sm font-bold text-gray-800">{venue.region || t('venueDetail.undecided')}</span>
                                     </div>
                                     {/* 공간 크기 */}
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <Ruler size={12} className="text-gray-400" />
-                                            <span className="text-[11px] font-medium text-gray-500">공간 규모</span>
+                                            <span className="text-[11px] font-medium text-gray-500">{t('venueDetail.spaceSize')}</span>
                                         </div>
-                                        <span className="text-sm font-bold text-gray-800">{sizeLabels[venue.size] || venue.size || "미정"}</span>
+                                        <span className="text-sm font-bold text-gray-800">{sizeLabels[venue.size] || venue.size || t('venueDetail.undecided')}</span>
                                     </div>
                                     {/* 가격 단위 */}
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <Coins size={12} className="text-gray-400" />
-                                            <span className="text-[11px] font-medium text-gray-500">가격 단위</span>
+                                            <span className="text-[11px] font-medium text-gray-500">{t('venueDetail.pricingUnit')}</span>
                                         </div>
-                                        <span className="text-sm font-bold text-gray-800">{venue.pricing_unit === 'daily' ? '일간' : venue.pricing_unit === 'weekly' ? '주간' : venue.pricing_unit === 'monthly' ? '월간' : venue.pricing_unit || '미정'}</span>
+                                        <span className="text-sm font-bold text-gray-800">{venue.pricing_unit === 'daily' ? t('venueDetail.daily') : venue.pricing_unit === 'weekly' ? t('venueDetail.weekly') : venue.pricing_unit === 'monthly' ? t('venueDetail.monthly') : venue.pricing_unit || t('venueDetail.undecided')}</span>
                                     </div>
                                     {/* 최대 셀러 */}
                                     <div className="p-3 bg-gray-50 rounded-xl">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <Users size={12} className="text-gray-400" />
-                                            <span className="text-[11px] font-medium text-gray-500">최대 셀러</span>
+                                            <span className="text-[11px] font-medium text-gray-500">{t('venueDetail.maxSellers')}</span>
                                         </div>
-                                        <span className="text-sm font-bold text-gray-800">{venue.max_sellers || "제한 없음"} 명</span>
+                                        <span className="text-sm font-bold text-gray-800">{venue.max_sellers || t('venueDetail.noLimit')} {t('venueDetail.maxSellersUnit')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -312,16 +313,21 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                 <div className="mb-5 pb-5 border-b border-gray-100">
                                     <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                                         <BarChart3 size={16} className="text-amber-500" />
-                                        매출 & 카테고리 정보
+                                        {t('venueDetail.salesAndCategory')}
                                     </h3>
                                     <div className="space-y-3">
                                         {venue.avg_sales && (
                                             <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl">
                                                 <div className="flex items-center gap-1.5 mb-1">
                                                     <Coins size={12} className="text-amber-600" />
-                                                    <span className="text-[11px] font-medium text-amber-700">평균 매출</span>
+                                                    <span className="text-[11px] font-medium text-amber-700">{t('venueDetail.avgSales')}</span>
                                                 </div>
-                                                <span className="text-sm font-bold text-gray-800">{venue.avg_sales}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm font-bold text-gray-800">{venue.avg_sales}</span>
+                                                    <span className="text-xs font-medium text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md">
+                                                        {venue.sales_unit === 'daily' ? t('venueDetail.unitDaily') : venue.sales_unit === 'weekly' ? t('venueDetail.unitWeekly') : t('venueDetail.unitMonthly')}
+                                                    </span>
+                                                </div>
                                             </div>
                                         )}
                                         {(() => {
@@ -335,7 +341,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                                 <div className="p-3 bg-teal-50 border border-teal-100 rounded-xl">
                                                     <div className="flex items-center gap-1.5 mb-2">
                                                         <Tag size={12} className="text-teal-600" />
-                                                        <span className="text-[11px] font-medium text-teal-700">인기 카테고리</span>
+                                                        <span className="text-[11px] font-medium text-teal-700">{t('venueDetail.popularCategories')}</span>
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {cats.map((cat, i) => {
@@ -358,28 +364,23 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                             <div className="mb-5 pb-5 border-b border-gray-100">
                                 <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                                     <Calendar size={16} className="text-indigo-500" />
-                                    일정 정보
+                                    {t('venueDetail.scheduleInfo')}
                                 </h3>
 
                                 {/* 모집 기간 */}
                                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl mb-2">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <Clock size={13} className="text-blue-600" />
-                                        <span className="text-xs font-bold text-blue-800">모집 기간</span>
+                                        <span className="text-xs font-bold text-blue-800">{t('venueDetail.recruitmentPeriod')}</span>
                                     </div>
                                     {(venue.recruitment_start || venue.recruitment_end) ? (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <span className="text-[10px] text-gray-500">시작</span>
-                                                <p className="text-sm font-bold text-gray-800">{venue.recruitment_start ? new Date(venue.recruitment_start).toLocaleDateString('ko-KR') : '미정'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-[10px] text-gray-500">마감</span>
-                                                <p className="text-sm font-bold text-gray-800">{venue.recruitment_end ? new Date(venue.recruitment_end).toLocaleDateString('ko-KR') : '미정'}</p>
-                                            </div>
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <span className="font-bold text-gray-800">{venue.recruitment_start ? new Date(venue.recruitment_start).toLocaleDateString() : t('venueDetail.undecided')}</span>
+                                            <span className="text-gray-400">~</span>
+                                            <span className="font-bold text-gray-800">{venue.recruitment_end ? new Date(venue.recruitment_end).toLocaleDateString() : t('venueDetail.undecided')}</span>
                                         </div>
                                     ) : (
-                                        <p className="text-xs text-blue-500">모집 기간이 설정되지 않았습니다</p>
+                                        <p className="text-xs text-blue-500">{t('venueDetail.recruitmentNotSet')}</p>
                                     )}
                                 </div>
 
@@ -403,18 +404,13 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                                     <div className="flex items-center gap-1.5 mb-2">
                                                         <Calendar size={13} className="text-purple-600" />
                                                         <span className="text-xs font-bold text-purple-800">
-                                                            {periods.length > 1 ? `행사 기간 ${idx + 1}` : '행사 기간'}
+                                                            {periods.length > 1 ? t('venueDetail.eventPeriodN', { n: idx + 1 }) : t('venueDetail.eventPeriod')}
                                                         </span>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <span className="text-[10px] text-gray-500">시작</span>
-                                                            <p className="text-sm font-bold text-gray-800">{period.start ? new Date(period.start).toLocaleDateString('ko-KR') : '미정'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[10px] text-gray-500">종료</span>
-                                                            <p className="text-sm font-bold text-gray-800">{period.end ? new Date(period.end).toLocaleDateString('ko-KR') : '미정'}</p>
-                                                        </div>
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <span className="font-bold text-gray-800">{period.start ? new Date(period.start).toLocaleDateString() : t('venueDetail.undecided')}</span>
+                                                        <span className="text-gray-400">~</span>
+                                                        <span className="font-bold text-gray-800">{period.end ? new Date(period.end).toLocaleDateString() : t('venueDetail.undecided')}</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -423,9 +419,9 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                         <div className="p-3 bg-purple-50 border border-purple-100 rounded-xl">
                                             <div className="flex items-center gap-1.5 mb-2">
                                                 <Calendar size={13} className="text-purple-600" />
-                                                <span className="text-xs font-bold text-purple-800">행사 기간</span>
+                                                <span className="text-xs font-bold text-purple-800">{t('venueDetail.eventPeriod')}</span>
                                             </div>
-                                            <p className="text-xs text-purple-500">행사 기간이 설정되지 않았습니다</p>
+                                            <p className="text-xs text-purple-500">{t('venueDetail.eventNotSet')}</p>
                                         </div>
                                     );
                                 })()}
@@ -438,10 +434,10 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm font-bold text-indigo-700 flex items-center gap-1.5">
                                                 <Users size={14} />
-                                                모집 ?�황
+                                                {t('venueDetail.recruitmentStatus')}
                                             </span>
                                             <span className="text-sm font-bold text-indigo-600">
-                                                {approvedCount} / {maxSellers}명?
+                                                {t('venueDetail.recruitmentCount', { current: approvedCount, max: maxSellers })}
                                             </span>
                                         </div>
                                         <div className="w-full bg-indigo-200 rounded-full h-2.5">
@@ -452,7 +448,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                         </div>
                                         <p className="text-xs text-indigo-500 mt-1.5">
                                             {approvedCount >= maxSellers
-                                                ? '모집이 완료되었습니다' : `${maxSellers - approvedCount}자리 남았습니다`}
+                                                ? t('venueDetail.recruitmentFull') : t('venueDetail.spotsRemaining', { count: maxSellers - approvedCount })}
                                         </p>
                                     </div>
                                 </div>
@@ -460,9 +456,9 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
 
                             {/* Description */}
                             <div className="mb-5 pb-5 border-b border-gray-100">
-                                <h3 className="text-base font-bold text-gray-900 mb-2">공간 소개</h3>
+                                <h3 className="text-base font-bold text-gray-900 mb-2">{t('venueDetail.spaceIntro')}</h3>
                                 <p className="whitespace-pre-wrap leading-relaxed text-sm text-gray-600">
-                                    {venue.description || "이 공간에 대한 자세한 설명이 없습니다."}
+                                    {venue.description || t('venueDetail.noDescription')}
                                 </p>
                             </div>
 
@@ -471,7 +467,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                 <div className="mb-2">
                                     <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                                         <MapPin size={16} className="text-indigo-500" />
-                                        위치
+                                        {t('venueDetail.location')}
                                     </h3>
                                     <KakaoMap
                                         venues={[venue]}
@@ -482,7 +478,26 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                             )}
                         </div>
 
-                        {/* Footer Actions ??sticky bottom */}
+                        {/* Vendor / Owner Profile */}
+                        {venue.owner_name && (
+                            <div className="px-5 pb-3">
+                                <Link
+                                    to={`/profile/${encodeURIComponent(venue.owner_name)}`}
+                                    className="flex items-center gap-3 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl hover:from-indigo-100 hover:to-purple-100 transition-all group border border-indigo-100/50"
+                                >
+                                    <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md">
+                                        {venue.owner_name.charAt(0)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{venue.owner_name}</p>
+                                        <p className="text-[11px] text-gray-500">{t('venueDetail.spaceProvider')}</p>
+                                    </div>
+                                    <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                                </Link>
+                            </div>
+                        )}
+
+                        {/* Footer Actions —sticky bottom */}
                         <div className="sticky bottom-0 p-4 border-t border-gray-100 bg-white/95 backdrop-blur-sm flex gap-3">
                             <button
                                 onClick={() => onToggleWishlist(venue.id)}
@@ -500,7 +515,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                 <button
                                     onClick={handleShareClick}
                                     className="p-3 rounded-xl border border-gray-200 bg-white text-gray-400 hover:border-indigo-200 hover:text-indigo-500 transition-all duration-300 flex items-center justify-center flex-shrink-0"
-                                    title="공유하기"
+                                    title={t('venueDetail.shareTitle')}
                                 >
                                     <Share2 size={22} />
                                 </button>
@@ -510,7 +525,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50"
                                         style={{ animation: 'fadeInUp 0.2s ease-out' }}>
                                         <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                            <p className="text-xs font-bold text-gray-700">공유하기</p>
+                                            <p className="text-xs font-bold text-gray-700">{t('venueDetail.shareTitle')}</p>
                                         </div>
                                         <div className="p-1.5">
                                             <button
@@ -528,9 +543,9 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                                 )}
                                                 <div className="text-left">
                                                     <p className={`text-sm font-bold ${copied ? 'text-emerald-600' : 'text-gray-700'}`}>
-                                                        {copied ? '복사 완료!' : '링크 복사'}
+                                                        {copied ? t('venueDetail.linkCopied') : t('venueDetail.copyLink')}
                                                     </p>
-                                                    <p className="text-[10px] text-gray-400">URL을 클립보드에 복사합니다</p>
+                                                    <p className="text-[10px] text-gray-400">{t('venueDetail.copyDesc')}</p>
                                                 </div>
                                             </button>
                                             <button
@@ -543,8 +558,8 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                                     </svg>
                                                 </div>
                                                 <div className="text-left">
-                                                    <p className="text-sm font-bold text-gray-700">카카오톡</p>
-                                                    <p className="text-[10px] text-gray-400">카카오톡으로 공유합니다</p>
+                                                    <p className="text-sm font-bold text-gray-700">{t('venueDetail.kakaoTalk')}</p>
+                                                    <p className="text-[10px] text-gray-400">{t('venueDetail.kakaoDesc')}</p>
                                                 </div>
                                             </button>
                                             {navigator.share && (
@@ -556,8 +571,8 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                                         <ExternalLink size={16} className="text-blue-600" />
                                                     </div>
                                                     <div className="text-left">
-                                                        <p className="text-sm font-bold text-gray-700">다른 앱으로 공유</p>
-                                                        <p className="text-[10px] text-gray-400">시스템 공유 메뉴를 엽니다</p>
+                                                        <p className="text-sm font-bold text-gray-700">{t('venueDetail.shareOther')}</p>
+                                                        <p className="text-[10px] text-gray-400">{t('venueDetail.shareOtherDesc')}</p>
                                                     </div>
                                                 </button>
                                             )}
@@ -577,21 +592,21 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                     }`}
                             >
                                 {isVendor ? (
-                                    <span>벤더 계정은 신청 불가</span>
+                                    <span>{t('venueDetail.vendorCantApply')}</span>
                                 ) : isApplied ? (
                                     <>
                                         <Sparkles size={18} />
-                                        <span>신청 완료</span>
+                                        <span>{t('venueDetail.applied')}</span>
                                     </>
                                 ) : (
-                                    <span>입점 신청하기</span>
+                                    <span>{t('venueDetail.applyNow')}</span>
                                 )}
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
