@@ -1,0 +1,26 @@
+{
+    "name": "SpaceMatch",
+    "short_name": "SpaceMatch",
+    "description": "공간과 셀러를 연결하는 매칭 플랫폼",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#6366f1",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "lang": "ko",
+    "icons": [
+        {
+            "src": "/favicon.png",
+            "sizes": "any",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "business",
+        "lifestyle"
+    ],
+    "screenshots": [],
+    "prefer_related_applications": false
+}

@@ -1,0 +1,364 @@
+{
+  "heroTitle": "Kết nối hoàn hảo giữa Không gian và Thương hiệu",
+  "heroSubtitle": "Tìm không gian popup lý tưởng với SpaceMatch",
+  "heroCtaHost": "Đăng ký không gian",
+  "heroCtaSeller": "Tìm không gian",
+  "howItWorks": "Cách hoạt động",
+  "aboutTitle": "Về SpaceMatch",
+  "aboutDesc": "SpaceMatch là nền tảng kết nối không gian với thương hiệu",
+  "contactTitle": "Liên hệ",
+  "contactSubtitle": "Có câu hỏi? Hãy liên hệ bất cứ lúc nào",
+  "nav": {
+    "home": "Trang chủ",
+    "services": "Dịch vụ",
+    "howItWorks": "Cách hoạt động",
+    "about": "Giới thiệu",
+    "contact": "Liên hệ",
+    "login": "Đăng nhập",
+    "signup": "Đăng ký",
+    "myPage": "Trang cá nhân"
+  },
+  "footer": {
+    "company": "Về chúng tôi",
+    "terms": "Điều khoản dịch vụ",
+    "privacy": "Chính sách bảo mật",
+    "contact": "Liên hệ",
+    "representative": "Điện thoại",
+    "email": "Email",
+    "copyright": "© {{year}} SpaceMatch. All rights reserved.",
+    "businessInfo": "SpaceMatch · CEO Sewoong Baek · Mã số DN 638-20-02679 · Yongsan-gu, Seoul"
+  },
+  "recruitment": {
+    "title": "Tuyển dụng",
+    "subtitle": "Khám phá đa dạng không gian popup",
+    "searchPlaceholder": "Tìm theo tên hoặc vị trí..."
+  },
+  "heroBadge": "Nền tảng tất cả trong một cho người bán",
+  "heroHeading1": "Từ tìm kiếm sự kiện",
+  "heroHeading2": "và CRM",
+  "heroHeading3": "Tất cả trong SpaceMatch",
+  "heroDesc": "Tìm kiếm sự kiện, phân tích doanh thu, hỗ trợ thuế và cộng đồng người bán — tất cả những gì người bán cần, tại một nơi.",
+  "heroBestSpaces": "Bắt đầu CRM",
+  "heroLearnMore": "Khám phá dịch vụ",
+  "heroSafeMatch": "Bảng điều khiển doanh thu",
+  "heroFastEntry": "Cảnh báo thuế tự động",
+  "heroVerifiedSpaces": "Cộng đồng người bán",
+  "hotRecruitment": "HOT RECRUITMENT",
+  "hotTitle1": "Tuyển dụng",
+  "hotTitle2": "Nổi bật",
+  "hotDesc": "Xem các không gian tuyển dụng hot nhất được đội ngũ tuyển chọn!",
+  "hotClosed": "Đã đóng",
+  "hotVenueType": {
+    "popup": "Cửa hàng Popup",
+    "gallery": "Gallery",
+    "cafe": "Quán cà phê",
+    "showroom": "Showroom",
+    "fleamarket": "Chợ trời",
+    "other": "Khác"
+  },
+  "hotSpaceProvider": "Nhà cung cấp",
+  "hotLocationTBD": "Chưa xác định",
+  "hotDeadline": "Hạn: {{date}}",
+  "hotApply": "Đăng ký ngay",
+  "hotLike": "Thích",
+  "hotShare": "Chia sẻ",
+  "hotCopied": "Đã sao chép liên kết! 📋",
+  "hotUsageGuide": "Hướng dẫn",
+  "servicesSection": {
+    "badge": "SERVICES",
+    "heading1": "Dịch vụ cốt lõi",
+    "heading2": "từ SpaceMatch",
+    "desc": "Nền tảng kết nối duy nhất cho cả người bán và nhà cung cấp không gian",
+    "spaceSearch": "Tìm kiếm & kết nối sự kiện",
+    "spaceSearchDesc": "Tìm nhanh các sự kiện trên toàn quốc — chợ trời, popup, triển lãm — với bộ lọc theo khu vực.",
+    "community": "Cộng đồng người bán",
+    "communityDesc": "Chia sẻ thông tin, kết nối và tìm đối tác trong diễn đàn dành riêng cho người bán.",
+    "viewMore": "Xem chi tiết dịch vụ",
+    "salesDashboard": "Bảng điều khiển doanh thu",
+    "salesDashboardDesc": "Tự động tổng hợp doanh thu theo ngày/tháng/năm và theo dõi lợi nhuận sản phẩm và xu hướng.",
+    "taxSupport": "Hệ thống hỗ trợ thuế",
+    "taxSupportDesc": "Tính toán tự động thuế VAT/thu nhập với cảnh báo hạn nộp để giảm bớt lo lắng về thuế."
+  },
+  "adRecommended": "Đề xuất",
+  "adSponsor": "Tài trợ",
+  "howSection": {
+    "badge": "HOW IT WORKS",
+    "heading1": "Bắt đầu với",
+    "heading2": "3 bước đơn giản",
+    "desc": "Không cần thủ tục phức tạp — bắt đầu kết nối chỉ trong 3 bước",
+    "step1": "Đăng ký",
+    "step1Desc": "Tạo tài khoản người bán hoặc nhà cung cấp chỉ với email và thông tin cơ bản.",
+    "step2": "Tìm không gian / Thương hiệu",
+    "step2Desc": "Khám phá không gian và thương hiệu theo khu vực, loại và kích thước từ bảng điều khiển.",
+    "step3": "Đăng ký & Kết nối",
+    "step3Desc": "Đăng ký chỉ với một cú nhấp! Khi nhà cung cấp phê duyệt, bạn đã được kết nối.",
+    "viewMore": "Xem chi tiết"
+  },
+  "forWho": {
+    "badge": "WHO IS IT FOR",
+    "heading1": "Nền tảng",
+    "heading2": "cho mọi người",
+    "sellerTitle": "Thương hiệu (Người bán)",
+    "sellerDesc": "Dịch vụ cho chủ thương hiệu tìm kiếm cửa hàng popup, gallery, showroom tối ưu.",
+    "sellerFeatures": [
+      "Tìm & lọc không gian",
+      "Đăng ký một chạm",
+      "Theo dõi đơn đăng ký real-time",
+      "Thống kê & phân tích",
+      "Cộng đồng người bán",
+      "Quản lý hồ sơ & portfolio"
+    ],
+    "hostTitle": "Nhà cung cấp (Vendor)",
+    "hostDesc": "Dịch vụ cho chủ không gian muốn tuyển và quản lý thương hiệu hiệu quả.",
+    "hostFeatures": [
+      "Đăng ký & quản lý ảnh không gian",
+      "Phê duyệt/Từ chối đơn",
+      "Tìm & tuyển người bán",
+      "Quản lý hủy",
+      "Thống kê & phân tích",
+      "Cộng đồng vendor"
+    ],
+    "viewMore": "Tìm hiểu thêm"
+  },
+  "stats": {
+    "sellers": "Người bán đã đăng ký",
+    "satisfaction": "Mức độ hài lòng",
+    "regions": "Khu vực hoạt động",
+    "salesRecords": "Giao dịch bán hàng"
+  },
+  "cta": {
+    "badge": "GET STARTED",
+    "heading": "Bắt đầu ngay",
+    "desc": "Đăng ký miễn phí để trải nghiệm tất cả tính năng SpaceMatch!",
+    "learnMore": "Tìm hiểu thêm",
+    "freeSignup": "Bắt đầu với tư cách người bán",
+    "inquiry": "💬 Liên hệ",
+    "alreadyHaveAccount": "Đã có tài khoản?",
+    "login": "Đăng nhập"
+  },
+  "servicesPage": {
+    "heroTitle1": "SpaceMatch",
+    "heroTitle2": "Dịch vụ cốt lõi",
+    "heroDesc": "Nền tảng all-in-one cho kết nối hoàn hảo giữa không gian và thương hiệu.",
+    "service1": {
+      "title": "Tìm kiếm",
+      "subtitle": "Khám phá & Tìm kiếm",
+      "desc": "Tìm popup, gallery, café, showroom trên cả nước.",
+      "features": [
+        "Lọc chi tiết theo khu vực, loại & kích thước",
+        "Đếm ngược D-Day",
+        "Xem ảnh & chi tiết",
+        "Hồ sơ & portfolio"
+      ]
+    },
+    "service2": {
+      "title": "Đăng ký & Kết nối",
+      "subtitle": "Đăng ký & Kết nối",
+      "desc": "Đăng ký không gian yêu thích chỉ với một cú nhấp!",
+      "features": [
+        "Đăng ký một chạm",
+        "Theo dõi real-time",
+        "Quy trình phê duyệt/từ chối",
+        "Quản lý hủy"
+      ]
+    },
+    "service3": {
+      "title": "Dashboard & Phân tích",
+      "subtitle": "Dashboard & Phân tích",
+      "desc": "Ra quyết định tốt hơn với dữ liệu.",
+      "features": [
+        "Dashboard hoạt động real-time",
+        "Phân tích theo khu vực & loại",
+        "Tổng quan vận hành",
+        "Quản lý hoa hồng & hợp đồng"
+      ]
+    },
+    "service4": {
+      "title": "Cộng đồng",
+      "subtitle": "Cộng đồng",
+      "desc": "Cộng đồng dành riêng cho người bán và vendor.",
+      "features": [
+        "Bảng người bán / vendor / tích hợp",
+        "Upload ảnh & gắn tag",
+        "Tự sắp xếp theo độ phổ biến",
+        "Cập nhật thông báo real-time"
+      ]
+    },
+    "ctaTitle": "Sẵn sàng bắt đầu?",
+    "ctaDesc": "Đăng ký miễn phí để trải nghiệm tất cả dịch vụ.",
+    "ctaSignup": "Đăng ký miễn phí",
+    "ctaHowItWorks": "Xem cách hoạt động"
+  },
+  "howItWorksPage": {
+    "heroTitle1": "Bắt đầu với 3 bước",
+    "heroTitle2": "Bắt đầu kết nối",
+    "heroDesc": "Quy trình tùy chỉnh cho cả người bán và nhà cung cấp.",
+    "sellerBadge": "🛍️ Thương hiệu (Người bán)",
+    "sellerTitle": "Cách sử dụng cho Người bán",
+    "sellerStep1": {
+      "title": "Đăng ký",
+      "desc": "Tạo tài khoản dễ dàng với email và thông tin cơ bản.",
+      "details": [
+        "Đăng ký nhanh qua xác minh email",
+        "Nhập thông tin doanh nghiệp & thương hiệu",
+        "Chọn danh mục sản phẩm",
+        "Upload ảnh hồ sơ & portfolio"
+      ]
+    },
+    "sellerStep2": {
+      "title": "Tìm & Đăng ký",
+      "desc": "Tìm không gian phù hợp và đăng ký trực tiếp.",
+      "details": [
+        "Tìm theo khu vực, loại & kích thước",
+        "Xem chi tiết & ảnh",
+        "Đếm ngược D-Day",
+        "Đăng ký một chạm"
+      ]
+    },
+    "sellerStep3": {
+      "title": "Kết nối & Vận hành",
+      "desc": "Khi nhà cung cấp phê duyệt, kết nối hoàn tất.",
+      "details": [
+        "Thông báo phê duyệt/từ chối real-time",
+        "Xem hoa hồng & điều khoản",
+        "Dashboard trạng thái",
+        "Giao tiếp qua cộng đồng"
+      ]
+    },
+    "hostBadge": "🏢 Nhà cung cấp (Vendor)",
+    "hostTitle": "Cách sử dụng cho Vendor",
+    "hostStep1": {
+      "title": "Đăng ký không gian",
+      "desc": "Đăng ký thông tin không gian chi tiết.",
+      "details": [
+        "Nhập vị trí dễ dàng",
+        "Thêm ảnh & mô tả",
+        "Đặt giá & hoa hồng",
+        "Đặt hạn tuyển dụng"
+      ]
+    },
+    "hostStep2": {
+      "title": "Tìm & Tuyển",
+      "desc": "Tìm thương hiệu phù hợp cho không gian.",
+      "details": [
+        "Lọc người bán theo danh mục",
+        "Xem hồ sơ & portfolio",
+        "Tìm theo danh mục sản phẩm",
+        "Trao đổi trong cộng đồng"
+      ]
+    },
+    "hostStep3": {
+      "title": "Phê duyệt & Quản lý",
+      "desc": "Xem xét và phê duyệt/từ chối đơn đăng ký.",
+      "details": [
+        "Quy trình phê duyệt/từ chối",
+        "Xem thương hiệu theo không gian",
+        "Quản lý hủy",
+        "Thống kê & phân tích"
+      ]
+    },
+    "faqTitle": "FAQ",
+    "faqSubtitle": "Câu hỏi thường gặp",
+    "faq": [
+      {
+        "q": "Có phí đăng ký hoặc sử dụng không?",
+        "a": "Đăng ký và sử dụng dịch vụ cơ bản miễn phí. Tính năng premium sẽ được công bố sau.",
+        "icon": "💰"
+      },
+      {
+        "q": "Có thể đăng ký loại không gian nào?",
+        "a": "Bạn có thể đăng ký nhiều loại: popup, gallery, café, showroom, khu popup bách hóa, văn phòng chia sẻ.",
+        "icon": "🏢"
+      },
+      {
+        "q": "Mất bao lâu để được phê duyệt?",
+        "a": "Nhà cung cấp trực tiếp xem xét đơn, thời gian có thể khác nhau. Thường có kết quả trong 1-3 ngày làm việc.",
+        "icon": "⏱️"
+      },
+      {
+        "q": "Có thể đăng ký nhiều không gian cùng lúc không?",
+        "a": "Có, người bán có thể đăng ký nhiều không gian đồng thời. Quản lý tất cả trạng thái trên dashboard.",
+        "icon": "🏪"
+      }
+    ],
+    "ctaTitle": "Bắt đầu ngay",
+    "ctaDesc": "Dù là người bán hay vendor, đăng ký chỉ trong 1 phút!",
+    "ctaSignup": "Đăng ký miễn phí"
+  },
+  "aboutPage": {
+    "heroTitle1": "Không gian và Thương hiệu,",
+    "heroTitle2": "Kết nối mới",
+    "heroDesc": "SpaceMatch kết nối không gian trống với thương hiệu đang phát triển để tạo cơ hội kinh doanh mới.",
+    "missionDesc": "Chúng tôi mang lại sức sống mới cho không gian trống trên cả nước và cung cấp sân khấu tối ưu cho thương hiệu đang phát triển.",
+    "visionDesc": "Là nền tảng kết nối không gian-thương hiệu số 1 Hàn Quốc, xây dựng hệ sinh thái mà ai cũng có thể dễ dàng mở cửa hàng popup.",
+    "valuesTitle": "Giá trị cốt lõi",
+    "valuesSubtitle": "Ba nguyên tắc dẫn dắt SpaceMatch",
+    "trust": {
+      "title": "Tin tưởng",
+      "desc": "Tạo môi trường kết nối đáng tin cậy dựa trên thông tin đã xác minh và quy trình minh bạch."
+    },
+    "innovation": {
+      "title": "Đổi mới",
+      "desc": "Đơn giản hóa quy trình cho thuê truyền thống với dashboard trực quan và phân tích thống kê."
+    },
+    "winwin": {
+      "title": "Cùng thắng",
+      "desc": "Mô hình win-win: nhà cung cấp có doanh thu, thương hiệu có tăng trưởng."
+    },
+    "whoTitle": "Dành cho bạn",
+    "sellerTitle": "Thương hiệu (Người bán)",
+    "sellerSubtitle": "Chủ thương hiệu",
+    "sellerDesc": "Dịch vụ cho thương hiệu muốn gặp khách hàng trực tiếp qua popup, triển lãm.",
+    "sellerFeatures": [
+      "Tìm & lọc không gian",
+      "Đăng ký một chạm",
+      "Theo dõi real-time",
+      "Thống kê & phân tích",
+      "Cộng đồng người bán",
+      "Quản lý hồ sơ"
+    ],
+    "hostTitle": "Nhà cung cấp (Vendor)",
+    "hostSubtitle": "Chủ không gian",
+    "hostDesc": "Dịch vụ cho chủ không gian muốn tăng giá trị và thu hút thương hiệu.",
+    "hostFeatures": [
+      "Đăng ký & quản lý ảnh",
+      "Phê duyệt/Từ chối đơn",
+      "Tìm & tuyển người bán",
+      "Quản lý hủy",
+      "Thống kê & phân tích",
+      "Cộng đồng vendor"
+    ],
+    "ctaTitle": "Tham gia SpaceMatch",
+    "ctaDesc": "Bắt đầu kết nối không gian và thương hiệu ngay hôm nay.",
+    "ctaSignup": "Đăng ký miễn phí",
+    "ctaServices": "Khám phá dịch vụ"
+  },
+  "contactPage": {
+    "heroTitle1": "Có",
+    "heroTitle2": "câu hỏi?",
+    "heroDesc": "Đội ngũ SpaceMatch sẵn sàng hỗ trợ. Liên hệ theo cách thuận tiện nhất.",
+    "kakaoTitle": "Hỗ trợ KakaoTalk",
+    "kakaoDesc": "Hỏi đáp real-time qua kênh KakaoTalk. Phản hồi nhanh trong giờ làm việc.",
+    "kakaoAction": "Bắt đầu chat",
+    "phoneTitle": "Gọi điện",
+    "phoneDesc": "Gọi trực tiếp theo số bên dưới. Có mặt trong ngày làm việc.",
+    "otherInfo": "Thông tin khác",
+    "address": "Địa chỉ",
+    "addressValue": "Ichon-ro, Yongsan-gu, Seoul",
+    "hours": "Giờ làm việc",
+    "hoursValue": "Thứ 2-6: 09:00 ~ 18:00",
+    "hoursNote": "Cuối tuần/ngày lễ: chỉ KakaoTalk",
+    "quickResponse": "Phản hồi nhanh",
+    "quickResponseValue": "Khuyến nghị KakaoTalk",
+    "quickResponseNote": "Thời gian phản hồi trung bình 1 giờ",
+    "ctaTitle": "Chưa có tài khoản?",
+    "ctaDesc": "Đăng ký miễn phí để sử dụng dịch vụ tìm không gian và kết nối thương hiệu.",
+    "ctaSignup": "Đăng ký miễn phí",
+    "ctaLogin": "Đăng nhập",
+    "emailTitle": "Liên hệ qua Email",
+    "emailDesc": "Gửi câu hỏi của bạn qua email, chúng tôi sẽ trả lời nhanh chóng."
+  },
+  "features": {
+    "salesDashboard": "Bảng điều khiển CRM"
+  }
+}

@@ -1,0 +1,366 @@
+{
+  "heroTitle": "La rencontre parfaite entre espaces et marques",
+  "heroSubtitle": "Trouvez l'espace popup idéal avec SpaceMatch",
+  "heroCtaHost": "Enregistrer votre espace",
+  "heroCtaSeller": "Trouver un espace",
+  "servicesTitle": "Services",
+  "servicesSubtitle": "Une plateforme tout-en-un pour la connexion parfaite entre espaces et marques",
+  "howItWorks": "Comment ça marche",
+  "aboutTitle": "À propos de SpaceMatch",
+  "contactTitle": "Nous contacter",
+  "footer": {
+    "company": "À propos",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "contact": "Contact",
+    "copyright": "© {{year}} SpaceMatch. Tous droits réservés.",
+    "representative": "Téléphone",
+    "email": "Courriel",
+    "businessInfo": "SpaceMatch · PDG Sewoong Baek · N° d'entreprise 638-20-02679 · Yongsan-gu, Séoul"
+  },
+  "nav": {
+    "home": "Accueil",
+    "services": "Services",
+    "howItWorks": "Comment ça marche",
+    "about": "À propos",
+    "contact": "Contact",
+    "login": "Connexion",
+    "signup": "Inscription",
+    "myPage": "Mon compte"
+  },
+  "aboutDesc": "SpaceMatch est une plateforme qui connecte les espaces avec les marques",
+  "contactSubtitle": "Des questions ? N'hésitez pas à nous contacter à tout moment",
+  "recruitment": {
+    "title": "Recrutement",
+    "subtitle": "Découvrez une variété d'espaces popup",
+    "searchPlaceholder": "Rechercher par nom ou emplacement..."
+  },
+  "heroBadge": "Plateforme tout-en-un pour les vendeurs",
+  "heroHeading1": "De la recherche d'événements",
+  "heroHeading2": "et CRM",
+  "heroHeading3": "Tout dans SpaceMatch",
+  "heroDesc": "Recherche d'événements, analyse des ventes, support fiscal et communauté de vendeurs — tout ce dont les vendeurs ont besoin, en un seul endroit.",
+  "heroBestSpaces": "Démarrer le CRM",
+  "heroLearnMore": "Découvrir les services",
+  "heroSafeMatch": "Tableau de bord des ventes",
+  "heroFastEntry": "Alertes fiscales auto.",
+  "heroVerifiedSpaces": "Communauté vendeurs",
+  "hotRecruitment": "RECRUTEMENT EN VEDETTE",
+  "hotTitle1": "Recrutements",
+  "hotTitle2": "tendances",
+  "hotDesc": "Découvrez les espaces les plus populaires sélectionnés par notre équipe !",
+  "hotClosed": "Fermé",
+  "hotVenueType": {
+    "popup": "Boutique éphémère",
+    "gallery": "Galerie",
+    "cafe": "Café",
+    "showroom": "Showroom",
+    "fleamarket": "Marché aux puces",
+    "other": "Autre"
+  },
+  "hotSpaceProvider": "Fournisseur d'espace",
+  "hotLocationTBD": "Lieu à déterminer",
+  "hotDeadline": "Date limite : {{date}}",
+  "hotApply": "Postuler maintenant",
+  "hotLike": "J'aime",
+  "hotShare": "Partager",
+  "hotCopied": "Lien copié ! 📋",
+  "hotUsageGuide": "Guide d'utilisation",
+  "servicesSection": {
+    "badge": "SERVICES",
+    "heading1": "Services essentiels",
+    "heading2": "de SpaceMatch",
+    "desc": "La seule plateforme de jumelage pour les vendeurs et les fournisseurs d'espace",
+    "spaceSearch": "Recherche & matching d'événements",
+    "spaceSearchDesc": "Trouvez rapidement des événements partout au pays — marchés aux puces, popups, galeries — avec des filtres régionaux.",
+    "community": "Communauté vendeurs",
+    "communityDesc": "Partagez des informations, réseautez et trouvez des partenaires dans les forums dédiés aux vendeurs.",
+    "viewMore": "Voir les services en détail",
+    "salesDashboard": "Tableau de bord des ventes",
+    "salesDashboardDesc": "Agrégation automatique des ventes quotidiennes/mensuelles/annuelles et suivi de la rentabilité et des tendances.",
+    "taxSupport": "Système de support fiscal",
+    "taxSupportDesc": "Calcul automatique des taux de TVA/impôt sur le revenu avec alertes de date limite pour vous libérer des préoccupations fiscales."
+  },
+  "adRecommended": "Recommandé",
+  "adSponsor": "Commanditaire",
+  "howSection": {
+    "badge": "COMMENT ÇA MARCHE",
+    "heading1": "Commencez en",
+    "heading2": "3 étapes simples",
+    "desc": "Aucune procédure compliquée — commencez le jumelage en seulement 3 étapes",
+    "step1": "Inscription",
+    "step1Desc": "Créez un compte vendeur ou fournisseur avec votre courriel et vos informations de base. Entrez votre numéro d'entreprise et les détails de votre marque pour compléter !",
+    "step2": "Parcourir les espaces / marques",
+    "step2Desc": "Explorez les espaces et marques par région, type et taille depuis votre tableau de bord. Consultez les recrutements urgents avec le compte à rebours !",
+    "step3": "Postuler et jumeler",
+    "step3Desc": "Postulez en un clic ! Une fois que le fournisseur d'espace approuve, le jumelage est complété. Gérez vos candidatures et statistiques en temps réel depuis votre tableau de bord.",
+    "viewMore": "Voir le fonctionnement en détail"
+  },
+  "forWho": {
+    "badge": "POUR QUI",
+    "heading1": "Une plateforme pour",
+    "heading2": "tout le monde",
+    "sellerTitle": "Marques (Vendeurs)",
+    "sellerDesc": "Un service pour les propriétaires de marques à la recherche de l'espace idéal : boutique éphémère, galerie, showroom et plus.",
+    "sellerFeatures": [
+      "Recherche et filtrage de fournisseurs (espaces)",
+      "Candidature en un clic",
+      "Suivi des candidatures en temps réel",
+      "Statistiques d'activité et analytique",
+      "Communauté vendeurs et intégrée",
+      "Gestion de profil et portfolio"
+    ],
+    "hostTitle": "Fournisseurs d'espace (Vendors)",
+    "hostDesc": "Un service pour les propriétaires d'espaces souhaitant recruter et gérer efficacement des marques pour leurs espaces.",
+    "hostFeatures": [
+      "Inscription d'espace et gestion de photos",
+      "Approbation/rejet des candidatures",
+      "Recherche et recrutement de vendeurs",
+      "Gestion des annulations",
+      "Statistiques d'activité et analytique",
+      "Communauté fournisseurs et intégrée"
+    ],
+    "viewMore": "En savoir plus"
+  },
+  "stats": {
+    "sellers": "Vendeurs inscrits",
+    "satisfaction": "Satisfaction",
+    "regions": "Régions actives",
+    "salesRecords": "Transactions"
+  },
+  "cta": {
+    "badge": "COMMENCER",
+    "heading": "Commencez maintenant",
+    "desc": "Découvrez toutes les fonctionnalités de SpaceMatch avec une inscription gratuite ! Si vous avez des questions, n'hésitez pas à nous contacter !",
+    "learnMore": "En savoir plus",
+    "freeSignup": "Commencer comme vendeur",
+    "inquiry": "💬 Nous contacter",
+    "alreadyHaveAccount": "Déjà un compte ?",
+    "login": "Se connecter"
+  },
+  "servicesPage": {
+    "heroTitle1": "SpaceMatch",
+    "heroTitle2": "Services essentiels",
+    "heroDesc": "Une plateforme tout-en-un pour la connexion parfaite entre espaces et marques. De la découverte au jumelage et aux opérations — tout en un seul endroit.",
+    "service1": {
+      "title": "Recherche d'espace et de vendeurs",
+      "subtitle": "Découverte et recherche",
+      "desc": "Recherchez des boutiques éphémères, galeries, cafés, showrooms et plus à travers le pays — toutes les marques et espaces en un seul endroit.",
+      "features": [
+        "Filtrage détaillé par région, type et taille",
+        "Compte à rebours pour les dates limites",
+        "Voir les photos et détails des espaces",
+        "Profils et portfolios vendeurs/fournisseurs"
+      ]
+    },
+    "service2": {
+      "title": "Candidature et jumelage",
+      "subtitle": "Candidature et jumelage",
+      "desc": "Postulez pour votre espace favori en un clic ! Suivez le statut d'approbation en temps réel.",
+      "features": [
+        "Candidature en un clic",
+        "Suivi des candidatures en temps réel",
+        "Processus d'approbation/rejet",
+        "Gestion des demandes d'annulation"
+      ]
+    },
+    "service3": {
+      "title": "Tableau de bord et analytique",
+      "subtitle": "Tableau de bord et analytique",
+      "desc": "Prenez de meilleures décisions commerciales grâce aux données, incluant les statistiques d'activité et l'analyse régionale.",
+      "features": [
+        "Tableau de bord d'activité en temps réel",
+        "Analytique par région et par type",
+        "Vue d'ensemble des opérations espace et marque",
+        "Gestion des taux de commission et contrats"
+      ]
+    },
+    "service4": {
+      "title": "Communauté et réseautage",
+      "subtitle": "Communauté",
+      "desc": "Une communauté dédiée où vendeurs et fournisseurs peuvent communiquer librement et partager des informations. Trouvez des conseils et des partenaires.",
+      "features": [
+        "Forums vendeurs / fournisseurs / intégrés",
+        "Téléversement de photos et étiquetage",
+        "Tri automatique par popularité",
+        "Mises à jour de notifications en temps réel"
+      ]
+    },
+    "ctaTitle": "Prêt à commencer ?",
+    "ctaDesc": "Inscrivez-vous gratuitement et découvrez tous les services SpaceMatch.",
+    "ctaSignup": "Inscription gratuite",
+    "ctaHowItWorks": "Voir le fonctionnement"
+  },
+  "howItWorksPage": {
+    "heroTitle1": "Commencez en 3 étapes simples",
+    "heroTitle2": "Démarrer le jumelage",
+    "heroDesc": "Nous offrons des processus personnalisés pour les vendeurs et les fournisseurs d'espace. Aucune procédure compliquée — démarrez rapidement et facilement.",
+    "sellerBadge": "🛍️ Marques (Vendeurs)",
+    "sellerTitle": "Comment utiliser en tant que vendeur",
+    "sellerStep1": {
+      "title": "Inscription",
+      "desc": "Créez facilement un compte vendeur avec votre courriel et vos informations de base. Entrez votre numéro d'entreprise, nom de marque, catégorie, etc.",
+      "details": [
+        "Inscription rapide par vérification courriel",
+        "Saisie des informations d'entreprise et de marque",
+        "Sélection de catégorie de produit (15 catégories + autre)",
+        "Téléversement de photo de profil et portfolio"
+      ]
+    },
+    "sellerStep2": {
+      "title": "Parcourir les espaces et postuler",
+      "desc": "Trouvez des espaces correspondant à vos critères sur la page de recherche. Postulez directement pour vos espaces favoris.",
+      "details": [
+        "Recherche par région, type et taille",
+        "Voir les détails et photos des espaces",
+        "Suivi des dates limites avec compte à rebours",
+        "Candidature complète en un clic"
+      ]
+    },
+    "sellerStep3": {
+      "title": "Jumelage et démarrage des opérations",
+      "desc": "Une fois que le fournisseur d'espace approuve votre candidature, le jumelage est complété. Gérez tout votre statut d'entrée en temps réel depuis votre tableau de bord.",
+      "details": [
+        "Notifications d'approbation/rejet en temps réel",
+        "Consultation des taux de commission et conditions",
+        "Historique et tableau de bord des entrées",
+        "Communication et réseautage via la communauté"
+      ]
+    },
+    "hostBadge": "🏢 Fournisseurs d'espace (Vendors)",
+    "hostTitle": "Comment utiliser en tant que fournisseur",
+    "hostStep1": {
+      "title": "Enregistrer votre espace",
+      "desc": "Inscrivez les informations de votre espace. Entrez les détails comme l'emplacement, la taille, le type, le prix, le taux de commission et téléversez des photos.",
+      "details": [
+        "Saisie facile de l'emplacement par recherche d'adresse",
+        "Ajout de photos et descriptions d'espace",
+        "Définition des prix et taux de commission",
+        "Définition de la date limite de recrutement"
+      ]
+    },
+    "hostStep2": {
+      "title": "Rechercher des vendeurs et recruter",
+      "desc": "Recherchez des marques dans le répertoire vendeurs et trouvez des vendeurs adaptés à votre espace. Filtrez rapidement par catégorie !",
+      "details": [
+        "Filtrer les vendeurs par catégorie",
+        "Voir les profils et portfolios des vendeurs",
+        "Recherche par catégorie de produit",
+        "Échange d'informations dans la communauté fournisseurs"
+      ]
+    },
+    "hostStep3": {
+      "title": "Approuver et gérer",
+      "desc": "Examinez et approuvez ou rejetez les candidatures des vendeurs. Gérez le statut des entrées et la progression du recrutement pour chaque espace depuis votre tableau de bord.",
+      "details": [
+        "Processus d'approbation/rejet",
+        "Voir les marques par espace",
+        "Gestion des demandes d'annulation",
+        "Statistiques d'activité et analyse régionale"
+      ]
+    },
+    "faqTitle": "FAQ",
+    "faqSubtitle": "Trouvez les réponses aux questions fréquentes",
+    "faq": [
+      {
+        "q": "Y a-t-il des frais d'inscription ou d'utilisation ?",
+        "a": "L'inscription et l'utilisation du service de base sont gratuites. Les fonctionnalités premium seront annoncées ultérieurement.",
+        "icon": "💰"
+      },
+      {
+        "q": "Quels types d'espaces peuvent être enregistrés ?",
+        "a": "Vous pouvez enregistrer différents types incluant boutiques éphémères, galeries, cafés, showrooms, zones popup de grands magasins et bureaux partagés.",
+        "icon": "🏢"
+      },
+      {
+        "q": "Combien de temps prend l'approbation après la candidature ?",
+        "a": "Le fournisseur d'espace examine directement les candidatures, donc le délai peut varier. En général, vous pouvez vous attendre à un résultat dans les 1 à 3 jours ouvrables.",
+        "icon": "⏱️"
+      },
+      {
+        "q": "Peut-on postuler à plusieurs espaces en même temps ?",
+        "a": "Oui, les vendeurs peuvent postuler à plusieurs espaces simultanément. Gérez tous les statuts de candidature d'un coup d'œil depuis votre tableau de bord.",
+        "icon": "🏪"
+      }
+    ],
+    "ctaTitle": "Commencez maintenant",
+    "ctaDesc": "Que vous soyez vendeur ou fournisseur, inscrivez-vous en seulement 1 minute !",
+    "ctaSignup": "Inscription gratuite"
+  },
+  "aboutPage": {
+    "heroTitle1": "Espaces et marques,",
+    "heroTitle2": "une nouvelle connexion",
+    "heroDesc": "SpaceMatch connecte les espaces vacants avec les marques en croissance pour créer de nouvelles opportunités commerciales en tant que plateforme de jumelage.",
+    "missionDesc": "Nous donnons une nouvelle vie aux espaces vacants à travers le pays et offrons la scène optimale pour les marques en croissance. SpaceMatch sert de pont pour maximiser la valeur des espaces et étendre les points de contact avec les clients des marques.",
+    "visionDesc": "En tant que plateforme n°1 de jumelage espace-marque en Corée, nous construisons un écosystème où n'importe qui peut facilement ouvrir une boutique éphémère. Nous comblons le fossé entre en ligne et hors ligne, menant une nouvelle expérience de vente au détail.",
+    "valuesTitle": "Valeurs fondamentales",
+    "valuesSubtitle": "Trois principes qui guident SpaceMatch",
+    "trust": {
+      "title": "Confiance",
+      "desc": "Nous créons un environnement de jumelage fiable basé sur des informations d'entreprise et d'espace vérifiées, et garantissons des processus transparents."
+    },
+    "innovation": {
+      "title": "Innovation",
+      "desc": "Nous simplifions le processus traditionnel et laborieux de location d'espace avec un tableau de bord intuitif et une analyse statistique."
+    },
+    "winwin": {
+      "title": "Gagnant-gagnant",
+      "desc": "Nous poursuivons un modèle gagnant-gagnant où les fournisseurs d'espace génèrent des revenus et les marques connaissent la croissance."
+    },
+    "whoTitle": "Conçu pour vous",
+    "sellerTitle": "Marques (Vendeurs)",
+    "sellerSubtitle": "Propriétaires de marques",
+    "sellerDesc": "Un service pour les marques et entreprises qui veulent rencontrer directement les clients via des boutiques éphémères, expositions et zones d'expérience.",
+    "sellerFeatures": [
+      "Recherche et filtrage de fournisseurs (espaces)",
+      "Candidature en un clic",
+      "Suivi des candidatures en temps réel",
+      "Statistiques d'activité et analyse régionale",
+      "Communauté vendeurs et intégrée",
+      "Gestion de profil et portfolio"
+    ],
+    "hostTitle": "Fournisseurs d'espace (Vendors)",
+    "hostSubtitle": "Propriétaires d'espace",
+    "hostDesc": "Un service pour les propriétaires et gestionnaires d'espaces qui veulent augmenter la valeur de leurs espaces et attirer diverses marques.",
+    "hostFeatures": [
+      "Inscription d'espace et gestion de photos",
+      "Processus d'approbation/rejet des candidatures",
+      "Recherche et recrutement de vendeurs",
+      "Gestion des demandes d'annulation",
+      "Statistiques d'activité et analyse régionale",
+      "Communauté fournisseurs et intégrée"
+    ],
+    "ctaTitle": "Rejoignez SpaceMatch",
+    "ctaDesc": "Commencez la nouvelle rencontre entre espaces et marques dès aujourd'hui.",
+    "ctaSignup": "Inscription gratuite",
+    "ctaServices": "Explorer les services"
+  },
+  "contactPage": {
+    "heroTitle1": "Vous avez",
+    "heroTitle2": "des questions ?",
+    "heroDesc": "L'équipe SpaceMatch est là pour vous aider. N'hésitez pas à nous contacter par le moyen qui vous convient.",
+    "kakaoTitle": "Support KakaoTalk",
+    "kakaoDesc": "Vous pouvez poser vos questions en temps réel via notre canal KakaoTalk. Réponses rapides pendant les heures d'ouverture.",
+    "kakaoAction": "Démarrer la conversation",
+    "phoneTitle": "Appel téléphonique",
+    "phoneDesc": "Pour une consultation téléphonique directe, appelez le numéro ci-dessous. Disponible les jours ouvrables.",
+    "otherInfo": "Autres informations",
+    "address": "Adresse",
+    "addressValue": "Ichon-ro, Yongsan-gu, Séoul",
+    "hours": "Heures d'ouverture",
+    "hoursValue": "Lundi au vendredi 09h00 ~ 18h00",
+    "hoursNote": "Fins de semaine/jours fériés : KakaoTalk seulement",
+    "quickResponse": "Réponse rapide",
+    "quickResponseValue": "KakaoTalk recommandé",
+    "quickResponseNote": "Temps de réponse moyen : 1 heure",
+    "ctaTitle": "Pas encore membre ?",
+    "ctaDesc": "Inscrivez-vous gratuitement pour accéder aux services de découverte d'espace et de jumelage de marques.",
+    "ctaSignup": "Inscription gratuite",
+    "ctaLogin": "Se connecter",
+    "emailTitle": "Demande par courriel",
+    "emailDesc": "Envoyez-nous vos questions par courriel, nous répondrons rapidement."
+  },
+  "features": {
+    "salesDashboard": "Tableau de bord CRM"
+  }
+}
