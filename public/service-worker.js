@@ -1,7 +1,7 @@
 // ─── SpaceMatch Service Worker ───
 // 네트워크 우선, 캐시 폴백 + 웹 푸시 알림 지원
 
-const CACHE_NAME = 'spacematch-v3';
+const CACHE_NAME = 'spacematch-v4';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

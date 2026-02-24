@@ -336,6 +336,7 @@
     "tabAll": "전체 사용자",
     "tabHosts": "호스트",
     "tabSeller": "입점 브랜드",
+    "tabVendor": "벤더",
     "tabAdmin": "관리자",
     "tabAllShort": "전체",
     "tabHostsShort": "호스트",
@@ -440,7 +441,8 @@
     "createAdminTitle": "신규 관리자 추가",
     "labelPassword": "비밀번호",
     "cancel": "취소",
-    "createAccount": "계정 생성"
+    "createAccount": "계정 생성",
+    "distributionTrade": "유통 거래"
   },
   "paymentsPage": {
     "title": "결제 관리",

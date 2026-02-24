@@ -336,6 +336,7 @@
     "tabAll": "All Users",
     "tabHosts": "Hosts",
     "tabSeller": "Brands",
+    "tabVendor": "Vendors",
     "tabAdmin": "Admins",
     "tabAllShort": "All",
     "tabHostsShort": "Hosts",
@@ -440,7 +441,8 @@
     "createAdminTitle": "Add New Admin",
     "labelPassword": "Password",
     "cancel": "Cancel",
-    "createAccount": "Create Account"
+    "createAccount": "Create Account",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "Payment Management",

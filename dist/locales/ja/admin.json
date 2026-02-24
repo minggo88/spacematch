@@ -333,6 +333,7 @@
     "tabAll": "全ユーザー",
     "tabHosts": "ベンダー",
     "tabSeller": "ブランド",
+    "tabVendor": "ベンダー",
     "tabAdmin": "管理者",
     "tabAllShort": "全員",
     "tabHostsShort": "ベンダー",
@@ -437,7 +438,8 @@
     "createAdminTitle": "新しい管理者を追加",
     "labelPassword": "パスワード",
     "cancel": "キャンセル",
-    "createAccount": "アカウントを作成"
+    "createAccount": "アカウントを作成",
+    "distributionTrade": "流通取引"
   },
   "paymentsPage": {
     "title": "決済管理",

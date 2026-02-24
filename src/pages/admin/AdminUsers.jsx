@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -476,7 +476,7 @@ const AdminUsers = () => {
         { id: 'all', label: t('usersPage.tabAll'), icon: Users, count: stats.total },
         { id: 'host', label: t('usersPage.tabHosts'), icon: Store, count: stats.host },
         { id: 'seller', label: t('usersPage.tabSeller'), icon: ShoppingBag, count: stats.seller },
-        { id: 'vendor', label: '벤더', icon: Truck, count: stats.vendor },
+        { id: 'vendor', label: t('usersPage.tabVendor'), icon: Truck, count: stats.vendor },
     ];
 
     // Only add Admin tab if Super Admin
@@ -634,7 +634,7 @@ const AdminUsers = () => {
                                                 </div>
                                             ) : user.role === 'vendor' ? (
                                                 <div className="text-sm">
-                                                    <span className="text-gray-500 block mb-0.5">유통 거래</span>
+                                                    <span className="text-gray-500 block mb-0.5">{t('usersPage.distributionTrade')}</span>
                                                     <span className="font-bold text-gray-900 text-base">{user.company_name || '-'}</span>
                                                 </div>
                                             ) : (
@@ -1291,7 +1291,7 @@ const AdminUsers = () => {
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                                     <ColorsIcon status={selectedUser.status} />
-                                    {'\uacc4\uc815 \uc0c1\ud0dc \uad00\ub9ac'}
+                                    {t('usersPage.accountStatus')}
                                 </h4>
 
                                 <div className="space-y-3">
@@ -1301,7 +1301,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className="w-full py-3.5 bg-white border-2 border-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 hover:border-indigo-200 flex items-center justify-center gap-2 transition-all"
                                         >
-                                            <CheckCircle size={18} /> {'\ubca4\ub354 \uc2b9\uc778'}
+                                            <CheckCircle size={18} /> {t('usersPage.approveVendor')}
                                         </button>
                                     )}
                                     {selectedUser.status === 'blocked' ? (
@@ -1310,7 +1310,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className="w-full py-3.5 bg-white border-2 border-emerald-100 text-emerald-600 rounded-2xl font-bold hover:bg-emerald-50 hover:border-emerald-200 flex items-center justify-center gap-2 transition-all"
                                         >
-                                            <Shield size={18} /> {'\ucc28\ub2e8 \ud574\uc81c (\uc815\uc0c1\ud654)'}
+                                            <Shield size={18} /> {t('usersPage.unblock')}
                                         </button>
                                     ) : selectedUser.status !== 'pending' && (
                                         <button
@@ -1318,7 +1318,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className="w-full py-3.5 bg-white border-2 border-orange-100 text-orange-600 rounded-2xl font-bold hover:bg-orange-50 hover:border-orange-200 flex items-center justify-center gap-2 transition-all"
                                         >
-                                            <ShieldAlert size={18} /> {'\ud65c\ub3d9 \uc815\uc9c0 (\uc77c\uc2dc \ucc28\ub2e8)'}
+                                            <ShieldAlert size={18} /> {t('usersPage.blockTemp')}
                                         </button>
                                     )}
 
@@ -1327,10 +1327,10 @@ const AdminUsers = () => {
                                         disabled={actionLoading}
                                         className="w-full py-3.5 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 flex items-center justify-center gap-2 transition-all"
                                     >
-                                        <Ban size={18} /> {'\uc601\uad6c \ucc28\ub2e8'}
+                                        <Ban size={18} /> {t('usersPage.banPermanent')}
                                     </button>
                                     <p className="text-xs text-gray-400 text-center leading-relaxed px-4">
-                                        {'\uc601\uad6c \ucc28\ub2e8 \uc2dc \uc0ac\uc6a9\uc790\uc758 \ubaa8\ub4e0 \ub370\uc774\ud130\uac00 \uc601\uad6c\uc801\uc73c\ub85c \uc0ad\uc81c\ub418\uba70 \ubcf5\uad6c\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.'}
+                                        {t('usersPage.banWarning')}
                                     </p>
                                 </div>
                             </div>
@@ -1343,10 +1343,10 @@ const AdminUsers = () => {
             {showCreateAdmin && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-fadeIn">
-                        <h2 className="text-2xl font-extrabold mb-6 text-gray-900">{'\uc2e0\uaddc \uad00\ub9ac\uc790 \ucd94\uac00'}</h2>
+                        <h2 className="text-2xl font-extrabold mb-6 text-gray-900">{t('usersPage.createAdminTitle')}</h2>
                         <form onSubmit={handleCreateAdmin} className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">{'\uc774\ub984'}</label>
+                                <label className="text-xs font-bold text-gray-500 ml-1">{t('usersPage.labelName')}</label>
                                 <input
                                     type="text"
                                     className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
@@ -1355,7 +1355,7 @@ const AdminUsers = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">{'\uc774\uba54\uc77c'}</label>
+                                <label className="text-xs font-bold text-gray-500 ml-1">{t('usersPage.labelEmail')}</label>
                                 <input
                                     type="email"
                                     className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
@@ -1364,7 +1364,7 @@ const AdminUsers = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 ml-1">{'\ube44\ubc00\ubc88\ud638'}</label>
+                                <label className="text-xs font-bold text-gray-500 ml-1">{t('usersPage.labelPassword')}</label>
                                 <input
                                     type="password"
                                     className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
@@ -1373,8 +1373,8 @@ const AdminUsers = () => {
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
-                                <button type="button" onClick={() => setShowCreateAdmin(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors">{'\ucde8\uc18c'}</button>
-                                <button type="submit" className="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5">{'\uacc4\uc815 \uc0dd\uc131'}</button>
+                                <button type="button" onClick={() => setShowCreateAdmin(false)} className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors">{t('usersPage.cancel')}</button>
+                                <button type="submit" className="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5">{t('usersPage.createAccount')}</button>
                             </div>
                         </form>
                     </div>

@@ -1,7 +1,7 @@
 // SpaceMatch Service Worker
 // Caches static assets for offline support and faster loading
 
-const CACHE_NAME = 'spacematch-v3';
+const CACHE_NAME = 'spacematch-v4';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
