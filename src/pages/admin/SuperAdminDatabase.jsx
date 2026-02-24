@@ -4,7 +4,8 @@ import {
     Database, Table2, BarChart3, HardDrive, Rows3, Search, ChevronLeft, ChevronRight,
     Pencil, Trash2, Check, X, RefreshCw, Server, Shield, Key, Hash, Type, CheckSquare,
     Calendar, Link2, ArrowUpDown, ArrowUp, ArrowDown, Eye, Code, Columns3,
-    Info, Filter, Layers, ChevronDown, CheckCircle, XCircle
+    Info, Filter, Layers, ChevronDown, CheckCircle, XCircle,
+    Wrench, Users, Cpu, FileX, FileText, AlertTriangle
 } from 'lucide-react';
 import Toast from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
@@ -76,6 +77,12 @@ const SuperAdminDatabase = () => {
     // Row detail (expand)
     const [expandedRow, setExpandedRow] = useState(null);
 
+    // Cache maintenance
+    const [cacheInfo, setCacheInfo] = useState(null);
+    const [loadingCache, setLoadingCache] = useState(false);
+    const [clearingCache, setClearingCache] = useState({});
+    const [clearConfirm, setClearConfirm] = useState(null);
+
     // Toast notification
     const [toast, setToast] = useState(null);
     const showToast = useCallback((message, type = 'success') => {
@@ -99,6 +106,37 @@ const SuperAdminDatabase = () => {
     }, [dbEnv]);
 
     useEffect(() => { fetchOverview(); }, [fetchOverview]);
+
+    // Fetch cache info
+    const fetchCacheInfo = useCallback(async () => {
+        setLoadingCache(true);
+        try {
+            const res = await fetch(`${API_BASE}/database/clear_cache.php?action=scan`, { credentials: 'include' });
+            const data = await res.json();
+            if (data.success) setCacheInfo(data);
+        } catch (e) { console.error(e); }
+        setLoadingCache(false);
+    }, []);
+
+    // Clear specific cache type
+    const clearCache = useCallback(async (type) => {
+        setClearingCache(prev => ({ ...prev, [type]: true }));
+        try {
+            const res = await fetch(`${API_BASE}/database/clear_cache.php?action=clear`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                body: JSON.stringify({ type })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(type === 'all' ? t('superAdminDbPage.allCacheCleared', '전체 캐시 정리 완료') : t('superAdminDbPage.cacheCleared', '캐시 정리 완료'));
+                fetchCacheInfo();
+            } else {
+                showToast(data.error || t('superAdminDbPage.cacheClearFailed', '캐시 정리 실패'), 'error');
+            }
+        } catch (e) { console.error(e); showToast(t('superAdminDbPage.cacheClearError', '캐시 정리 중 오류'), 'error'); }
+        setClearingCache(prev => ({ ...prev, [type]: false }));
+        setClearConfirm(null);
+    }, [showToast, fetchCacheInfo, t]);
 
     // Fetch table data
     const fetchTableData = useCallback(async (table, page = 1, search = '', sort = '', dir = 'ASC') => {
@@ -308,8 +346,9 @@ const SuperAdminDatabase = () => {
                     { key: 'dashboard', icon: BarChart3, label: t('superAdminDbPage.tabDashboard'), shortLabel: t('superAdminDbPage.tabDashboardShort') },
                     { key: 'tables', icon: Table2, label: t('superAdminDbPage.tabTables'), shortLabel: t('superAdminDbPage.tabTablesShort') },
                     { key: 'structure', icon: Columns3, label: t('superAdminDbPage.tabStructure'), shortLabel: t('superAdminDbPage.tabStructureShort') },
+                    { key: 'maintenance', icon: Wrench, label: t('superAdminDbPage.tabMaintenance', '유지관리'), shortLabel: '🧹' },
                 ].map(tab => (
-                    <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                    <button key={tab.key} onClick={() => { setActiveTab(tab.key); if (tab.key === 'maintenance' && !cacheInfo) fetchCacheInfo(); }}
                         className={`flex-1 px-2 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 ${activeTab === tab.key ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                         <tab.icon size={16} />
                         <span className="hidden sm:inline">{tab.label}</span>
@@ -923,6 +962,217 @@ const SuperAdminDatabase = () => {
                             <Columns3 size={48} className="mx-auto mb-4 text-gray-300" />
                             <p className="text-gray-400 font-medium">{t('superAdminDbPage.selectTableStructure')}</p>
                             <p className="text-xs text-gray-300 mt-1">{t('superAdminDbPage.structureDetail')}</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* MAINTENANCE TAB */}
+            {activeTab === 'maintenance' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                                <Wrench size={20} className="text-amber-500" />
+                                {t('superAdminDbPage.maintenanceTitle', '서버 캐시 관리')}
+                            </h2>
+                            <p className="text-xs text-gray-400 mt-0.5">{t('superAdminDbPage.maintenanceDesc', '서버에 쌓인 캐시 파일을 스캔하고 정리합니다')}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {cacheInfo && (
+                                clearConfirm === 'all' ? (
+                                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                                        <AlertTriangle size={14} className="text-red-500" />
+                                        <span className="text-xs font-bold text-red-700">{t('superAdminDbPage.clearAllConfirm', '전체 정리하시겠습니까?')}</span>
+                                        <button onClick={() => clearCache('all')} disabled={clearingCache['all']}
+                                            className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">
+                                            {clearingCache['all'] ? '...' : t('superAdminDbPage.confirm', '확인')}
+                                        </button>
+                                        <button onClick={() => setClearConfirm(null)}
+                                            className="px-3 py-1 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-300 transition-colors">{t('superAdminDbPage.cancel', '취소')}</button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setClearConfirm('all')}
+                                        className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl text-sm font-bold hover:from-red-600 hover:to-orange-600 transition-all shadow-md">
+                                        <Trash2 size={15} />
+                                        {t('superAdminDbPage.clearAll', '전체 정리')}
+                                    </button>
+                                )
+                            )}
+                            <button onClick={fetchCacheInfo}
+                                className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors" title="Refresh">
+                                <RefreshCw size={16} className={`text-gray-600 ${loadingCache ? 'animate-spin' : ''}`} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {cacheInfo && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center mb-2">
+                                    <HardDrive size={18} className="text-indigo-600" />
+                                </div>
+                                <p className="text-xl font-extrabold text-gray-900">{cacheInfo.totalSizeFormatted}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">{t('superAdminDbPage.totalCacheSize', '전체 캐시 용량')}</p>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center mb-2">
+                                    <Layers size={18} className="text-emerald-600" />
+                                </div>
+                                <p className="text-xl font-extrabold text-gray-900">{cacheInfo.totalCount}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">{t('superAdminDbPage.totalCacheItems', '전체 캐시 항목')}</p>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div className="w-9 h-9 bg-violet-100 rounded-xl flex items-center justify-center mb-2">
+                                    <Users size={18} className="text-violet-600" />
+                                </div>
+                                <p className="text-xl font-extrabold text-gray-900">{cacheInfo.caches?.sessions?.count || 0}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">{t('superAdminDbPage.expiredSessions', '만료 세션')}</p>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div className="w-9 h-9 bg-cyan-100 rounded-xl flex items-center justify-center mb-2">
+                                    <Cpu size={18} className="text-cyan-600" />
+                                </div>
+                                <p className="text-xl font-extrabold text-gray-900">{cacheInfo.caches?.opcache?.count || 0}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">OPcache Scripts</p>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center mb-2">
+                                    <Trash2 size={18} className="text-amber-600" />
+                                </div>
+                                <p className="text-xl font-extrabold text-gray-900">{cacheInfo.caches?.trash?.count || 0}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">{t('superAdminDbPage.trashRecords', '휴지통 기록')}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {loadingCache ? (
+                        <div className="flex items-center justify-center py-20"><RefreshCw size={32} className="animate-spin text-indigo-400" /></div>
+                    ) : cacheInfo ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {Object.entries(cacheInfo.caches || {}).map(([key, cache]) => {
+                                const iconMap = {
+                                    sessions: <Users size={22} className="text-violet-500" />,
+                                    opcache: <Cpu size={22} className="text-cyan-500" />,
+                                    temp: <FileX size={22} className="text-orange-500" />,
+                                    logs: <FileText size={22} className="text-rose-500" />,
+                                    trash: <Trash2 size={22} className="text-amber-500" />
+                                };
+                                const colorMap = {
+                                    sessions: 'violet', opcache: 'cyan', temp: 'orange', logs: 'rose', trash: 'amber'
+                                };
+                                const color = colorMap[key] || 'gray';
+                                const isClearing = clearingCache[key];
+                                const hasItems = cache.count > 0 || (key === 'opcache' && cache.available);
+                                const lang = t('lang', 'ko');
+
+                                return (
+                                    <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                                        <div className="p-5">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-11 h-11 bg-${color}-50 rounded-xl flex items-center justify-center`}>
+                                                        {iconMap[key]}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-gray-900 text-sm">{lang === 'en' ? (cache.labelEn || cache.label) : cache.label}</h3>
+                                                        <p className="text-[11px] text-gray-400 mt-0.5">{lang === 'en' ? (cache.descriptionEn || cache.description) : cache.description}</p>
+                                                    </div>
+                                                </div>
+                                                {hasItems ? (
+                                                    <span className={`px-2 py-1 bg-${color}-50 text-${color}-600 rounded-lg text-[11px] font-bold`}>
+                                                        {cache.count}{key !== 'opcache' ? ` ${t('superAdminDbPage.items', '개')}` : ' scripts'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-gray-50 text-gray-400 rounded-lg text-[11px] font-bold">
+                                                        {t('superAdminDbPage.clean', '깨끗')}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="flex-1">
+                                                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                                        <div className={`h-full rounded-full bg-${color}-400 transition-all duration-500`}
+                                                            style={{ width: `${Math.min(100, cacheInfo.totalSize > 0 ? (cache.size / cacheInfo.totalSize) * 100 : 0)}%` }} />
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-600 flex-shrink-0">{cache.sizeFormatted || '0 B'}</span>
+                                            </div>
+
+                                            {key === 'opcache' && cache.hitRate > 0 && (
+                                                <div className="flex items-center gap-2 mb-3 text-xs">
+                                                    <span className="text-gray-400">Hit Rate:</span>
+                                                    <span className="font-bold text-cyan-600">{cache.hitRate}%</span>
+                                                </div>
+                                            )}
+
+                                            {key === 'trash' && cache.totalCount > 0 && (
+                                                <div className="flex items-center gap-2 mb-3 text-xs">
+                                                    <span className="text-gray-400">{t('superAdminDbPage.totalTrash', '전체 휴지통')}:</span>
+                                                    <span className="font-bold text-amber-600">{cache.totalCount}{t('superAdminDbPage.items', '개')}</span>
+                                                </div>
+                                            )}
+
+                                            {cache.files && cache.files.length > 0 && (
+                                                <details className="mb-3">
+                                                    <summary className="text-[11px] font-bold text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">
+                                                        {t('superAdminDbPage.fileList', '파일 목록')} ({cache.count})
+                                                    </summary>
+                                                    <div className="mt-2 max-h-32 overflow-y-auto bg-gray-50 rounded-lg p-2 space-y-1">
+                                                        {cache.files.map((f, i) => (
+                                                            <div key={i} className="flex items-center justify-between text-[10px] text-gray-500">
+                                                                <span className="truncate flex-1 font-mono">{f.name}</span>
+                                                                <span className="flex-shrink-0 ml-2 text-gray-400">{f.age_hours}h ago</span>
+                                                            </div>
+                                                        ))}
+                                                        {cache.count > cache.files.length && (
+                                                            <p className="text-[10px] text-gray-300 text-center pt-1">... +{cache.count - cache.files.length} more</p>
+                                                        )}
+                                                    </div>
+                                                </details>
+                                            )}
+
+                                            {cache.path && (
+                                                <div className="text-[10px] text-gray-300 font-mono truncate mb-3" title={cache.path}>
+                                                    📁 {cache.path}
+                                                </div>
+                                            )}
+
+                                            {hasItems ? (
+                                                clearConfirm === key ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => clearCache(key)} disabled={isClearing}
+                                                            className={`flex-1 py-2 bg-${color}-500 text-white rounded-xl text-xs font-bold hover:bg-${color}-600 disabled:opacity-50 transition-colors`}>
+                                                            {isClearing ? <RefreshCw size={14} className="animate-spin mx-auto" /> : t('superAdminDbPage.confirmClear', '정리 실행')}
+                                                        </button>
+                                                        <button onClick={() => setClearConfirm(null)}
+                                                            className="py-2 px-4 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors">
+                                                            {t('superAdminDbPage.cancel', '취소')}
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={() => setClearConfirm(key)}
+                                                        className={`w-full py-2.5 bg-${color}-50 text-${color}-600 rounded-xl text-xs font-bold hover:bg-${color}-100 border border-${color}-100 transition-colors flex items-center justify-center gap-1.5`}>
+                                                        <Trash2 size={13} />
+                                                        {t('superAdminDbPage.clearThis', '정리하기')}
+                                                    </button>
+                                                )
+                                            ) : (
+                                                <div className="w-full py-2.5 bg-gray-50 text-gray-300 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5">
+                                                    <CheckCircle size={13} />
+                                                    {t('superAdminDbPage.noItemsToClear', '정리할 항목 없음')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-20">
+                            <Wrench size={48} className="mx-auto mb-4 text-gray-300" />
+                            <p className="text-gray-400 font-medium">{t('superAdminDbPage.maintenanceEmpty', '스캔 버튼을 클릭하여 캐시 현황을 확인하세요')}</p>
                         </div>
                     )}
                 </div>

@@ -10,7 +10,7 @@ if (isset($data->email) && isset($data->password)) {
     $base_cols = "id, name, role, status, password, email, phone, profile_image, venue_limit";
 
     // Dynamically include optional columns (same as me.php)
-    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country'];
+    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country', 'is_demo', 'name_en', 'keywords', 'company_name', 'address', 'website', 'categories'];
     foreach ($opt_cols as $oc) {
         $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
         if ($chk->fetch())

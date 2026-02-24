@@ -7,6 +7,7 @@
 @ini_set('max_file_uploads', 20);
 
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -24,7 +25,7 @@ try {
         user_name VARCHAR(100) NOT NULL,
         user_role VARCHAR(20) NOT NULL,
         profile_image VARCHAR(500) DEFAULT '',
-        community_type ENUM('seller', 'vendor', 'general') NOT NULL,
+        community_type ENUM('seller', 'host', 'general') NOT NULL,
         label VARCHAR(50) DEFAULT '',
         title VARCHAR(200) NOT NULL,
         content TEXT NOT NULL,
@@ -148,13 +149,13 @@ function checkAccess($type, $role)
         echo json_encode(["success" => false, "message" => "셀러만 접근 가능합니다."]);
         exit;
     }
-    if ($type === 'vendor' && $role !== 'vendor') {
+    if ($type === 'host' && $role !== 'host') {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(403);
-        echo json_encode(["success" => false, "message" => "벤더만 접근 가능합니다."]);
+        echo json_encode(["success" => false, "message" => "호스트만 접근 가능합니다."]);
         exit;
     }
-    if ($type === 'general' && !in_array($role, ['seller', 'vendor'])) {
+    if ($type === 'general' && !in_array($role, ['seller', 'host'])) {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(403);
         echo json_encode(["success" => false, "message" => "접근 권한이 없습니다."]);
@@ -261,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $params = [$type];
         // Country filter: if not 'all' and not empty, filter by country
         if (!empty($country_filter) && $country_filter !== 'all') {
-            $where .= " AND p.country = ?";
+            $where .= " AND (p.country = ? OR p.country IS NULL)";
             $params[] = $country_filter;
         }
         if (!empty($label)) {
@@ -310,17 +311,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $conn->prepare("SELECT p.id, p.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, u.profile_image, u.country, p.label, p.title, p.content, p.original_lang, p.view_count, COALESCE(p.share_count, 0) as share_count, p.keywords, p.created_at,
                                 (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id) as like_count,
                                 (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id AND user_id = ?) as is_liked,
-                                (SELECT COUNT(*) FROM community_comments WHERE post_id = p.id) as comment_count
+                                (SELECT COUNT(*) FROM community_comments WHERE post_id = p.id) as comment_count,
+                                (SELECT COUNT(*) FROM community_bookmarks WHERE post_id = p.id AND user_id = ?) as is_bookmarked
                                 FROM community_posts p
                                 JOIN users u ON p.user_id = u.id
                                 WHERE $where 
                                 ORDER BY $orderBy 
                                 LIMIT " . intval($limit) . " OFFSET " . intval($offset));
-        $stmt->execute(array_merge([$user_id], $params));
+        $stmt->execute(array_merge([$user_id, $user_id], $params));
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Attach photos to each post
         $photoStmt = $conn->prepare("SELECT id, image_url, sort_order FROM community_post_photos WHERE post_id = ? ORDER BY sort_order ASC");
+
+        // Collect unique user IDs for activity level calculation
+        $userIds = array_unique(array_column($posts, 'user_id'));
+        $activityLevels = [];
+        if (!empty($userIds)) {
+            $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+            // Calculate activity score: posts*3 + comments + received_likes
+            $actStmt = $conn->prepare("SELECT u_id,
+                (SELECT COUNT(*) FROM community_posts WHERE user_id = u_id) * 3 +
+                (SELECT COUNT(*) FROM community_comments WHERE user_id = u_id) +
+                (SELECT COUNT(*) FROM community_post_likes l JOIN community_posts p2 ON l.post_id = p2.id WHERE p2.user_id = u_id) as score
+                FROM (SELECT ? as u_id) t");
+            foreach ($userIds as $uid) {
+                $actStmt->execute([intval($uid)]);
+                $row = $actStmt->fetch(PDO::FETCH_ASSOC);
+                $score = intval($row['score'] ?? 0);
+                $lvl = 1;
+                if ($score >= 100)
+                    $lvl = 5;
+                elseif ($score >= 50)
+                    $lvl = 4;
+                elseif ($score >= 20)
+                    $lvl = 3;
+                elseif ($score >= 5)
+                    $lvl = 2;
+                $activityLevels[intval($uid)] = $lvl;
+            }
+        }
+
         foreach ($posts as &$post) {
             $post['id'] = intval($post['id']);
             $post['user_id'] = intval($post['user_id']);
@@ -332,6 +363,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $post['keywords'] = !empty($post['keywords']) ? json_decode($post['keywords'], true) : [];
             $post['share_count'] = intval($post['share_count'] ?? 0);
             $post['comment_count'] = intval($post['comment_count'] ?? 0);
+            $post['is_bookmarked'] = intval($post['is_bookmarked'] ?? 0) > 0;
+            $post['activity_level'] = $activityLevels[$post['user_id']] ?? 1;
             $photoStmt->execute([$post['id']]);
             $post['photos'] = $photoStmt->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -490,7 +523,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
             $titleShort = mb_substr($title, 0, 20, 'UTF-8');
-            $communityLabels = ['seller' => '셀러', 'vendor' => '벤더', 'general' => '통합'];
+            $communityLabels = ['seller' => '셀러', 'host' => '호스트', 'general' => '통합'];
             $communityLabel = $communityLabels[$type] ?? '커뮤니티';
             $notifMsg = "[{$communityLabel} 커뮤니티] {$user_name}님이 새 글을 작성했습니다: '{$titleShort}...'";
 
@@ -503,17 +536,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($type === 'seller') {
                 // Notify other sellers
                 $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role = 'seller' AND id != ? LIMIT 50", 'link' => "/seller/community?highlight={$newId}"];
-            } elseif ($type === 'vendor') {
-                // Notify other vendors
-                $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role = 'vendor' AND id != ? LIMIT 50", 'link' => "/vendor/community?highlight={$newId}"];
+            } elseif ($type === 'host') {
+                // Notify other hosts
+                $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role = 'host' AND id != ? LIMIT 50", 'link' => "/host/community?highlight={$newId}"];
             } else {
-                // General: notify sellers and vendors with their respective links
+                // General: notify sellers and hosts with their respective links
                 $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role = 'seller' AND id != ? LIMIT 50", 'link' => "/seller/community/general?highlight={$newId}"];
-                $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role = 'vendor' AND id != ? LIMIT 50", 'link' => "/vendor/community/general?highlight={$newId}"];
+                $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role = 'host' AND id != ? LIMIT 50", 'link' => "/host/community/general?highlight={$newId}"];
             }
 
             // Always notify admins
-            $adminLink = ($type === 'seller') ? '/admin/community/seller' : (($type === 'vendor') ? '/admin/community/vendor' : '/admin/community/general');
+            $adminLink = ($type === 'seller') ? '/admin/community/seller' : (($type === 'host') ? '/admin/community/host' : '/admin/community/general');
             $adminLink .= "?highlight={$newId}";
             $recipientQueries[] = ['query' => "SELECT id FROM users WHERE role IN ('admin', 'superadmin') AND id != ? LIMIT 10", 'link' => $adminLink];
 
@@ -521,8 +554,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $memberStmt = $conn->prepare($rq['query']);
                 $memberStmt->execute([$user_id]);
                 $members = $memberStmt->fetchAll(PDO::FETCH_ASSOC);
+                $emailRecipientIds = [];
                 foreach ($members as $member) {
                     $notifStmt->execute([$member['id'], $notifMsg, $rq['link']]);
+                    $emailRecipientIds[] = $member['id'];
+                }
+
+                // [EMAIL] 커뮤니티 새 글 이메일 알림
+                if (!empty($emailRecipientIds)) {
+                    try {
+                        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        $emailHtml = emailTemplateCommunityComment($user_name, $title, false, $siteUrl, $rq['link']);
+                        sendEmailToUsers($conn, $emailRecipientIds, "[커뮤니티] {$user_name}님이 새 글을 작성했습니다", $emailHtml, 'cat_community');
+                    } catch (Exception $emailErr) {
+                        error_log("Email error (community_post): " . $emailErr->getMessage());
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -540,7 +586,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mentionedUsers = $mentionStmt->fetchAll(PDO::FETCH_ASSOC);
 
                 $mentionNotifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'community_mention', ?, ?, NOW())");
-                $communityLabels2 = ['seller' => '셀러', 'vendor' => '벤더', 'general' => '통합'];
+                $communityLabels2 = ['seller' => '셀러', 'host' => '호스트', 'general' => '통합'];
                 $communityLabel2 = $communityLabels2[$type] ?? '커뮤니티';
 
                 foreach ($mentionedUsers as $mu) {
@@ -548,11 +594,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mentionLink = '/';
                     if ($mu['role'] === 'seller')
                         $mentionLink = ($type === 'seller') ? "/seller/community?highlight={$newId}" : "/seller/community/general?highlight={$newId}";
-                    elseif ($mu['role'] === 'vendor')
-                        $mentionLink = ($type === 'vendor') ? "/vendor/community?highlight={$newId}" : "/vendor/community/general?highlight={$newId}";
+                    elseif ($mu['role'] === 'host')
+                        $mentionLink = ($type === 'host') ? "/host/community?highlight={$newId}" : "/host/community/general?highlight={$newId}";
                     else
                         $mentionLink = "/admin/community/{$type}?highlight={$newId}";
                     $mentionNotifStmt->execute([$mu['id'], $mentionMsg, $mentionLink]);
+
+                    // [EMAIL] 멘션 이메일 알림
+                    try {
+                        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        $emailHtml = emailTemplateCommunityComment($user_name, $title, false, $siteUrl, $mentionLink);
+                        sendEmailToUser($conn, $mu['id'], "[커뮤니티] {$user_name}님이 회원님을 언급했습니다", $emailHtml, 'cat_community');
+                    } catch (Exception $emailErr) {
+                        error_log("Email error (community_mention): " . $emailErr->getMessage());
+                    }
                 }
             }
         } catch (Exception $e) {

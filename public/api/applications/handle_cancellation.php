@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
@@ -56,7 +57,7 @@ try {
     $can_handle = false;
     if ($user_role === 'admin' || $user_role === 'superadmin') {
         $can_handle = true;
-    } elseif ($user_role === 'vendor' && intval($req['owner_id']) === $user_id) {
+    } elseif ($user_role === 'host' && intval($req['owner_id']) === $user_id) {
         $can_handle = true;
     }
 
@@ -96,6 +97,27 @@ try {
 
         $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'cancellation_result', ?, ?)");
         $notifStmt->execute([$req['applicant_id'], $notifMsg, $notifLink]);
+
+        // [EMAIL] 취소 결과 이메일 알림 (다국어)
+        try {
+            $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $_vn = $req['venue_name'];
+            $_dn = $decision_note;
+            $_nl = $notifLink;
+            sendEmailToUser(
+                $conn,
+                $req['applicant_id'],
+                '',
+                '',
+                'cat_application',
+                function ($lang) use ($_vn, $_dn, $siteUrl, $_nl) {
+                    $subj = _t(['ko' => '취소 요청 처리 결과', 'en' => 'Cancellation Request Result', 'ja' => 'キャンセル処理結果', 'vi' => 'Kết quả yêu cầu hủy', 'th' => 'ผลลัพธ์การขอยกเลิก'], $lang);
+                    return ['subject' => $subj, 'html' => emailTemplateCancellation('result', $_vn, $_dn, $siteUrl, $_nl, $lang)];
+                }
+            );
+        } catch (Exception $emailErr) {
+            error_log("Email error (cancellation_result): " . $emailErr->getMessage());
+        }
     } catch (Exception $e) {
         error_log("SpaceMatch Notification Error (handle_cancellation): " . $e->getMessage());
     }

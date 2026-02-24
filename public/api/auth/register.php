@@ -1,6 +1,7 @@
 <?php
 ob_start(); // Catch any stray output/warnings
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 
 $data = json_decode(file_get_contents("php://input"));
 
@@ -77,9 +78,9 @@ try {
     $phone = isset($data->phone) ? htmlspecialchars(strip_tags($data->phone)) : null;
     $password_hash = password_hash($data->password, PASSWORD_BCRYPT);
 
-    $valid_roles = ['seller', 'vendor'];
+    $valid_roles = ['seller', 'host', 'vendor'];
     $role = (isset($data->role) && in_array($data->role, $valid_roles)) ? $data->role : 'seller';
-    $initialStatus = ($role === 'vendor') ? 'pending' : 'active';
+    $initialStatus = ($role === 'host' || $role === 'vendor') ? 'pending' : 'active';
 
     $category = isset($data->category) ? htmlspecialchars(strip_tags($data->category)) : null;
     $country = isset($data->country) ? htmlspecialchars(strip_tags($data->country)) : null;
@@ -125,8 +126,8 @@ try {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-            $roleLabel = ($role === 'vendor') ? '벤더' : '셀러';
-            $approvalNote = ($role === 'vendor') ? ' (승인 대기 중)' : '';
+            $roleLabel = ($role === 'host') ? '호스트' : '셀러';
+            $approvalNote = ($role === 'host') ? ' (승인 대기 중)' : '';
             $notifMsg = "새 {$roleLabel} '{$name}'님이 가입했습니다.{$approvalNote}";
             $notifLink = "/admin/users";
 
@@ -134,17 +135,36 @@ try {
             $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'user_registered', ?, ?, NOW())");
             foreach ($admins as $admin) {
                 $notifStmt->execute([$admin['id'], $notifMsg, $notifLink]);
+
+                // [EMAIL] 신규 가입 이메일 알림 (다국어)
+                try {
+                    $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                    $_nm = $name;
+                    sendEmailToUser(
+                        $conn,
+                        $admin['id'],
+                        '',
+                        '',
+                        'cat_account',
+                        function ($lang) use ($_nm, $siteUrl) {
+                            $subj = _t(['ko' => "새 사용자가 가입했습니다: {$_nm}", 'en' => "New user registered: {$_nm}", 'ja' => "新規登録: {$_nm}", 'vi' => "Người dùng mới: {$_nm}", 'th' => "ผู้ใช้ใหม่: {$_nm}"], $lang);
+                            return ['subject' => $subj, 'html' => emailTemplateAccountNotice('registered', $_nm, $siteUrl, $lang)];
+                        }
+                    );
+                } catch (Exception $emailErr) {
+                    error_log("Email error (user_registered): " . $emailErr->getMessage());
+                }
             }
         } catch (Exception $e) {
             // notification failure should not block registration
         }
 
-        $successMsg = ($role === 'vendor')
+        $successMsg = ($role === 'host')
             ? "회원가입이 완료되었습니다. 관리자 승인 후 로그인이 가능합니다."
             : "회원가입이 완료되었습니다.";
 
         ob_end_clean();
-        echo json_encode(array("success" => true, "message" => $successMsg, "pending" => ($role === 'vendor')));
+        echo json_encode(array("success" => true, "message" => $successMsg, "pending" => ($role === 'host')));
     } else {
         ob_end_clean();
         echo json_encode(array("success" => false, "message" => "회원가입에 실패했습니다."));

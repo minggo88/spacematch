@@ -254,7 +254,7 @@ const AdminTrash = () => {
             )}
 
             {/* Modals */}
-            {confirmModal && <ConfirmModal title={confirmModal.title} message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(null)} />}
+            {confirmModal && <ConfirmModal modal={{ ...confirmModal, type: 'danger', confirmLabel: confirmModal.title }} onClose={() => setConfirmModal(null)} />}
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );

@@ -1,16 +1,26 @@
 <?php
 /**
- * Chat Messages API
+ * Chat Messages API — v6 (2026-02-18 Translation rewrite)
  * 
  * GET  /api/chat/messages.php?conversation_id=N           — Get messages
  * GET  /api/chat/messages.php?conversation_id=N&after_id=M — Polling: new messages only
+ * GET  /api/chat/messages.php?version_check=1              — Check deployed version
  * POST /api/chat/messages.php                              — Send message
  *   Body: { "conversation_id": N, "text": "..." }
  * PUT  /api/chat/messages.php                              — Mark messages as read
  *   Body: { "conversation_id": N }
  */
 
+// Quick version check — access ?version_check=1 to confirm deployment
+define('MESSAGES_API_VERSION', 'v6-clean-rewrite-2026-02-18');
+if (isset($_GET['version_check'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['version' => MESSAGES_API_VERSION, 'features' => ['google_only', 'no_mymemory', 'all_languages']]);
+    exit;
+}
+
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -25,6 +35,7 @@ $user_id = intval($_SESSION['user_id']);
 $langStmt = $conn->prepare("SELECT country FROM users WHERE id = ?");
 $langStmt->execute([$user_id]);
 $userLang = $langStmt->fetchColumn() ?: 'ko';
+$userLang = normalizeCountryToLang($userLang); // Ensure 'jp' becomes 'ja', etc.
 
 // ─── Helper: Check if user is participant (admin can access CS convs) ───
 function isParticipant($conn, $conversation_id, $user_id)
@@ -56,82 +67,121 @@ function getOtherUserLang($conn, $conversation_id, $sender_id)
         WHERE c.id = ?
     ");
     $stmt->execute([$sender_id, $conversation_id]);
-    return $stmt->fetchColumn() ?: 'ko';
+    $result = $stmt->fetchColumn();
+    if ($result)
+        return normalizeCountryToLang($result);
+
+    // Fallback for CS conversations
+    $csStmt = $conn->prepare("
+        SELECT u.country FROM chat_conversations c
+        JOIN users u ON u.id IN (c.participant_1, c.participant_2)
+        WHERE c.id = ? AND u.id != ? AND u.role NOT IN ('admin', 'superadmin')
+        LIMIT 1
+    ");
+    $csStmt->execute([$conversation_id, $sender_id]);
+    $csResult = $csStmt->fetchColumn();
+    if ($csResult)
+        return normalizeCountryToLang($csResult);
+
+    return 'ko';
 }
 
-// ─── Helper: Translate text using existing translate.php logic ───
+// ─── Normalize: country code → Google Translate language code ───
+// Single source of truth for ALL language code conversions
+function normalizeCountryToLang($input)
+{
+    $map = [
+        // Country codes → language codes
+        'jp' => 'ja',
+        'kr' => 'ko',
+        'vn' => 'vi',
+        'cn' => 'zh-CN',
+        'kh' => 'km',
+        'ua' => 'uk',
+        'gb' => 'en',
+        'us' => 'en',
+        'ca' => 'en',
+        // Variant codes → base Google codes
+        'en-gb' => 'en',
+        'en-ca' => 'en',
+        'fr-ca' => 'fr',
+    ];
+    $lower = strtolower(trim($input));
+    return $map[$lower] ?? $lower;
+}
+
+// ─── Translate text via Google Translate (single provider, no fallback) ───
 function translateMessage($text, $sourceLang, $targetLang)
 {
     if (empty($text) || $sourceLang === $targetLang)
         return $text;
 
-    // Normalize language codes for MyMemory
-    $langMap = [
-        'ko' => 'ko',
-        'en' => 'en',
-        'en-GB' => 'en',
-        'en-CA' => 'en',
-        'fr-CA' => 'fr',
-        'fr' => 'fr',
-        'ja' => 'ja',
-        'vi' => 'vi',
-        'zh' => 'zh-CN',
-        'th' => 'th',
-        'km' => 'km',
-        'ru' => 'ru',
-        'uk' => 'uk',
-    ];
-    $src = $langMap[$sourceLang] ?? substr($sourceLang, 0, 2);
-    $tgt = $langMap[$targetLang] ?? substr($targetLang, 0, 2);
-
+    // Normalize both to Google Translate codes
+    $src = normalizeCountryToLang($sourceLang);
+    $tgt = normalizeCountryToLang($targetLang);
     if ($src === $tgt)
         return $text;
 
-    // Check cache first
+    // ── Cache lookup (optional, never fatal) ──
     global $conn;
-    $hash = hash('sha256', $text);
-    $cacheStmt = $conn->prepare("SELECT translated_text FROM translation_cache WHERE source_hash = ? AND source_lang = ? AND target_lang = ? LIMIT 1");
-    $cacheStmt->execute([$hash, $src, $tgt]);
-    $cached = $cacheStmt->fetch(PDO::FETCH_ASSOC);
-    if ($cached)
-        return $cached['translated_text'];
-
-    // Call MyMemory API
-    $url = "https://api.mymemory.translated.net/get?" . http_build_query([
-        'q' => $text,
-        'langpair' => "$src|$tgt",
-        'de' => 'spacematch@example.com'
-    ]);
-
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_HTTPHEADER => ['Accept: application/json']
-    ]);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($httpCode !== 200 || !$response)
-        return $text;
-
-    $data = json_decode($response, true);
-    if (isset($data['responseData']['translatedText'])) {
-        $translated = $data['responseData']['translatedText'];
-        if (strtoupper($translated) === $translated && strlen($translated) > 20)
-            return $text;
-
-        // Cache result
-        try {
-            $cacheInsert = $conn->prepare("INSERT INTO translation_cache (source_lang, target_lang, source_text, translated_text, source_hash) VALUES (?, ?, ?, ?, ?)");
-            $cacheInsert->execute([$src, $tgt, $text, $translated, $hash]);
-        } catch (PDOException $e) { /* ignore duplicate */
+    $hash = null;
+    try {
+        $hash = hash('sha256', $text);
+        $cs = $conn->prepare("SELECT translated_text FROM translation_cache WHERE source_hash = ? AND source_lang = ? AND target_lang = ? LIMIT 1");
+        $cs->execute([$hash, $src, $tgt]);
+        $cached = $cs->fetch(PDO::FETCH_ASSOC);
+        if ($cached && !empty($cached['translated_text']) && $cached['translated_text'] !== $text) {
+            return $cached['translated_text'];
         }
+    } catch (\Throwable $e) { /* cache miss, proceed to translate */
+    }
 
+    // ── Google Translate ──
+    $translated = null;
+    try {
+        $url = 'https://translate.googleapis.com/translate_a/single?' . http_build_query([
+            'client' => 'gtx',
+            'sl' => $src,
+            'tl' => $tgt,
+            'dt' => 't',
+            'q' => $text
+        ]);
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_USERAGENT => 'Mozilla/5.0',
+        ]);
+        $resp = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && $resp) {
+            $data = json_decode($resp, true);
+            if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+                $result = '';
+                foreach ($data[0] as $seg) {
+                    if (isset($seg[0]))
+                        $result .= $seg[0];
+                }
+                if (!empty($result) && $result !== $text) {
+                    $translated = $result;
+                }
+            }
+        }
+    } catch (\Throwable $e) { /* translation failed */
+    }
+
+    // ── Cache result ──
+    if ($translated) {
+        try {
+            $hash = $hash ?? hash('sha256', $text);
+            $conn->prepare("INSERT INTO translation_cache (source_lang, target_lang, source_text, translated_text, source_hash) VALUES (?, ?, ?, ?, ?)")
+                ->execute([$src, $tgt, $text, $translated, $hash]);
+        } catch (\Throwable $e) { /* cache is optional */
+        }
         return $translated;
     }
 
@@ -194,9 +244,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
     }
 
+    // ─── Check for translation updates on recently sent messages ───
+    // When polling (after_id > 0), also check if any recent messages 
+    // that were previously fetched now have completed translations
+    $updatedTranslations = [];
+    if ($afterId > 0) {
+        $transCheckStmt = $conn->prepare("
+            SELECT id, translated_texts FROM chat_messages 
+            WHERE conversation_id = ? AND id <= ? AND translated_texts IS NOT NULL
+            AND id > ? - 50
+            ORDER BY id DESC LIMIT 20
+        ");
+        $transCheckStmt->execute([$convId, $afterId, $afterId]);
+        $recentMsgs = $transCheckStmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($recentMsgs as $rm) {
+            $decoded = json_decode($rm['translated_texts'], true);
+            if (!empty($decoded)) {
+                $updatedTranslations[] = [
+                    'id' => $rm['id'],
+                    'translated_texts' => $decoded
+                ];
+            }
+        }
+    }
+
     echo json_encode([
         "success" => true,
         "messages" => $messages,
+        "updated_translations" => $updatedTranslations,
         "viewer_lang" => $userLang
     ]);
     exit;
@@ -220,42 +295,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Get other user's language for translation
+    // ─── STEP 1: Quick translation (receiver's language + English only) ───
+    // Only translate to the ESSENTIAL languages synchronously for speed
     $otherLang = getOtherUserLang($conn, $convId, $user_id);
-
-    // Translate message to ALL supported languages (so admin can view in any language)
-    // Core languages (unique translation targets)
-    $coreLangs = ['ko', 'en', 'ja', 'vi', 'zh', 'th', 'km', 'fr', 'ru', 'uk'];
     $translatedTexts = [];
-    $translatedTexts[$userLang] = $text; // Store original in sender's language
+    $translatedTexts[$userLang] = $text; // sender's original
 
-    // Normalize sender lang for comparison
-    $senderCore = $langMap[$userLang] ?? substr($userLang, 0, 2);
+    // Determine core language codes for comparison
+    $senderCore = normalizeCountryToLang($userLang);
+    $otherCore = normalizeCountryToLang($otherLang);
 
-    foreach ($coreLangs as $targetLang) {
-        $targetCore = $langMap[$targetLang] ?? substr($targetLang, 0, 2);
-        if ($targetCore === $senderCore)
-            continue; // Skip sender's own language
-        $translated = translateMessage($text, $userLang, $targetLang);
+    // 1) Translate to receiver's language (most important!)
+    if ($otherCore !== $senderCore) {
+        $translated = translateMessage($text, $userLang, $otherLang);
         if ($translated && $translated !== $text) {
-            $translatedTexts[$targetLang] = $translated;
+            $translatedTexts[$otherLang] = $translated;
+            $translatedTexts[$otherCore] = $translated; // also store by normalized code
         }
     }
 
-    // Store aliases so 'en-GB', 'en-CA' find 'en' translation; 'fr-CA' finds 'fr'
-    if (isset($translatedTexts['en'])) {
-        $translatedTexts['en-GB'] = $translatedTexts['en'];
-        $translatedTexts['en-CA'] = $translatedTexts['en'];
-    }
-    if (isset($translatedTexts['fr'])) {
-        $translatedTexts['fr-CA'] = $translatedTexts['fr'];
-    }
-    // Also store zh-CN as zh (MyMemory returns zh-CN)
-    if (isset($translatedTexts['zh'])) {
-        $translatedTexts['zh-CN'] = $translatedTexts['zh'];
+    // 2) Also translate to English if neither sender nor receiver is English
+    if ($senderCore !== 'en' && $otherCore !== 'en') {
+        $enTranslated = translateMessage($text, $userLang, 'en');
+        if ($enTranslated && $enTranslated !== $text) {
+            $translatedTexts['en'] = $enTranslated;
+        }
     }
 
-    // Insert message
+    // ─── STEP 2: Insert message WITH essential translations ───
     $insertStmt = $conn->prepare("
         INSERT INTO chat_messages (conversation_id, sender_id, message_type, original_text, original_lang, translated_texts)
         VALUES (?, ?, 'text', ?, ?, ?)
@@ -273,7 +340,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updateStmt = $conn->prepare("UPDATE chat_conversations SET last_message_at = NOW() WHERE id = ?");
     $updateStmt->execute([$convId]);
 
-    // ─── Create notification for the other participant ───
+    // ─── STEP 3: Respond with the message (includes receiver's translation) ───
+    $getStmt = $conn->prepare("
+        SELECT m.*, u.name as sender_name, u.profile_image as sender_profile_image, u.country as sender_country
+        FROM chat_messages m
+        LEFT JOIN users u ON u.id = m.sender_id
+        WHERE m.id = ?
+    ");
+    $getStmt->execute([$msgId]);
+    $message = $getStmt->fetch(PDO::FETCH_ASSOC);
+    if (!empty($message['translated_texts'])) {
+        $message['translated_texts'] = json_decode($message['translated_texts'], true);
+    }
+
+    $responseJson = json_encode([
+        "success" => true,
+        "message" => $message,
+        "_debug" => [
+            "api_version" => MESSAGES_API_VERSION,
+            "sender_lang" => $userLang,
+            "sender_core" => $senderCore,
+            "receiver_lang" => $otherLang,
+            "receiver_core" => $otherCore,
+            "translated_keys" => array_keys($translatedTexts),
+        ]
+    ]);
+
+    // Flush response to client, then continue with remaining translations in background
+    ignore_user_abort(true);
+    header('Content-Type: application/json');
+    header('Content-Length: ' . strlen($responseJson));
+    header('Connection: close');
+    echo $responseJson;
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        ob_end_flush();
+        flush();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ─── STEP 4: BACKGROUND — Translate remaining languages + notifications ───
+    // ═══════════════════════════════════════════════════════════════
+
+    // Translate to ALL remaining languages (best-effort)
+    $allLangs = ['ko', 'en', 'ja', 'vi', 'zh-CN', 'th', 'km', 'fr', 'ru', 'uk'];
+    $needsUpdate = false;
+    foreach ($allLangs as $tgt) {
+        if ($tgt === $senderCore)
+            continue;
+        if (isset($translatedTexts[$tgt]))
+            continue;
+        $translated = translateMessage($text, $userLang, $tgt);
+        if ($translated && $translated !== $text) {
+            $translatedTexts[$tgt] = $translated;
+            $needsUpdate = true;
+        }
+    }
+
+    // Update DB with all translations
+    if ($needsUpdate) {
+        $updateTransStmt = $conn->prepare("UPDATE chat_messages SET translated_texts = ? WHERE id = ?");
+        $updateTransStmt->execute([json_encode($translatedTexts, JSON_UNESCAPED_UNICODE), $msgId]);
+    }
+
+    // ─── 3b: Create notification + send email ───
     try {
         // Get conversation info to find the other user
         $convInfoStmt = $conn->prepare("SELECT participant_1, participant_2, type FROM chat_conversations WHERE id = ?");
@@ -329,8 +460,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $getLinkForRole = function ($role) {
                 if (in_array($role, ['admin', 'superadmin']))
                     return '/admin/cs';
-                if ($role === 'vendor')
-                    return '/vendor/chat';
+                if ($role === 'host')
+                    return '/host/chat';
                 return '/seller/chat'; // seller or any other role
             };
 
@@ -353,6 +484,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Insert notification for the direct recipient
                 $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, ?, ?, ?)");
                 $notifStmt->execute([$other_user_id, $notifType, $notifMsg, $notifLink]);
+
+                // [EMAIL] CS 메시지 이메일 알림 (다국어)
+                try {
+                    $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                    $_dn = $displayName;
+                    $_tx = $text;
+                    $_nl = $notifLink;
+                    $_tt = $translatedTexts;
+                    sendEmailToUser(
+                        $conn,
+                        $other_user_id,
+                        '',
+                        '',
+                        'cat_account',
+                        function ($lang) use ($_dn, $_tx, $siteUrl, $_nl, $_tt) {
+                            $normalizedLang = normalizeCountryToLang($lang);
+                            $preview = $_tt[$lang] ?? $_tt[$normalizedLang] ?? $_tx;
+                            $subj = _t(['ko' => "[CS] {$_dn}님이 메시지를 보냈습니다", 'en' => "[CS] {$_dn} sent a message", 'ja' => "[CS] {$_dn}さんからメッセージ", 'vi' => "[CS] {$_dn} đã gửi tin nhắn", 'th' => "[CS] {$_dn} ส่งข้อความ"], $lang);
+                            return ['subject' => $subj, 'html' => emailTemplateChatMessage($_dn, $preview, true, $siteUrl, $_nl, $lang)];
+                        }
+                    );
+                } catch (Exception $emailErr) {
+                    error_log("Email error (cs_message): " . $emailErr->getMessage());
+                }
 
                 // If sender is NOT admin, also notify ALL admins
                 if (!$isSenderAdmin) {
@@ -387,6 +542,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, ?, ?, ?)");
                 $notifStmt->execute([$other_user_id, $notifType, $notifMsg, $notifLink]);
+
+                // [EMAIL] 채팅 메시지 이메일 알림 (다국어)
+                try {
+                    $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                    $_sn = $senderName;
+                    $_tx = $text;
+                    $_nl = $notifLink;
+                    $_tt = $translatedTexts;
+                    sendEmailToUser(
+                        $conn,
+                        $other_user_id,
+                        '',
+                        '',
+                        'cat_account',
+                        function ($lang) use ($_sn, $_tx, $siteUrl, $_nl, $_tt) {
+                            $normalizedLang = normalizeCountryToLang($lang);
+                            $preview = $_tt[$lang] ?? $_tt[$normalizedLang] ?? $_tx;
+                            $subj = _t(['ko' => "{$_sn}님이 메시지를 보냈습니다", 'en' => "{$_sn} sent a message", 'ja' => "{$_sn}さんからメッセージ", 'vi' => "{$_sn} đã gửi tin nhắn", 'th' => "{$_sn} ส่งข้อความ"], $lang);
+                            return ['subject' => $subj, 'html' => emailTemplateChatMessage($_sn, $preview, false, $siteUrl, $_nl, $lang)];
+                        }
+                    );
+                } catch (Exception $emailErr) {
+                    error_log("Email error (chat_message): " . $emailErr->getMessage());
+                }
             }
         }
     } catch (PDOException $e) {
@@ -394,23 +573,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("Notification creation failed: " . $e->getMessage());
     }
 
-    // Get inserted message with sender info
-    $getStmt = $conn->prepare("
-        SELECT m.*, u.name as sender_name, u.profile_image as sender_profile_image, u.country as sender_country
-        FROM chat_messages m
-        LEFT JOIN users u ON u.id = m.sender_id
-        WHERE m.id = ?
-    ");
-    $getStmt->execute([$msgId]);
-    $message = $getStmt->fetch(PDO::FETCH_ASSOC);
-    if (!empty($message['translated_texts'])) {
-        $message['translated_texts'] = json_decode($message['translated_texts'], true);
-    }
-
-    echo json_encode([
-        "success" => true,
-        "message" => $message
-    ]);
     exit;
 }
 
@@ -440,6 +602,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         "success" => true,
         "marked_count" => $count
     ]);
+    exit;
+}
+
+// ─── DELETE: Delete a single message (admin/superadmin only — unsend) ───
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $messageId = intval($input['message_id'] ?? 0);
+
+    if ($messageId <= 0) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "message_id는 필수입니다."]);
+        exit;
+    }
+
+    // Check admin role
+    $roleStmt = $conn->prepare("SELECT role FROM users WHERE id = ?");
+    $roleStmt->execute([$user_id]);
+    $userRole = $roleStmt->fetchColumn();
+
+    if (!in_array($userRole, ['admin', 'superadmin'])) {
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "관리자만 메시지를 삭제할 수 있습니다."]);
+        exit;
+    }
+
+    // Verify the message exists and belongs to the current user
+    $msgStmt = $conn->prepare("SELECT id, sender_id, file_url FROM chat_messages WHERE id = ?");
+    $msgStmt->execute([$messageId]);
+    $msg = $msgStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$msg) {
+        http_response_code(404);
+        echo json_encode(["success" => false, "message" => "메시지를 찾을 수 없습니다."]);
+        exit;
+    }
+
+    if (intval($msg['sender_id']) !== $user_id) {
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "자신이 보낸 메시지만 삭제할 수 있습니다."]);
+        exit;
+    }
+
+    // Delete attached file if exists
+    if (!empty($msg['file_url'])) {
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . $msg['file_url'];
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+    }
+
+    // Delete the message
+    $delStmt = $conn->prepare("DELETE FROM chat_messages WHERE id = ?");
+    $delStmt->execute([$messageId]);
+
+    echo json_encode(["success" => true, "message" => "메시지가 삭제되었습니다."]);
     exit;
 }
 

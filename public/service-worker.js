@@ -1,7 +1,7 @@
 // ─── SpaceMatch Service Worker ───
-// 네트워크 우선, 캐시 폴백 전략
+// 네트워크 우선, 캐시 폴백 + 웹 푸시 알림 지원
 
-const CACHE_NAME = 'spacematch-v1';
+const CACHE_NAME = 'spacematch-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -59,4 +59,94 @@ self.addEventListener('fetch', (event) => {
                 return caches.match(event.request);
             })
     );
+});
+
+// ─── Push 알림 수신 ───
+self.addEventListener('push', (event) => {
+    let data = {
+        title: 'SpaceMatch',
+        body: '새로운 알림이 있습니다.',
+        icon: '/favicon.png',
+        badge: '/favicon.png',
+        url: '/'
+    };
+
+    try {
+        if (event.data) {
+            const text = event.data.text();
+            try {
+                const payload = JSON.parse(text);
+                data = { ...data, ...payload };
+            } catch (jsonErr) {
+                // JSON 파싱 실패 시 텍스트 그대로 사용
+                data.body = text;
+            }
+        }
+    } catch (e) {
+        // data 읽기 자체 실패 시 기본값 사용
+    }
+
+    const options = {
+        body: data.body,
+        icon: data.icon || '/favicon.png',
+        badge: data.badge || '/favicon.png',
+        tag: data.tag || 'spacematch-' + Date.now(),
+        renotify: true,
+        requireInteraction: false,
+        vibrate: [200, 100, 200],
+        data: {
+            url: data.url || '/',
+            timestamp: data.timestamp || Date.now()
+        },
+        actions: [
+            {
+                action: 'open',
+                title: '확인하기'
+            },
+            {
+                action: 'close',
+                title: '닫기'
+            }
+        ]
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// ─── 알림 클릭 처리 ───
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const url = event.notification.data?.url || '/';
+
+    // '닫기' 액션이면 그냥 닫기
+    if (event.action === 'close') {
+        return;
+    }
+
+    // 이미 열린 탭이 있으면 포커스, 없으면 새 탭 열기
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((windowClients) => {
+                // 같은 origin의 열린 탭 찾기
+                for (const client of windowClients) {
+                    if (client.url.includes(self.location.origin) && 'focus' in client) {
+                        client.navigate(url);
+                        return client.focus();
+                    }
+                }
+                // 열린 탭이 없으면 새로 열기
+                if (clients.openWindow) {
+                    return clients.openWindow(url);
+                }
+            })
+    );
+});
+
+// ─── 알림 닫기 이벤트 (분석용) ───
+self.addEventListener('notificationclose', (event) => {
+    // 향후 알림 닫기 추적에 활용 가능
+    console.log('[SW] Notification closed:', event.notification.tag);
 });

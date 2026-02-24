@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     UserPlus, Search, Shield, ShieldAlert, Store, Ban, MoreHorizontal, X,
     AlertTriangle, Eye, Users, Briefcase, ShoppingBag, Filter, CheckCircle, Edit3, Crown, XCircle,
-    Lock, Unlock, UserCheck, BadgeCheck, Calendar, Clock, Settings
+    Lock, Unlock, UserCheck, BadgeCheck, Calendar, Clock, Settings, Truck
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
@@ -19,7 +19,7 @@ const AdminUsers = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('all'); // all, vendor, seller, admin
+    const [activeTab, setActiveTab] = useState('all'); // all, host, seller, admin
     const [statusFilter, setStatusFilter] = useState('all'); // all, active, blocked
 
     // Modal State
@@ -134,9 +134,9 @@ const AdminUsers = () => {
         setFeaturedEndDate(user.featured_end || '');
         setVerifiedStartDate(user.verified_start || '');
         setVerifiedEndDate(user.verified_end || '');
-        // Fetch contact access info for vendors
-        if (user.role === 'vendor') {
-            fetch(`${API_BASE}/users/seller_contact_access.php?vendor_id=${user.id}`, { credentials: 'include' })
+        // Fetch contact access info for hosts
+        if (user.role === 'host') {
+            fetch(`${API_BASE}/users/seller_contact_access.php?host_id=${user.id}`, { credentials: 'include' })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -410,7 +410,7 @@ const AdminUsers = () => {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-                vendor_id: selectedUser.id,
+                host_id: selectedUser.id,
                 can_view_contacts: canView,
                 monthly_limit: limit,
                 start_date: canView ? contactStartDate : null,
@@ -460,8 +460,9 @@ const AdminUsers = () => {
     const stats = useMemo(() => {
         return {
             total: users.length,
-            vendor: users.filter(u => u.role === 'vendor').length,
+            host: users.filter(u => u.role === 'host').length,
             seller: users.filter(u => u.role === 'seller').length,
+            vendor: users.filter(u => u.role === 'vendor').length,
             admin: users.filter(u => u.role === 'admin').length,
             pending: users.filter(u => u.status === 'pending').length
         };
@@ -473,8 +474,9 @@ const AdminUsers = () => {
     // Tabs Configuration
     const tabs = [
         { id: 'all', label: t('usersPage.tabAll'), icon: Users, count: stats.total },
-        { id: 'vendor', label: t('usersPage.tabVendor'), icon: Store, count: stats.vendor },
+        { id: 'host', label: t('usersPage.tabHosts'), icon: Store, count: stats.host },
         { id: 'seller', label: t('usersPage.tabSeller'), icon: ShoppingBag, count: stats.seller },
+        { id: 'vendor', label: '벤더', icon: Truck, count: stats.vendor },
     ];
 
     // Only add Admin tab if Super Admin
@@ -517,7 +519,7 @@ const AdminUsers = () => {
                             >
                                 <tab.icon size={16} className={activeTab === tab.id ? 'text-indigo-600' : 'text-gray-400'} />
                                 <span className="hidden md:inline">{tab.label}</span>
-                                <span className="md:hidden">{tab.id === 'all' ? t('usersPage.tabAllShort') : tab.id === 'vendor' ? t('usersPage.tabVendorShort') : tab.id === 'seller' ? t('usersPage.tabSellerShort') : t('usersPage.tabAdminShort')}</span>
+                                <span className="md:hidden">{tab.id === 'all' ? t('usersPage.tabAllShort') : tab.id === 'host' ? t('usersPage.tabHostShort') : tab.id === 'seller' ? t('usersPage.tabSellerShort') : t('usersPage.tabAdminShort')}</span>
                                 <span className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500'}`}>
                                     {tab.count}
                                 </span>
@@ -596,27 +598,29 @@ const AdminUsers = () => {
                                         </td>
                                         <td className="p-6">
                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${user.role === 'superadmin' ? 'bg-orange-50 text-orange-700 border-orange-100' : user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                                user.role === 'vendor' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                                    'bg-green-50 text-green-700 border-green-100'
+                                                user.role === 'host' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                    user.role === 'vendor' ? 'bg-teal-50 text-teal-700 border-teal-100' :
+                                                        'bg-green-50 text-green-700 border-green-100'
                                                 }`}>
                                                 {(user.role === 'admin' || user.role === 'superadmin') && <Shield size={12} />}
-                                                {user.role === 'vendor' && <Store size={12} />}
+                                                {user.role === 'host' && <Store size={12} />}
                                                 {user.role === 'seller' && <ShoppingBag size={12} />}
-                                                {user.role === 'superadmin' ? t('usersPage.roleSuperAdmin') : user.role === 'admin' ? t('usersPage.roleAdmin') : user.role === 'vendor' ? t('usersPage.roleVendor') : t('usersPage.roleSeller')}
+                                                {user.role === 'vendor' && <Truck size={12} />}
+                                                {user.role === 'superadmin' ? t('usersPage.roleSuperAdmin') : user.role === 'admin' ? t('usersPage.roleAdmin') : user.role === 'host' ? t('usersPage.roleHost') : user.role === 'vendor' ? '벤더' : t('usersPage.roleSeller')}
                                             </span>
-                                            {(user.role === 'vendor' || user.role === 'seller') && parseInt(user.is_featured) === 1 && (
+                                            {(user.role === 'host' || user.role === 'seller') && parseInt(user.is_featured) === 1 && (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border border-amber-200 rounded-full text-[10px] font-extrabold ml-1">
                                                     <Crown size={10} /> PREMIUM
                                                 </span>
                                             )}
-                                            {(user.role === 'vendor' || user.role === 'seller') && parseInt(user.is_verified) === 1 && (
+                                            {(user.role === 'host' || user.role === 'seller') && parseInt(user.is_verified) === 1 && (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-extrabold ml-1">
                                                     <BadgeCheck size={10} /> {t('usersPage.verified')}
                                                 </span>
                                             )}
                                         </td>
                                         <td className="p-6">
-                                            {user.role === 'vendor' ? (
+                                            {user.role === 'host' ? (
                                                 <div className="text-sm">
                                                     <span className="text-gray-500 block mb-0.5">{t('usersPage.registeredVenues')}</span>
                                                     <span className="font-bold text-gray-900 text-base">{user.venue_count || 0}</span>
@@ -627,6 +631,11 @@ const AdminUsers = () => {
                                                     <span className="text-gray-500 block mb-0.5">{t('usersPage.applications')}</span>
                                                     <span className="font-bold text-gray-900 text-base">{user.app_count || 0}</span>
                                                     <span className="text-gray-400 text-xs ml-1"></span>
+                                                </div>
+                                            ) : user.role === 'vendor' ? (
+                                                <div className="text-sm">
+                                                    <span className="text-gray-500 block mb-0.5">유통 거래</span>
+                                                    <span className="font-bold text-gray-900 text-base">{user.company_name || '-'}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-gray-300">-</span>
@@ -683,8 +692,9 @@ const AdminUsers = () => {
                                     {/* Top: Avatar + Info + Status Badge */}
                                     <div className="flex items-center gap-3">
                                         <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${u.role === 'superadmin' ? 'bg-orange-100 text-orange-600' : u.role === 'admin' ? 'bg-purple-100 text-purple-600' :
-                                            u.role === 'vendor' ? 'bg-blue-100 text-blue-600' :
-                                                'bg-green-100 text-green-600'
+                                            u.role === 'host' ? 'bg-blue-100 text-blue-600' :
+                                                u.role === 'vendor' ? 'bg-teal-100 text-teal-600' :
+                                                    'bg-green-100 text-green-600'
                                             }`}>
                                             {u.name.charAt(0)}
                                         </div>
@@ -692,13 +702,15 @@ const AdminUsers = () => {
                                             <div className="flex items-center gap-1.5">
                                                 <p className="font-bold text-gray-900 text-sm truncate">{u.name}</p>
                                                 <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${u.role === 'superadmin' ? 'bg-orange-50 text-orange-600' : u.role === 'admin' ? 'bg-purple-50 text-purple-600' :
-                                                    u.role === 'vendor' ? 'bg-blue-50 text-blue-600' :
-                                                        'bg-green-50 text-green-600'
+                                                    u.role === 'host' ? 'bg-blue-50 text-blue-600' :
+                                                        u.role === 'vendor' ? 'bg-teal-50 text-teal-600' :
+                                                            'bg-green-50 text-green-600'
                                                     }`}>
                                                     {(u.role === 'admin' || u.role === 'superadmin') && <Shield size={9} />}
-                                                    {u.role === 'vendor' && <Store size={9} />}
+                                                    {u.role === 'host' && <Store size={9} />}
                                                     {u.role === 'seller' && <ShoppingBag size={9} />}
-                                                    {u.role === 'superadmin' ? t('usersPage.roleSuperAdmin') : u.role === 'admin' ? t('usersPage.roleAdmin') : u.role === 'vendor' ? t('usersPage.roleVendor') : t('usersPage.roleSellerShort')}
+                                                    {u.role === 'vendor' && <Truck size={9} />}
+                                                    {u.role === 'superadmin' ? t('usersPage.roleSuperAdmin') : u.role === 'admin' ? t('usersPage.roleAdmin') : u.role === 'host' ? t('usersPage.roleHost') : u.role === 'vendor' ? '벤더' : t('usersPage.roleSellerShort')}
                                                 </span>
                                                 {parseInt(u.is_featured) === 1 && (
                                                     <Crown size={12} className="text-amber-500 flex-shrink-0" />
@@ -719,7 +731,7 @@ const AdminUsers = () => {
                                     {/* Bottom: Activity + Action Buttons */}
                                     <div className="flex items-center justify-between mt-2.5 pl-14">
                                         <div className="flex items-center gap-2 text-[11px] text-gray-500">
-                                            {u.role === 'vendor' && (
+                                            {u.role === 'host' && (
                                                 <span className="flex items-center gap-1">
                                                     <Store size={11} className="text-gray-300" />
                                                     <span className="font-bold text-gray-700">{u.venue_count || 0}</span>/{u.venue_limit || 3}
@@ -729,6 +741,12 @@ const AdminUsers = () => {
                                                 <span className="flex items-center gap-1">
                                                     <Briefcase size={11} className="text-gray-300" />
                                                     {t('usersPage.applicationShort')} <span className="font-bold text-gray-700">{u.app_count || 0}</span>
+                                                </span>
+                                            )}
+                                            {u.role === 'vendor' && (
+                                                <span className="flex items-center gap-1">
+                                                    <Truck size={11} className="text-gray-300" />
+                                                    <span className="font-bold text-gray-700">{u.company_name || '-'}</span>
                                                 </span>
                                             )}
                                             {u.business_no && (
@@ -828,7 +846,7 @@ const AdminUsers = () => {
                             </div>
 
                             {/* Venue Limit Settings (Vendor Only) */}
-                            {selectedUser.role === 'vendor' && (
+                            {selectedUser.role === 'host' && (
                                 <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100">
                                     <label className="text-sm font-bold text-gray-700 block mb-3 flex items-center gap-2">
                                         <Store size={16} className="text-indigo-600" />
@@ -858,7 +876,7 @@ const AdminUsers = () => {
                             )}
 
                             {/* Featured / Premium Toggle (Vendor & Seller Only) */}
-                            {(selectedUser.role === 'vendor' || selectedUser.role === 'seller') && (
+                            {(selectedUser.role === 'host' || selectedUser.role === 'seller') && (
                                 <div className="p-5 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border border-amber-200">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
@@ -868,7 +886,7 @@ const AdminUsers = () => {
                                             <div>
                                                 <p className="text-sm font-extrabold text-gray-900">{t('usersPage.premiumExposure')}</p>
                                                 <p className="text-xs text-gray-500 mt-0.5">
-                                                    {selectedUser.role === 'vendor' ? t('usersPage.premiumVenueSearch') : t('usersPage.premiumVendorSearch')}{t('usersPage.premiumTopExposure')}
+                                                    {selectedUser.role === 'host' ? t('usersPage.premiumVenueSearch') : t('usersPage.premiumHostSearch')}{t('usersPage.premiumTopExposure')}
                                                 </p>
                                             </div>
                                         </div>
@@ -922,7 +940,7 @@ const AdminUsers = () => {
                             )}
 
                             {/* Verified Badge Toggle (Vendor & Seller Only) */}
-                            {(selectedUser.role === 'vendor' || selectedUser.role === 'seller') && (
+                            {(selectedUser.role === 'host' || selectedUser.role === 'seller') && (
                                 <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
@@ -984,7 +1002,7 @@ const AdminUsers = () => {
                             )}
 
                             {/* Seller Contact Access Settings (Vendor Only) */}
-                            {selectedUser.role === 'vendor' && (
+                            {selectedUser.role === 'host' && (
                                 <div className="p-5 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-2xl border border-cyan-200">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
@@ -1076,7 +1094,7 @@ const AdminUsers = () => {
                             )}
 
                             {/* ── Service Permissions Section ── */}
-                            {(selectedUser.role === 'vendor' || selectedUser.role === 'seller') && (
+                            {(selectedUser.role === 'host' || selectedUser.role === 'seller') && (
                                 <div className="p-5 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/50 dark:to-purple-950/50 rounded-2xl border border-violet-200 dark:border-violet-800">
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-200 dark:shadow-violet-900">
@@ -1089,8 +1107,8 @@ const AdminUsers = () => {
                                     </div>
 
                                     <div className="space-y-3">
-                                        {/* Analytics Report — vendor only */}
-                                        {selectedUser.role === 'vendor' && (() => {
+                                        {/* Analytics Report — host only */}
+                                        {selectedUser.role === 'host' && (() => {
                                             const svc = userServices['analytics_report'] || { enabled: 0, start_date: '', end_date: '' };
                                             return (
                                                 <div className="bg-white/70 dark:bg-gray-800/70 rounded-xl p-3">
@@ -1277,7 +1295,7 @@ const AdminUsers = () => {
                                 </h4>
 
                                 <div className="space-y-3">
-                                    {selectedUser.status === 'pending' && selectedUser.role === 'vendor' && (
+                                    {selectedUser.status === 'pending' && selectedUser.role === 'host' && (
                                         <button
                                             onClick={() => handleStatusAction('approve')}
                                             disabled={actionLoading}

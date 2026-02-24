@@ -1,381 +1,386 @@
 {
-    "heroTitle": "The Perfect Match for Spaces and Brands",
-    "heroSubtitle": "Find the ideal popup space with SpaceMatch",
-    "heroCtaVendor": "Register Your Space",
-    "heroCtaSeller": "Find a Space",
-    "servicesTitle": "Services",
-    "servicesSubtitle": "An all-in-one platform for the perfect connection between spaces and brands",
+  "heroTitle": "The Perfect Match for Spaces and Brands",
+  "heroSubtitle": "Find the ideal popup space with SpaceMatch",
+  "heroCtaHost": "Register Your Space",
+  "heroCtaSeller": "Find a Space",
+  "servicesTitle": "Services",
+  "servicesSubtitle": "An all-in-one platform for the perfect connection between spaces and brands",
+  "howItWorks": "How It Works",
+  "aboutTitle": "About SpaceMatch",
+  "aboutDesc": "SpaceMatch is a platform that connects spaces with brands",
+  "contactTitle": "Contact Us",
+  "contactSubtitle": "Have questions? Feel free to reach out anytime",
+  "contactName": "Name",
+  "contactEmail": "Email",
+  "contactMessage": "Message",
+  "contactSend": "Send",
+  "contactSuccess": "Your inquiry has been submitted",
+  "servicesTab": {
+    "appDev": "App Development",
+    "serverSetup": "Server Setup",
+    "securityDesign": "Security Design"
+  },
+  "howItWorksSteps": {
+    "step1Title": "Register Your Space",
+    "step1Desc": "Register your space and enter detailed information",
+    "step2Title": "Seller Matching",
+    "step2Desc": "AI recommends the best sellers for your space",
+    "step3Title": "Sign Agreement",
+    "step3Desc": "Quick and easy contract process to get started",
+    "step4Title": "Start Operations",
+    "step4Desc": "Monitor operations from your dashboard"
+  },
+  "footer": {
+    "company": "About Us",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "contact": "Contact",
+    "representative": "Phone",
+    "email": "Email",
+    "copyright": "© {{year}} SpaceMatch. All rights reserved.",
+    "businessInfo": "SpaceMatch · CEO Sewoong Baek · Business No. 638-20-02679 · Yongsan-gu, Seoul"
+  },
+  "nav": {
+    "home": "Home",
+    "services": "Services",
     "howItWorks": "How It Works",
-    "aboutTitle": "About SpaceMatch",
-    "aboutDesc": "SpaceMatch is a platform that connects spaces with brands",
-    "contactTitle": "Contact Us",
-    "contactSubtitle": "Have questions? Feel free to reach out anytime",
-    "contactName": "Name",
-    "contactEmail": "Email",
-    "contactMessage": "Message",
-    "contactSend": "Send",
-    "contactSuccess": "Your inquiry has been submitted",
-    "servicesTab": {
-        "appDev": "App Development",
-        "serverSetup": "Server Setup",
-        "securityDesign": "Security Design"
+    "about": "About",
+    "contact": "Contact",
+    "login": "Log In",
+    "signup": "Sign Up",
+    "myPage": "My Page"
+  },
+  "recruitment": {
+    "title": "Space Recruitment",
+    "subtitle": "Discover a variety of popup spaces",
+    "searchPlaceholder": "Search by name or location..."
+  },
+  "heroBadge": "All-in-one platform for sellers",
+  "heroHeading1": "From Finding Events",
+  "heroHeading2": "and CRM",
+  "heroHeading3": "All in SpaceMatch",
+  "heroDesc": "Event search, sales analytics, tax support, and seller community — everything sellers need, all in one place.",
+  "heroBestSpaces": "Start CRM",
+  "heroLearnMore": "Explore Services",
+  "heroSafeMatch": "Sales Dashboard",
+  "heroFastEntry": "Tax Auto-Alerts",
+  "heroVerifiedSpaces": "Seller Community",
+  "hotRecruitment": "HOT RECRUITMENT",
+  "hotTitle1": "Trending",
+  "hotTitle2": "Recruitments",
+  "hotDesc": "Check out the hottest recruitment spaces selected by our team!",
+  "hotClosed": "Closed",
+  "hotVenueType": {
+    "popup": "Popup Store",
+    "gallery": "Gallery",
+    "cafe": "Cafe",
+    "showroom": "Showroom",
+    "fleamarket": "Flea Market",
+    "other": "Other"
+  },
+  "hotSpaceProvider": "Space Provider",
+  "hotLocationTBD": "Location TBD",
+  "hotDeadline": "Deadline: {{date}}",
+  "hotApply": "Apply Now",
+  "hotLike": "Like",
+  "hotShare": "Share",
+  "hotCopied": "Link copied! 📋",
+  "hotUsageGuide": "Usage Guide",
+  "servicesSection": {
+    "badge": "SERVICES",
+    "heading1": "Core Services",
+    "heading2": "from SpaceMatch",
+    "desc": "The only matching platform for both sellers and space providers",
+    "spaceSearch": "Event Search & Matching",
+    "spaceSearchDesc": "Quickly find events across the country — flea markets, popups, galleries — with regional filters.",
+    "community": "Seller Community",
+    "communityDesc": "Share info, network, and find partners in dedicated seller boards and the integrated community.",
+    "viewMore": "View Services in Detail",
+    "salesDashboard": "Sales Dashboard",
+    "salesDashboardDesc": "Auto-aggregate daily/monthly/yearly sales and track product profitability and trends at a glance.",
+    "taxSupport": "Tax Support System",
+    "taxSupportDesc": "Automatic VAT/income tax rate calculation with filing deadline alerts to take the worry out of taxes."
+  },
+  "adRecommended": "Recommended",
+  "adSponsor": "Sponsor",
+  "howSection": {
+    "badge": "HOW IT WORKS",
+    "heading1": "Get Started in",
+    "heading2": "3 Easy Steps",
+    "desc": "No complicated procedures — start matching in just 3 simple steps",
+    "step1": "Sign Up",
+    "step1Desc": "Create a seller or vendor account with just your email and basic info. Enter your business number and brand details to complete!",
+    "step2": "Browse Spaces / Brands",
+    "step2Desc": "Explore spaces and brands by region, type, and size from your dashboard. Check urgent recruitments with D-Day countdown!",
+    "step3": "Apply & Match",
+    "step3Desc": "Apply with one click! Once the space provider approves, you're matched. Manage your applications and stats in real-time from your dashboard.",
+    "viewMore": "View How It Works in Detail"
+  },
+  "forWho": {
+    "badge": "WHO IS IT FOR",
+    "heading1": "A Platform for",
+    "heading2": "Everyone",
+    "sellerTitle": "Brands (Sellers)",
+    "sellerDesc": "A service for brand owners looking for the optimal popup store, gallery, showroom, and more.",
+    "sellerFeatures": [
+      "Host (Space) Search & Filtering",
+      "One-Click Application",
+      "Real-time Application Status",
+      "Activity Stats & Analytics",
+      "Seller & Integrated Community",
+      "Profile & Portfolio Management"
+    ],
+    "hostTitle": "Space Providers (Hosts)",
+    "hostDesc": "A service for space owners who want to efficiently recruit and manage brands for their spaces.",
+    "hostFeatures": [
+      "Space Registration & Photo Mgmt",
+      "Approve/Reject Applications",
+      "Seller Search & Recruitment",
+      "Cancellation Management",
+      "Activity Stats & Analytics",
+      "Host & Integrated Community"
+    ],
+    "viewMore": "Learn More"
+  },
+  "stats": {
+    "sellers": "Registered Sellers",
+    "satisfaction": "Satisfaction",
+    "regions": "Active Regions",
+    "salesRecords": "Sales Records"
+  },
+  "cta": {
+    "badge": "GET STARTED",
+    "heading": "Get Started Now",
+    "desc": "Experience all SpaceMatch features with a free sign-up! If you have any questions, feel free to reach out anytime!",
+    "learnMore": "Learn More",
+    "freeSignup": "Start as Seller",
+    "inquiry": "💬 Contact Us",
+    "alreadyHaveAccount": "Already have an account?",
+    "login": "Log In"
+  },
+  "servicesPage": {
+    "heroTitle1": "SpaceMatch",
+    "heroTitle2": "Core Services",
+    "heroDesc": "An all-in-one platform for the perfect connection between spaces and brands. From discovery to matching and operations — all in one place.",
+    "service1": {
+      "title": "Space & Seller Search",
+      "subtitle": "Discovery & Search",
+      "desc": "Search nationwide popup stores, galleries, cafes, showrooms, and more — all brands and spaces in one place.",
+      "features": [
+        "Detailed filtering by region, type & size",
+        "D-Day countdown for deadlines",
+        "View space photos & details",
+        "Seller/Host profiles & portfolios"
+      ]
     },
-    "howItWorksSteps": {
-        "step1Title": "Register Your Space",
-        "step1Desc": "Register your space and enter detailed information",
-        "step2Title": "Seller Matching",
-        "step2Desc": "AI recommends the best sellers for your space",
-        "step3Title": "Sign Agreement",
-        "step3Desc": "Quick and easy contract process to get started",
-        "step4Title": "Start Operations",
-        "step4Desc": "Monitor operations from your dashboard"
+    "service2": {
+      "title": "Application & Matching",
+      "subtitle": "Application & Matching",
+      "desc": "Apply to your favorite space with one click! Check approval status in real-time.",
+      "features": [
+        "One-click application",
+        "Real-time application tracking",
+        "Approval/rejection workflow",
+        "Cancellation request management"
+      ]
     },
-    "footer": {
-        "company": "About Us",
-        "terms": "Terms of Service",
-        "privacy": "Privacy Policy",
-        "contact": "Contact",
-        "representative": "Phone",
-        "email": "Email",
-        "copyright": "© {{year}} SpaceMatch. All rights reserved.",
-        "businessInfo": "SpaceMatch · CEO Sewoong Baek · Business No. 638-20-02679 · Yongsan-gu, Seoul"
+    "service3": {
+      "title": "Dashboard & Analytics",
+      "subtitle": "Dashboard & Analytics",
+      "desc": "Make better business decisions with data-driven insights from activity stats and regional analysis.",
+      "features": [
+        "Real-time activity dashboard",
+        "Regional & type-based analytics",
+        "Space & brand operation overview",
+        "Commission rate & contract management"
+      ]
     },
-    "nav": {
-        "home": "Home",
-        "services": "Services",
-        "howItWorks": "How It Works",
-        "about": "About",
-        "contact": "Contact",
-        "login": "Log In",
-        "signup": "Sign Up",
-        "myPage": "My Page"
+    "service4": {
+      "title": "Community & Networking",
+      "subtitle": "Community",
+      "desc": "A dedicated community where sellers and hosts can freely communicate and share information. Find industry know-how and partners.",
+      "features": [
+        "Seller / Host / Integrated boards",
+        "Photo upload & label tagging",
+        "Auto-sort by popularity",
+        "Real-time notification updates"
+      ]
     },
-    "recruitment": {
-        "title": "Space Recruitment",
-        "subtitle": "Discover a variety of popup spaces",
-        "searchPlaceholder": "Search by name or location..."
+    "ctaTitle": "Ready to Start?",
+    "ctaDesc": "Sign up for free and experience all SpaceMatch services.",
+    "ctaSignup": "Free Sign Up",
+    "ctaHowItWorks": "View How It Works"
+  },
+  "howItWorksPage": {
+    "heroTitle1": "Start in 3 Simple Steps",
+    "heroTitle2": "Begin Matching",
+    "heroDesc": "We provide customized processes for both sellers and space providers. No complicated procedures — start quickly and easily.",
+    "sellerBadge": "🛍️ Brands (Sellers)",
+    "sellerTitle": "How to Use as a Seller",
+    "sellerStep1": {
+      "title": "Sign Up",
+      "desc": "Create a seller account easily with just your email and basic info. Enter your business number, brand name, category, etc.",
+      "details": [
+        "Quick registration via email verification",
+        "Enter business info & brand introduction",
+        "Select product category (15 categories + other)",
+        "Upload profile photo & portfolio"
+      ]
     },
-    "heroBadge": "The platform connecting the best spaces",
-    "heroHeading1": "Find the",
-    "heroHeading2": "Perfect Space",
-    "heroHeading3": " for Your Brand",
-    "heroDesc": "We match your brand with popup stores, galleries, showrooms, and more. Start now with SpaceMatch!",
-    "heroBestSpaces": "Best spaces curated by SpaceMatch",
-    "heroLearnMore": "Learn More",
-    "heroSafeMatch": "Safe Matching",
-    "heroFastEntry": "Quick Setup",
-    "heroVerifiedSpaces": "Verified Spaces",
-    "hotRecruitment": "HOT RECRUITMENT",
-    "hotTitle1": "Trending",
-    "hotTitle2": "Recruitments",
-    "hotDesc": "Check out the hottest recruitment spaces selected by our team!",
-    "hotClosed": "Closed",
-    "hotVenueType": {
-        "popup": "Popup Store",
-        "gallery": "Gallery",
-        "cafe": "Cafe",
-        "showroom": "Showroom",
-        "fleamarket": "Flea Market",
-        "other": "Other"
+    "sellerStep2": {
+      "title": "Browse Spaces & Apply",
+      "desc": "Find spaces matching your criteria on the vendor search page. Apply to your favorite spaces directly.",
+      "details": [
+        "Search by region, type & size",
+        "View space details & photos",
+        "Track deadlines with D-Day countdown",
+        "Complete application with one click"
+      ]
     },
-    "hotSpaceProvider": "Space Provider",
-    "hotLocationTBD": "Location TBD",
-    "hotDeadline": "Deadline: {{date}}",
-    "hotApply": "Apply Now",
-    "hotLike": "Like",
-    "hotShare": "Share",
-    "hotCopied": "Link copied! 📋",
-    "hotUsageGuide": "Usage Guide",
-    "servicesSection": {
-        "badge": "SERVICES",
-        "heading1": "Core Services",
-        "heading2": "from SpaceMatch",
-        "desc": "The only matching platform for both sellers and space providers",
-        "spaceSearch": "Space Search",
-        "spaceSearchDesc": "Quickly find the space you want with filters by region, type, and size — from popups to galleries, cafes, and showrooms across the country.",
-        "applicationMgmt": "Application & Management",
-        "applicationMgmtDesc": "Apply for a space with one click! Check approval status in real-time.",
-        "statsAnalytics": "Stats & Analytics",
-        "statsAnalyticsDesc": "Make better business decisions with data-driven insights including activity stats and regional analysis.",
-        "community": "Community",
-        "communityDesc": "Share info, network, and find partners in seller/vendor boards and the integrated community.",
-        "viewMore": "View Services in Detail"
+    "sellerStep3": {
+      "title": "Match & Start Operations",
+      "desc": "Once the space provider approves your application, matching is complete. Manage all your entry status in real-time from your dashboard.",
+      "details": [
+        "Real-time approval/rejection notifications",
+        "View commission rates & contract terms",
+        "Entry history & status dashboard",
+        "Communication & networking via community"
+      ]
     },
-    "adRecommended": "Recommended",
-    "adSponsor": "Sponsor",
-    "howSection": {
-        "badge": "HOW IT WORKS",
-        "heading1": "Get Started in",
-        "heading2": "3 Easy Steps",
-        "desc": "No complicated procedures — start matching in just 3 simple steps",
-        "step1": "Sign Up",
-        "step1Desc": "Create a seller or vendor account with just your email and basic info. Enter your business number and brand details to complete!",
-        "step2": "Browse Spaces / Brands",
-        "step2Desc": "Explore spaces and brands by region, type, and size from your dashboard. Check urgent recruitments with D-Day countdown!",
-        "step3": "Apply & Match",
-        "step3Desc": "Apply with one click! Once the space provider approves, you're matched. Manage your applications and stats in real-time from your dashboard.",
-        "viewMore": "View How It Works in Detail"
+    "hostBadge": "🏢 Space Providers (Hosts)",
+    "hostTitle": "How to Use as a Host",
+    "hostStep1": {
+      "title": "Register Your Space",
+      "desc": "Register your space information. Enter details like location, size, type, price, commission rate, and upload photos.",
+      "details": [
+        "Easy location entry via address search",
+        "Add space photos & descriptions",
+        "Set pricing & commission rates",
+        "Set recruitment deadline (D-Day)"
+      ]
     },
-    "forWho": {
-        "badge": "WHO IS IT FOR",
-        "heading1": "A Platform for",
-        "heading2": "Everyone",
-        "sellerTitle": "Brands (Sellers)",
-        "sellerDesc": "A service for brand owners looking for the optimal popup store, gallery, showroom, and more.",
-        "sellerFeatures": [
-            "Vendor (Space) Search & Filtering",
-            "One-Click Application",
-            "Real-time Application Status",
-            "Activity Stats & Analytics",
-            "Seller & Integrated Community",
-            "Profile & Portfolio Management"
-        ],
-        "vendorTitle": "Space Providers (Vendors)",
-        "vendorDesc": "A service for space owners who want to efficiently recruit and manage brands for their spaces.",
-        "vendorFeatures": [
-            "Space Registration & Photo Mgmt",
-            "Approve/Reject Applications",
-            "Seller Search & Recruitment",
-            "Cancellation Management",
-            "Activity Stats & Analytics",
-            "Vendor & Integrated Community"
-        ],
-        "viewMore": "Learn More"
+    "hostStep2": {
+      "title": "Search Sellers & Recruit",
+      "desc": "Search for brands on the seller directory and find sellers suited for your space. Quickly filter by category!",
+      "details": [
+        "Filter sellers by category",
+        "View seller profiles & portfolios",
+        "Search by product category",
+        "Exchange info in vendor community"
+      ]
     },
-    "stats": {
-        "sellers": "Registered Sellers",
-        "spaces": "Registered Spaces",
-        "matches": "Matches Completed",
-        "satisfaction": "Satisfaction"
+    "hostStep3": {
+      "title": "Approve & Manage",
+      "desc": "Review and approve/reject seller applications. Manage entry status and recruitment progress for each space from your dashboard.",
+      "details": [
+        "Approval/rejection workflow",
+        "View brands per space",
+        "Manage cancellation requests",
+        "Activity stats & regional analysis"
+      ]
     },
-    "cta": {
-        "badge": "GET STARTED",
-        "heading": "Get Started Now",
-        "desc": "Experience all SpaceMatch features with a free sign-up! If you have any questions, feel free to reach out anytime!",
-        "learnMore": "Learn More",
-        "freeSignup": "Free Sign Up",
-        "inquiry": "💬 Contact Us",
-        "alreadyHaveAccount": "Already have an account?",
-        "login": "Log In"
+    "faqTitle": "FAQ",
+    "faqSubtitle": "Find answers to common questions",
+    "faq": [
+      {
+        "q": "Are there any signup or usage fees?",
+        "a": "Registration and basic service usage are free. Premium features will be announced later.",
+        "icon": "💰"
+      },
+      {
+        "q": "What types of spaces can be registered?",
+        "a": "You can register various types including popup stores, galleries, cafes, showrooms, department store popup zones, and shared offices.",
+        "icon": "🏢"
+      },
+      {
+        "q": "How long does approval take after applying?",
+        "a": "Since the space provider reviews applications directly, processing time may vary. Typically, you can expect results within 1-3 business days.",
+        "icon": "⏱️"
+      },
+      {
+        "q": "Can I apply to multiple spaces at once?",
+        "a": "Yes, sellers can apply to multiple spaces simultaneously. Manage all application statuses at a glance from your dashboard.",
+        "icon": "🏪"
+      }
+    ],
+    "ctaTitle": "Get Started Now",
+    "ctaDesc": "Whether you're a seller or vendor, sign up in just 1 minute!",
+    "ctaSignup": "Free Sign Up"
+  },
+  "aboutPage": {
+    "heroTitle1": "Spaces and Brands,",
+    "heroTitle2": "A New Connection",
+    "heroDesc": "SpaceMatch connects vacant spaces with growing brands to create new business opportunities as a matching platform.",
+    "missionDesc": "We breathe new life into vacant spaces nationwide and provide the optimal stage for growing brands. SpaceMatch serves as a bridge to maximize the value of spaces and expand the customer touchpoints for brands.",
+    "visionDesc": "As Korea's No.1 space-brand matching platform, we are building an ecosystem where anyone can easily start a popup store. We bridge the gap between online and offline, leading a new retail experience.",
+    "valuesTitle": "Core Values",
+    "valuesSubtitle": "Three principles that guide SpaceMatch",
+    "trust": {
+      "title": "Trust",
+      "desc": "We create a reliable matching environment based on verified business and space information, and guarantee transparent processes."
     },
-    "servicesPage": {
-        "heroTitle1": "SpaceMatch",
-        "heroTitle2": "Core Services",
-        "heroDesc": "An all-in-one platform for the perfect connection between spaces and brands. From discovery to matching and operations — all in one place.",
-        "service1": {
-            "title": "Space & Seller Search",
-            "subtitle": "Discovery & Search",
-            "desc": "Search nationwide popup stores, galleries, cafes, showrooms, and more — all brands and spaces in one place.",
-            "features": [
-                "Detailed filtering by region, type & size",
-                "D-Day countdown for deadlines",
-                "View space photos & details",
-                "Seller/Vendor profiles & portfolios"
-            ]
-        },
-        "service2": {
-            "title": "Application & Matching",
-            "subtitle": "Application & Matching",
-            "desc": "Apply to your favorite space with one click! Check approval status in real-time.",
-            "features": [
-                "One-click application",
-                "Real-time application tracking",
-                "Approval/rejection workflow",
-                "Cancellation request management"
-            ]
-        },
-        "service3": {
-            "title": "Dashboard & Analytics",
-            "subtitle": "Dashboard & Analytics",
-            "desc": "Make better business decisions with data-driven insights from activity stats and regional analysis.",
-            "features": [
-                "Real-time activity dashboard",
-                "Regional & type-based analytics",
-                "Space & brand operation overview",
-                "Commission rate & contract management"
-            ]
-        },
-        "service4": {
-            "title": "Community & Networking",
-            "subtitle": "Community",
-            "desc": "A dedicated community where sellers and vendors can freely communicate and share information. Find industry know-how and partners.",
-            "features": [
-                "Seller / Vendor / Integrated boards",
-                "Photo upload & label tagging",
-                "Auto-sort by popularity",
-                "Real-time notification updates"
-            ]
-        },
-        "ctaTitle": "Ready to Start?",
-        "ctaDesc": "Sign up for free and experience all SpaceMatch services.",
-        "ctaSignup": "Free Sign Up",
-        "ctaHowItWorks": "View How It Works"
+    "innovation": {
+      "title": "Innovation",
+      "desc": "We simplify the traditional cumbersome space leasing process with an intuitive dashboard and statistical analysis."
     },
-    "howItWorksPage": {
-        "heroTitle1": "Start in 3 Simple Steps",
-        "heroTitle2": "Begin Matching",
-        "heroDesc": "We provide customized processes for both sellers and space providers. No complicated procedures — start quickly and easily.",
-        "sellerBadge": "🛍️ Brands (Sellers)",
-        "sellerTitle": "How to Use as a Seller",
-        "sellerStep1": {
-            "title": "Sign Up",
-            "desc": "Create a seller account easily with just your email and basic info. Enter your business number, brand name, category, etc.",
-            "details": [
-                "Quick registration via email verification",
-                "Enter business info & brand introduction",
-                "Select product category (15 categories + other)",
-                "Upload profile photo & portfolio"
-            ]
-        },
-        "sellerStep2": {
-            "title": "Browse Spaces & Apply",
-            "desc": "Find spaces matching your criteria on the vendor search page. Apply to your favorite spaces directly.",
-            "details": [
-                "Search by region, type & size",
-                "View space details & photos",
-                "Track deadlines with D-Day countdown",
-                "Complete application with one click"
-            ]
-        },
-        "sellerStep3": {
-            "title": "Match & Start Operations",
-            "desc": "Once the space provider approves your application, matching is complete. Manage all your entry status in real-time from your dashboard.",
-            "details": [
-                "Real-time approval/rejection notifications",
-                "View commission rates & contract terms",
-                "Entry history & status dashboard",
-                "Communication & networking via community"
-            ]
-        },
-        "vendorBadge": "🏢 Space Providers (Vendors)",
-        "vendorTitle": "How to Use as a Vendor",
-        "vendorStep1": {
-            "title": "Register Your Space",
-            "desc": "Register your space information. Enter details like location, size, type, price, commission rate, and upload photos.",
-            "details": [
-                "Easy location entry via address search",
-                "Add space photos & descriptions",
-                "Set pricing & commission rates",
-                "Set recruitment deadline (D-Day)"
-            ]
-        },
-        "vendorStep2": {
-            "title": "Search Sellers & Recruit",
-            "desc": "Search for brands on the seller directory and find sellers suited for your space. Quickly filter by category!",
-            "details": [
-                "Filter sellers by category",
-                "View seller profiles & portfolios",
-                "Search by product category",
-                "Exchange info in vendor community"
-            ]
-        },
-        "vendorStep3": {
-            "title": "Approve & Manage",
-            "desc": "Review and approve/reject seller applications. Manage entry status and recruitment progress for each space from your dashboard.",
-            "details": [
-                "Approval/rejection workflow",
-                "View brands per space",
-                "Manage cancellation requests",
-                "Activity stats & regional analysis"
-            ]
-        },
-        "faqTitle": "FAQ",
-        "faqSubtitle": "Find answers to common questions",
-        "faq": [
-            {
-                "q": "Are there any signup or usage fees?",
-                "a": "Registration and basic service usage are free. Premium features will be announced later.",
-                "icon": "💰"
-            },
-            {
-                "q": "What types of spaces can be registered?",
-                "a": "You can register various types including popup stores, galleries, cafes, showrooms, department store popup zones, and shared offices.",
-                "icon": "🏢"
-            },
-            {
-                "q": "How long does approval take after applying?",
-                "a": "Since the space provider reviews applications directly, processing time may vary. Typically, you can expect results within 1-3 business days.",
-                "icon": "⏱️"
-            },
-            {
-                "q": "Can I apply to multiple spaces at once?",
-                "a": "Yes, sellers can apply to multiple spaces simultaneously. Manage all application statuses at a glance from your dashboard.",
-                "icon": "🏪"
-            }
-        ],
-        "ctaTitle": "Get Started Now",
-        "ctaDesc": "Whether you're a seller or vendor, sign up in just 1 minute!",
-        "ctaSignup": "Free Sign Up"
+    "winwin": {
+      "title": "Win-Win",
+      "desc": "We pursue a win-win model where space providers gain revenue and brands gain growth."
     },
-    "aboutPage": {
-        "heroTitle1": "Spaces and Brands,",
-        "heroTitle2": "A New Connection",
-        "heroDesc": "SpaceMatch connects vacant spaces with growing brands to create new business opportunities as a matching platform.",
-        "missionDesc": "We breathe new life into vacant spaces nationwide and provide the optimal stage for growing brands. SpaceMatch serves as a bridge to maximize the value of spaces and expand the customer touchpoints for brands.",
-        "visionDesc": "As Korea's No.1 space-brand matching platform, we are building an ecosystem where anyone can easily start a popup store. We bridge the gap between online and offline, leading a new retail experience.",
-        "valuesTitle": "Core Values",
-        "valuesSubtitle": "Three principles that guide SpaceMatch",
-        "trust": {
-            "title": "Trust",
-            "desc": "We create a reliable matching environment based on verified business and space information, and guarantee transparent processes."
-        },
-        "innovation": {
-            "title": "Innovation",
-            "desc": "We simplify the traditional cumbersome space leasing process with an intuitive dashboard and statistical analysis."
-        },
-        "winwin": {
-            "title": "Win-Win",
-            "desc": "We pursue a win-win model where space providers gain revenue and brands gain growth."
-        },
-        "whoTitle": "Built for You",
-        "sellerTitle": "Brands (Sellers)",
-        "sellerSubtitle": "Brand Owners",
-        "sellerDesc": "A service for brands and businesses who want to meet customers directly through popup stores, exhibitions, and experience zones.",
-        "sellerFeatures": [
-            "Vendor (Space) Search & Filtering",
-            "One-Click Application",
-            "Real-time Application Tracking",
-            "Activity Stats & Regional Analysis",
-            "Seller & Integrated Community",
-            "Profile & Portfolio Management"
-        ],
-        "vendorTitle": "Space Providers (Vendors)",
-        "vendorSubtitle": "Space Owners",
-        "vendorDesc": "A service for space owners and managers who want to increase the value of their spaces and attract various brands.",
-        "vendorFeatures": [
-            "Space Registration & Photo Mgmt",
-            "Application Approval/Rejection Workflow",
-            "Seller Search & Recruitment",
-            "Cancellation Request Mgmt",
-            "Activity Stats & Regional Analysis",
-            "Vendor & Integrated Community"
-        ],
-        "ctaTitle": "Join SpaceMatch",
-        "ctaDesc": "Start the new meeting of spaces and brands today.",
-        "ctaSignup": "Free Sign Up",
-        "ctaServices": "Explore Services"
-    },
-    "contactPage": {
-        "heroTitle1": "Have",
-        "heroTitle2": "Questions?",
-        "heroDesc": "The SpaceMatch team is here to help. Feel free to contact us through any convenient method.",
-        "kakaoTitle": "KakaoTalk Support",
-        "kakaoDesc": "You can inquire in real-time through our KakaoTalk channel. We provide quick responses during business hours.",
-        "kakaoAction": "Start Chat",
-        "phoneTitle": "Phone Inquiry",
-        "phoneDesc": "For direct phone consultation, please call the number below. Available during business days.",
-        "otherInfo": "Other Information",
-        "address": "Address",
-        "addressValue": "Ichon-ro, Yongsan-gu, Seoul",
-        "hours": "Business Hours",
-        "hoursValue": "Weekdays 09:00 ~ 18:00",
-        "hoursNote": "Weekends/holidays: KakaoTalk only",
-        "quickResponse": "Quick Response",
-        "quickResponseValue": "KakaoTalk recommended",
-        "quickResponseNote": "Average 1-hour response time",
-        "ctaTitle": "Not a member yet?",
-        "ctaDesc": "Sign up for free to access space discovery and brand matching services.",
-        "ctaSignup": "Free Sign Up",
-        "ctaLogin": "Log In"
-    }
+    "whoTitle": "Built for You",
+    "sellerTitle": "Brands (Sellers)",
+    "sellerSubtitle": "Brand Owners",
+    "sellerDesc": "A service for brands and businesses who want to meet customers directly through popup stores, exhibitions, and experience zones.",
+    "sellerFeatures": [
+      "Host (Space) Search & Filtering",
+      "One-Click Application",
+      "Real-time Application Tracking",
+      "Activity Stats & Regional Analysis",
+      "Seller & Integrated Community",
+      "Profile & Portfolio Management"
+    ],
+    "hostTitle": "Space Providers (Hosts)",
+    "hostSubtitle": "Space Owners",
+    "hostDesc": "A service for space owners and managers who want to increase the value of their spaces and attract various brands.",
+    "hostFeatures": [
+      "Space Registration & Photo Mgmt",
+      "Application Approval/Rejection Workflow",
+      "Seller Search & Recruitment",
+      "Cancellation Request Mgmt",
+      "Activity Stats & Regional Analysis",
+      "Host & Integrated Community"
+    ],
+    "ctaTitle": "Join SpaceMatch",
+    "ctaDesc": "Start the new meeting of spaces and brands today.",
+    "ctaSignup": "Free Sign Up",
+    "ctaServices": "Explore Services"
+  },
+  "contactPage": {
+    "heroTitle1": "Have",
+    "heroTitle2": "Questions?",
+    "heroDesc": "The SpaceMatch team is here to help. Feel free to contact us through any convenient method.",
+    "kakaoTitle": "KakaoTalk Support",
+    "kakaoDesc": "You can inquire in real-time through our KakaoTalk channel. We provide quick responses during business hours.",
+    "kakaoAction": "Start Chat",
+    "phoneTitle": "Phone Inquiry",
+    "phoneDesc": "For direct phone consultation, please call the number below. Available during business days.",
+    "otherInfo": "Other Information",
+    "address": "Address",
+    "addressValue": "Ichon-ro, Yongsan-gu, Seoul",
+    "hours": "Business Hours",
+    "hoursValue": "Weekdays 09:00 ~ 18:00",
+    "hoursNote": "Weekends/holidays: KakaoTalk only",
+    "quickResponse": "Quick Response",
+    "quickResponseValue": "KakaoTalk recommended",
+    "quickResponseNote": "Average 1-hour response time",
+    "ctaTitle": "Not a member yet?",
+    "ctaDesc": "Sign up for free to access space discovery and brand matching services.",
+    "ctaSignup": "Free Sign Up",
+    "ctaLogin": "Log In",
+    "emailTitle": "Email Inquiry",
+    "emailDesc": "Send us your questions via email and we will respond promptly."
+  },
+  "features": {
+    "salesDashboard": "CRM Dashboard"
+  }
 }

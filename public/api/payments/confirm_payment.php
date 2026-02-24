@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 $userRole = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? '');
@@ -51,6 +52,30 @@ try {
     $link = "/{$userRole}/payments";
     $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'payment_result', ?, ?)");
     $notifStmt->execute([$payment['user_id'], $notifMsg, $link]);
+
+    // [EMAIL] 결제 확인/거절 이메일 알림 (다국어)
+    try {
+        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+        $emailAction = $action === 'confirm' ? 'confirmed' : 'rejected';
+        $_ea = $emailAction;
+        $_an = $admin_note;
+        $_lk = $link;
+        sendEmailToUser(
+            $conn,
+            $payment['user_id'],
+            '',
+            '',
+            'cat_payment',
+            function ($lang) use ($_ea, $_an, $siteUrl, $_lk) {
+                $labels = _t(['ko' => ['confirmed' => '확인', 'rejected' => '거절'], 'en' => ['confirmed' => 'Confirmed', 'rejected' => 'Rejected'], 'ja' => ['confirmed' => '確認', 'rejected' => '拒否'], 'vi' => ['confirmed' => 'Xác nhận', 'rejected' => 'Từ chối'], 'th' => ['confirmed' => 'ยืนยัน', 'rejected' => 'ปฏิเสธ']], $lang);
+                $label = $labels[$_ea] ?? $_ea;
+                $subj = _t(['ko' => "결제가 {$label}되었습니다", 'en' => "Payment {$label}", 'ja' => "決済が{$label}されました", 'vi' => "Thanh toán đã {$label}", 'th' => "การชำระเงิน{$label}แล้ว"], $lang);
+                return ['subject' => $subj, 'html' => emailTemplatePayment($_ea, $_an, $siteUrl, $_lk, $lang)];
+            }
+        );
+    } catch (Exception $emailErr) {
+        error_log("Email error (payment_result): " . $emailErr->getMessage());
+    }
 
     echo json_encode(['success' => true, 'message' => "결제가 {$actionLabel}되었습니다."]);
 } catch (PDOException $e) {

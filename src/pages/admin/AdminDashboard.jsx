@@ -87,8 +87,8 @@ const AdminDashboard = () => {
         return t('dashboardPage.daysAgo', { count: Math.floor(diff / 86400000) });
     };
 
-    const roleLabel = (role) => ({ admin: t('dashboardPage.roleAdmin'), superadmin: t('dashboardPage.roleSuperadmin'), seller: t('dashboardPage.roleSeller'), vendor: t('dashboardPage.roleVendor') }[role] || role);
-    const roleColor = (role) => ({ admin: '#6d69f1', superadmin: '#e53e3e', seller: '#38a169', vendor: '#d69e2e' }[role] || '#718096');
+    const roleLabel = (role) => ({ admin: t('dashboardPage.roleAdmin'), superadmin: t('dashboardPage.roleSuperadmin'), seller: t('dashboardPage.roleSeller'), vendor: t('dashboardPage.roleHost') }[role] || role);
+    const roleColor = (role) => ({ admin: '#6d69f1', superadmin: '#e53e3e', seller: '#38a169', host: '#d69e2e' }[role] || '#718096');
 
     const stats = useMemo(() => {
         const totalVenues = venues.length;

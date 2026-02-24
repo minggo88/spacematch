@@ -8,10 +8,133 @@ import VenueDetailModal from '../../components/VenueDetailModal';
 import KakaoMap from '../../components/KakaoMap';
 import AdSlot from '../../components/AdSlot';
 import { COUNTRY_FLAGS } from '../../components/CountryBadge';
+import { useDemoGuard } from '../../hooks/useDemoGuard';
 
 const API_BASE = '/api';
 
 // TYPE_LABELS moved to translation: seller:typeLabels.*
+
+// ─── Region options by country ───
+const REGION_OPTIONS_BY_COUNTRY = {
+    'ko': [
+        { value: '서울특별시', label: '서울' },
+        { value: '경기도', label: '경기도' },
+        { value: '인천광역시', label: '인천' },
+        { value: '대전광역시', label: '대전' },
+        { value: '대구광역시', label: '대구' },
+        { value: '광주광역시', label: '광주' },
+        { value: '울산광역시', label: '울산' },
+        { value: '부산광역시', label: '부산' },
+        { value: '제주특별자치도', label: '제주' },
+        { value: '강원도', label: '강원' },
+    ],
+    'en': [
+        { value: 'New York', label: 'New York' },
+        { value: 'California', label: 'California' },
+        { value: 'Texas', label: 'Texas' },
+        { value: 'Florida', label: 'Florida' },
+        { value: 'Illinois', label: 'Illinois' },
+        { value: 'Washington', label: 'Washington' },
+        { value: 'Georgia', label: 'Georgia' },
+        { value: 'Massachusetts', label: 'Massachusetts' },
+        { value: 'Pennsylvania', label: 'Pennsylvania' },
+        { value: 'Nevada', label: 'Nevada' },
+        { value: 'Hawaii', label: 'Hawaii' },
+    ],
+    'en-GB': [
+        { value: 'London', label: 'London' },
+        { value: 'Manchester', label: 'Manchester' },
+        { value: 'Birmingham', label: 'Birmingham' },
+        { value: 'Edinburgh', label: 'Edinburgh' },
+        { value: 'Glasgow', label: 'Glasgow' },
+        { value: 'Liverpool', label: 'Liverpool' },
+        { value: 'Bristol', label: 'Bristol' },
+        { value: 'Cardiff', label: 'Cardiff' },
+        { value: 'Belfast', label: 'Belfast' },
+        { value: 'Leeds', label: 'Leeds' },
+    ],
+    'en-CA': [
+        { value: 'Ontario', label: 'Ontario' },
+        { value: 'British Columbia', label: 'British Columbia' },
+        { value: 'Quebec', label: 'Quebec' },
+        { value: 'Alberta', label: 'Alberta' },
+        { value: 'Manitoba', label: 'Manitoba' },
+        { value: 'Saskatchewan', label: 'Saskatchewan' },
+        { value: 'Nova Scotia', label: 'Nova Scotia' },
+    ],
+    'fr-CA': [
+        { value: 'Ontario', label: 'Ontario' },
+        { value: 'Colombie-Britannique', label: 'Colombie-Britannique' },
+        { value: 'Québec', label: 'Québec' },
+        { value: 'Alberta', label: 'Alberta' },
+        { value: 'Manitoba', label: 'Manitoba' },
+        { value: 'Saskatchewan', label: 'Saskatchewan' },
+        { value: 'Nouvelle-Écosse', label: 'Nouvelle-Écosse' },
+    ],
+    'ja': [
+        { value: '東京都', label: '東京都' },
+        { value: '大阪府', label: '大阪府' },
+        { value: '京都府', label: '京都府' },
+        { value: '北海道', label: '北海道' },
+        { value: '愛知県', label: '愛知県' },
+        { value: '福岡県', label: '福岡県' },
+        { value: '神奈川県', label: '神奈川県' },
+        { value: '兵庫県', label: '兵庫県' },
+        { value: '広島県', label: '広島県' },
+        { value: '沖縄県', label: '沖縄県' },
+    ],
+    'vi': [
+        { value: 'Hà Nội', label: 'Hà Nội' },
+        { value: 'TP. Hồ Chí Minh', label: 'TP. HCM' },
+        { value: 'Đà Nẵng', label: 'Đà Nẵng' },
+        { value: 'Hải Phòng', label: 'Hải Phòng' },
+        { value: 'Cần Thơ', label: 'Cần Thơ' },
+        { value: 'Nha Trang', label: 'Nha Trang' },
+        { value: 'Huế', label: 'Huế' },
+        { value: 'Đà Lạt', label: 'Đà Lạt' },
+        { value: 'Vũng Tàu', label: 'Vũng Tàu' },
+    ],
+    'th': [
+        { value: 'กรุงเทพมหานคร', label: 'กรุงเทพฯ' },
+        { value: 'เชียงใหม่', label: 'เชียงใหม่' },
+        { value: 'ภูเก็ต', label: 'ภูเก็ต' },
+        { value: 'พัทยา', label: 'พัทยา' },
+        { value: 'เชียงราย', label: 'เชียงราย' },
+        { value: 'ขอนแก่น', label: 'ขอนแก่น' },
+        { value: 'สงขลา', label: 'สงขลา' },
+    ],
+    'km': [
+        { value: 'ភ្នំពេញ', label: 'ភ្នំពេញ' },
+        { value: 'សៀមរាប', label: 'សៀមរាប' },
+        { value: 'បាត់ដំបង', label: 'បាត់ដំបង' },
+        { value: 'ព្រះសីហនុ', label: 'ព្រះសីហនុ' },
+        { value: 'កំពង់ចាម', label: 'កំពង់ចាម' },
+        { value: 'កំពត', label: 'កំពត' },
+    ],
+    'ru': [
+        { value: 'Москва', label: 'Москва' },
+        { value: 'Санкт-Петербург', label: 'С.-Петербург' },
+        { value: 'Новосибирск', label: 'Новосибирск' },
+        { value: 'Екатеринбург', label: 'Екатеринбург' },
+        { value: 'Казань', label: 'Казань' },
+        { value: 'Владивосток', label: 'Владивосток' },
+        { value: 'Сочи', label: 'Сочи' },
+    ],
+    'uk': [
+        { value: 'Київ', label: 'Київ' },
+        { value: 'Харків', label: 'Харків' },
+        { value: 'Одеса', label: 'Одеса' },
+        { value: 'Дніпро', label: 'Дніпро' },
+        { value: 'Львів', label: 'Львів' },
+        { value: 'Запоріжжя', label: 'Запоріжжя' },
+        { value: 'Вінниця', label: 'Вінниця' },
+    ],
+};
+
+const getRegionOptions = (code) => {
+    if (!code || code === 'all') return REGION_OPTIONS_BY_COUNTRY['ko'];
+    return REGION_OPTIONS_BY_COUNTRY[code] || REGION_OPTIONS_BY_COUNTRY['ko'];
+};
 
 const SellerDashboard = () => {
     const { venues, applyForVenue, applications, wishlist, toggleWishlist } = useData();
@@ -31,6 +154,7 @@ const SellerDashboard = () => {
     const [showMap, setShowMap] = useState(true);
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const [countryFilter, setCountryFilter] = useState(user?.country || 'all');
+    const [sortOrder, setSortOrder] = useState('latest');
     const [heroIndex, setHeroIndex] = useState(0);
     const trendingRef = useRef(null);
     const hotPromoRef = useRef(null);
@@ -64,6 +188,11 @@ const SellerDashboard = () => {
             }
         }
     }, [location.search, venues]);
+
+    // Reset filterLocation when country changes
+    useEffect(() => {
+        setFilterLocation('all');
+    }, [countryFilter]);
 
     const fetchHotPlaces = async () => {
         try {
@@ -107,13 +236,16 @@ const SellerDashboard = () => {
     const [useFasttrack, setUseFasttrack] = useState(false);
     const [fasttrackInfo, setFasttrackInfo] = useState(null); // { hasAccess, auto_apply, monthly_limit, monthly_used }
 
-    // Check if user is a vendor (vendors cannot apply)
-    const isVendor = user?.role === 'vendor';
+    // Check if user is a host (hosts cannot apply)
+    const isHost = user?.role === 'host';
     const isAdminOrSuper = user?.role === 'admin' || user?.role === 'superadmin';
 
+    const { isDemoUser, demoAlert } = useDemoGuard();
+
     const handleApply = (venue) => {
-        if (isVendor) {
-            alert(t('vendorCannotApplyAlert'));
+        if (isDemoUser) { demoAlert('입점 신청'); return; }
+        if (isHost) {
+            alert(t('hostCannotApplyAlert'));
             return;
         }
         setApplyModalVenue(venue);
@@ -166,8 +298,8 @@ const SellerDashboard = () => {
                 const role = user?.role;
                 if (role === 'admin' || role === 'superadmin') {
                     navigate('/admin/applications');
-                } else if (role === 'vendor') {
-                    navigate('/vendor/dashboard');
+                } else if (role === 'host') {
+                    navigate('/host/dashboard');
                 } else {
                     navigate('/seller/applications');
                 }
@@ -213,7 +345,7 @@ const SellerDashboard = () => {
 
     // All venues (filtered)
     const filteredVenues = useMemo(() => {
-        return venues.filter(venue => {
+        const filtered = venues.filter(venue => {
             const matchesSearch = venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 venue.location.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesType = filterType === 'all' || venue.type === filterType;
@@ -241,7 +373,28 @@ const SellerDashboard = () => {
 
             return matchesSearch && matchesType && matchesLocation && matchesPrice && matchesWishlist && matchesMine && matchesCountry;
         });
-    }, [venues, searchTerm, filterType, filterLocation, priceRange, showWishlistOnly, showMyVenuesOnly, wishlist, user.email, user.id, countryFilter]);
+        // Apply sorting
+        const sorted = [...filtered];
+        if (sortOrder === 'priceAsc') sorted.sort((a, b) => (parseInt(a.price) || 0) - (parseInt(b.price) || 0));
+        else if (sortOrder === 'priceDesc') sorted.sort((a, b) => (parseInt(b.price) || 0) - (parseInt(a.price) || 0));
+        else if (sortOrder === 'popular') sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+        else sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        return sorted;
+    }, [venues, searchTerm, filterType, filterLocation, priceRange, showWishlistOnly, showMyVenuesOnly, wishlist, user.email, user.id, countryFilter, sortOrder]);
+
+    // Country-level stats for the stats card
+    const countryStats = useMemo(() => {
+        const target = countryFilter === 'all' ? venues : venues.filter(v => v.owner_country === countryFilter);
+        const totalCount = target.length;
+        const prices = target.map(v => parseInt(v.price) || 0).filter(p => p > 0);
+        const avgPrice = prices.length ? Math.round(prices.reduce((s, p) => s + p, 0) / prices.length) : 0;
+        const activeCount = target.filter(v => {
+            const cur = parseInt(v.current_sellers) || 0;
+            const max = parseInt(v.max_sellers) || 0;
+            return max === 0 || cur < max;
+        }).length;
+        return { totalCount, avgPrice, activeCount };
+    }, [venues, countryFilter]);
 
     // Card Components
 
@@ -429,9 +582,9 @@ const SellerDashboard = () => {
                         );
                     })()}
 
-                    {isVendor ? (
+                    {isHost ? (
                         <div className="w-full py-3 rounded-xl text-sm font-bold text-center bg-gray-100 text-gray-400">
-                            {t('vendorCannotApply')}
+                            {t('hostCannotApply')}
                         </div>
                     ) : (
                         <button
@@ -566,7 +719,7 @@ const SellerDashboard = () => {
 
                             {/* Action buttons */}
                             <div className="flex items-center gap-1.5">
-                                {!isVendor && (
+                                {!isHost && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleApply(venue); }}
                                         disabled={isApplied || isFull}
@@ -691,6 +844,17 @@ const SellerDashboard = () => {
                         {t('countryFilter')}
                     </h2>
                     <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
+                    {/* Sort Dropdown */}
+                    <select
+                        value={sortOrder}
+                        onChange={e => setSortOrder(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 focus:outline-none focus:border-indigo-400 transition-colors"
+                    >
+                        <option value="latest">{t('sortLatest')}</option>
+                        <option value="priceAsc">{t('sortPriceAsc')}</option>
+                        <option value="priceDesc">{t('sortPriceDesc')}</option>
+                        <option value="popular">{t('sortPopular')}</option>
+                    </select>
                 </div>
                 <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
                     <div className="flex items-center gap-2 pb-2 min-w-max">
@@ -702,27 +866,53 @@ const SellerDashboard = () => {
                                 }`}
                         >
                             🌍 {t('allCountries')}
+                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-md text-[11px]">{venues.length}</span>
                         </button>
-                        {Object.entries(COUNTRY_FLAGS).map(([code, info]) => (
-                            <button
-                                key={code}
-                                onClick={() => setCountryFilter(code)}
-                                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${countryFilter === code
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
-                                    : code === user?.country
-                                        ? 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                                    }`}
-                            >
-                                <span>{info.flag}</span>
-                                <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
-                                {code === user?.country && countryFilter !== code && (
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                                )}
-                            </button>
-                        ))}
+                        {Object.entries(COUNTRY_FLAGS).map(([code, info]) => {
+                            const cnt = venues.filter(v => v.owner_country === code).length;
+                            return (
+                                <button
+                                    key={code}
+                                    onClick={() => setCountryFilter(code)}
+                                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${countryFilter === code
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
+                                        : code === user?.country
+                                            ? 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span>{info.flag}</span>
+                                    <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
+                                    <span className={`ml-0.5 px-1.5 py-0.5 rounded-md text-[11px] ${countryFilter === code ? 'bg-white/20' : 'bg-gray-100 text-gray-500'
+                                        }`}>{cnt}</span>
+                                    {code === user?.country && countryFilter !== code && (
+                                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
+
+                {/* Country Stats Summary Card */}
+                {countryFilter !== 'all' && (
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/60 dark:to-purple-950/60 rounded-xl p-3 text-center border border-indigo-100 dark:border-indigo-800/50">
+                            <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{countryStats.totalCount}</div>
+                            <div className="text-[11px] font-bold text-indigo-400 dark:text-indigo-300/70 mt-0.5">{t('venueCountLabel')}</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/60 dark:to-teal-950/60 rounded-xl p-3 text-center border border-emerald-100 dark:border-emerald-800/50">
+                            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                {countryStats.avgPrice > 0 ? `${Math.round(countryStats.avgPrice / 10000)}만` : '-'}
+                            </div>
+                            <div className="text-[11px] font-bold text-emerald-400 dark:text-emerald-300/70 mt-0.5">{t('avgPriceLabel')}</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/60 dark:to-orange-950/60 rounded-xl p-3 text-center border border-amber-100 dark:border-amber-800/50">
+                            <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{countryStats.activeCount}</div>
+                            <div className="text-[11px] font-bold text-amber-400 dark:text-amber-300/70 mt-0.5">{t('activeRecruitLabel')}</div>
+                        </div>
+                    </div>
+                )}
             </section>
 
             {/* ━━ Category Filter Chips ━━ */}
@@ -875,6 +1065,7 @@ const SellerDashboard = () => {
                             venues={filteredVenues}
                             height="450px"
                             onMarkerClick={(venue) => setSelectedVenue(venue)}
+                            countryCode={countryFilter}
                             className="mb-2"
                         />
                     )}
@@ -958,16 +1149,9 @@ const SellerDashboard = () => {
                             <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}
                                 className="w-full pl-8 sm:pl-10 pr-6 sm:pr-8 py-2.5 sm:py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer font-medium text-gray-700 transition-all text-xs sm:text-sm sm:min-w-[140px]">
                                 <option value="all">{t('region')}</option>
-                                <option value="서울특별시">{t('regionSeoul')}</option>
-                                <option value="경기도">{t('regionGyeonggi')}</option>
-                                <option value="인천광역시">{t('regionIncheon')}</option>
-                                <option value="대전광역시">{t('regionDaejeon')}</option>
-                                <option value="대구광역시">{t('regionDaegu')}</option>
-                                <option value="광주광역시">{t('regionGwangju')}</option>
-                                <option value="울산광역시">{t('regionUlsan')}</option>
-                                <option value="부산광역시">{t('regionBusan')}</option>
-                                <option value="제주특별자치도">{t('regionJeju')}</option>
-                                <option value="강원도">{t('regionGangwon')}</option>
+                                {getRegionOptions(countryFilter).map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                             </select>
                             <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
                         </div>
@@ -982,7 +1166,7 @@ const SellerDashboard = () => {
                             </select>
                             <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
                         </div>
-                        {isVendor && (
+                        {isHost && (
                             <button
                                 onClick={() => setShowMyVenuesOnly(!showMyVenuesOnly)}
                                 className={`col-span-3 sm:col-span-1 flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${showMyVenuesOnly
@@ -1054,13 +1238,13 @@ const SellerDashboard = () => {
                     onClose={() => setSelectedVenue(null)}
                     onApply={(v) => {
                         handleApply(v);
-                        if (!isVendor) setSelectedVenue(null);
+                        if (!isHost) setSelectedVenue(null);
                     }}
                     onToggleWishlist={(id) => toggleWishlist(user.email, id)}
                     isApplied={myApplications.some(app => String(app.venue_id) === String(selectedVenue.id) || String(app.venueId) === String(selectedVenue.id))}
                     isWishlisted={wishlist.some(w => String(w.venueId) === String(selectedVenue.id))}
                     getPricingUnitLabel={getPricingUnitLabel}
-                    isVendor={isVendor}
+                    isHost={isHost}
                 />
             )}
             {/* Apply Modal with Message Input */}

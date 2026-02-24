@@ -301,7 +301,7 @@ const SellerPopularAlerts = () => {
                                             <span className="text-sm font-bold text-gray-900 dark:text-white">₩{parseInt(venue.price || 0).toLocaleString()}</span>
                                             <span className="text-xs text-gray-500 dark:text-gray-400">/{venue.pricing_unit || t('perDay')}</span>
                                         </div>
-                                        <a href={`/seller/vendors`}
+                                        <a href={`/seller/hosts`}
                                             className="flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
                                             {t('popularAlertsPage.viewDetails')} <ChevronRight size={14} />
                                         </a>

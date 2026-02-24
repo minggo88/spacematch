@@ -58,7 +58,7 @@
     "sortByNewest": "Plus récent",
     "sortByPopular": "Plus populaire",
     "viewOnMap": "Voir sur la carte",
-    "contactVendor": "Contacter",
+    "contactHost": "Contacter",
     "applyNow": "Postuler",
     "free": "Gratuit",
     "locationTBD": "Lieu à déterminer",
@@ -108,7 +108,7 @@
             "gangwon": "Gangwon"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "Profil du fournisseur",
         "openSpaces": "Espaces ouverts",
         "about": "À propos",

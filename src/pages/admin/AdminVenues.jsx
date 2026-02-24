@@ -52,10 +52,10 @@ const AdminVenues = () => {
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
-    const [filterVendor, setFilterVendor] = useState('all'); // NEW: vendor filter
+    const [filterHost, setFilterHost] = useState('all'); // NEW: host filter
 
-    // Derive unique vendors from data
-    const vendorList = useMemo(() => {
+    // Derive unique hosts from data
+    const hostList = useMemo(() => {
         const map = new Map();
         adminVenues.forEach(v => {
             if (v.owner_name && v.owner_email) {
@@ -74,7 +74,7 @@ const AdminVenues = () => {
             const matchesSize = filterCategory === 'all' || venue.size === filterCategory;
             const matchesStatus = filterStatus === 'all' || venue.status === filterStatus;
             const matchesType = filterType === 'all' || venue.type === filterType;
-            const matchesVendor = filterVendor === 'all' || venue.owner_email === filterVendor;
+            const matchesVendor = filterHost === 'all' || venue.owner_email === filterHost;
             return matchesSearch && matchesSize && matchesStatus && matchesType && matchesVendor;
         });
 
@@ -84,12 +84,12 @@ const AdminVenues = () => {
                 case 'price_low': return parseInt(a.price) - parseInt(b.price);
                 case 'name_asc': return a.name.localeCompare(b.name);
                 case 'oldest': return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-                case 'vendor': return (a.owner_name || '').localeCompare(b.owner_name || '');
+                case 'host': return (a.owner_name || '').localeCompare(b.owner_name || '');
                 case 'newest':
                 default: return parseInt(b.id) - parseInt(a.id);
             }
         });
-    }, [adminVenues, searchTerm, filterCategory, filterStatus, filterType, filterVendor, sortOption]);
+    }, [adminVenues, searchTerm, filterCategory, filterStatus, filterType, filterHost, sortOption]);
 
     // Stats (overall & filtered)
     const stats = useMemo(() => {
@@ -98,8 +98,8 @@ const AdminVenues = () => {
         const pending = adminVenues.filter(v => v.status === 'pending').length;
         const rejected = adminVenues.filter(v => v.status === 'rejected').length;
         const avgPrice = total > 0 ? Math.round(adminVenues.reduce((acc, v) => acc + parseInt(v.price || 0), 0) / total) : 0;
-        const vendorCount = new Set(adminVenues.map(v => v.owner_email).filter(Boolean)).size;
-        return { total, approved, pending, rejected, avgPrice, vendorCount };
+        const hostCount = new Set(adminVenues.map(v => v.owner_email).filter(Boolean)).size;
+        return { total, approved, pending, rejected, avgPrice, hostCount };
     }, [adminVenues]);
 
     // Per-venue stats
@@ -259,9 +259,9 @@ const AdminVenues = () => {
                 </div>
                 {/* Vendor Count */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
-                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">{t('venuesPage.statVendors')}</div>
+                    <div className="text-gray-400 text-[10px] md:text-xs font-bold mb-1">{t('venuesPage.statHosts')}</div>
                     <div className="flex items-center gap-2">
-                        <div className="text-xl md:text-2xl font-extrabold text-indigo-600">{stats.vendorCount}</div>
+                        <div className="text-xl md:text-2xl font-extrabold text-indigo-600">{stats.hostCount}</div>
                         <Users size={16} className="text-indigo-400" />
                     </div>
                 </div>
@@ -303,12 +303,12 @@ const AdminVenues = () => {
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
                     {/* Vendor Filter */}
                     <select
-                        value={filterVendor}
-                        onChange={(e) => setFilterVendor(e.target.value)}
+                        value={filterHost}
+                        onChange={(e) => setFilterHost(e.target.value)}
                         className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs md:text-sm font-bold text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 shadow-sm appearance-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors max-w-[140px] md:max-w-[200px]"
                     >
-                        <option value="all">{t('venuesPage.allVendors')}</option>
-                        {vendorList.map(([email, name]) => (
+                        <option value="all">{t('venuesPage.allHosts')}</option>
+                        {hostList.map(([email, name]) => (
                             <option key={email} value={email}>{name}</option>
                         ))}
                     </select>
@@ -356,7 +356,7 @@ const AdminVenues = () => {
                                 <option value="price_high">{t('venuesPage.sortPriceHigh')}</option>
                                 <option value="price_low">{t('venuesPage.sortPriceLow')}</option>
                                 <option value="name_asc">{t('venuesPage.sortName')}</option>
-                                <option value="vendor">{t('venuesPage.sortVendor')}</option>
+                                <option value="host">{t('venuesPage.sortHost')}</option>
                             </select>
                             <Filter className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                         </div>
@@ -382,7 +382,7 @@ const AdminVenues = () => {
                 {/* Result count */}
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                     <span className="font-bold text-gray-600">{filteredVenues.length}</span>{t('venuesPage.venueCount')}
-                    {filterVendor !== 'all' && <span className="text-indigo-500">· {vendorList.find(([e]) => e === filterVendor)?.[1]} {t('venuesPage.vendorFilter')}</span>}
+                    {filterHost !== 'all' && <span className="text-indigo-500">· {hostList.find(([e]) => e === filterHost)?.[1]} {t('venuesPage.hostFilter')}</span>}
                 </div>
             </div>
 
@@ -426,7 +426,7 @@ const AdminVenues = () => {
                             <div className="flex items-center gap-3 bg-indigo-50 rounded-xl p-3 md:p-4">
                                 <Users size={18} className="text-indigo-500 flex-shrink-0" />
                                 <div>
-                                    <div className="text-xs text-gray-500">{t('venuesPage.vendorLabel')}</div>
+                                    <div className="text-xs text-gray-500">{t('venuesPage.hostLabel')}</div>
                                     <div className="text-sm font-bold text-gray-900">{venueStats.owner}</div>
                                     <div className="text-[10px] text-gray-400">{venueStats.ownerEmail}</div>
                                 </div>
@@ -455,10 +455,10 @@ const AdminVenues = () => {
                                 <Edit3 size={14} /> {t('venuesPage.editButton')}
                             </button>
                             <button
-                                onClick={() => { setFilterVendor(venueStats.ownerEmail); setStatsVenue(null); }}
+                                onClick={() => { setFilterHost(venueStats.ownerEmail); setStatsVenue(null); }}
                                 className="px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2"
                             >
-                                <Filter size={14} /> {t('venuesPage.filterThisVendor')}
+                                <Filter size={14} /> {t('venuesPage.filterThisHost')}
                             </button>
                         </div>
                     </div>

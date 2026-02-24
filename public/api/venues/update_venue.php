@@ -10,7 +10,7 @@ session_start();
 @ini_set('max_execution_time', '300');
 
 // Allow admin, superadmin, or vendor
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'vendor'])) {
+if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'host'])) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "Unauthorized access."));
     exit;
@@ -228,14 +228,14 @@ try {
     $venue_owner_id = $check_stmt->fetchColumn();
 
     // If vendor, must match owner_id
-    if ($user_role === 'vendor' && $venue_owner_id != $user_id) {
+    if ($user_role === 'host' && $venue_owner_id != $user_id) {
         http_response_code(403);
         echo json_encode(array("success" => false, "message" => "수정 권한이 없습니다."));
         exit;
     }
 
     // Vendor restriction: cannot modify if recruitment closed or approved sellers exist
-    if ($user_role === 'vendor') {
+    if ($user_role === 'host') {
         // Check recruitment_closed
         $rcCheck = $conn->prepare("SELECT recruitment_closed FROM venues WHERE id = ?");
         $rcCheck->execute([$id]);

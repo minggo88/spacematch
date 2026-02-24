@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$vendor_id = $_SESSION['user_id'];
+$host_id = $_SESSION['user_id'];
 $vendor_role = $_SESSION['user_role'] ?? '';
 
 // Admins can always view
@@ -46,21 +46,21 @@ try {
     try {
         $conn->exec("CREATE TABLE IF NOT EXISTS vendor_seller_access (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            vendor_id INT NOT NULL UNIQUE,
+            host_id INT NOT NULL UNIQUE,
             can_view_contacts TINYINT(1) DEFAULT 0,
             monthly_limit INT DEFAULT 0,
             access_start DATE DEFAULT NULL,
             access_end DATE DEFAULT NULL,
             updated_by INT DEFAULT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_vendor_id (vendor_id)
+            INDEX idx_host_id (host_id)
         )");
         $conn->exec("CREATE TABLE IF NOT EXISTS seller_contact_views (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            vendor_id INT NOT NULL,
+            host_id INT NOT NULL,
             seller_id INT NOT NULL,
             viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_vendor_month (vendor_id, viewed_at)
+            INDEX idx_vendor_month (host_id, viewed_at)
         )");
         // Auto-migrate period columns
         try {
@@ -109,8 +109,8 @@ try {
     }
 
     // Check vendor permission
-    $accessStmt = $conn->prepare("SELECT can_view_contacts, monthly_limit, access_start, access_end FROM vendor_seller_access WHERE vendor_id = ?");
-    $accessStmt->execute([$vendor_id]);
+    $accessStmt = $conn->prepare("SELECT can_view_contacts, monthly_limit, access_start, access_end FROM vendor_seller_access WHERE host_id = ?");
+    $accessStmt->execute([$host_id]);
     $access = $accessStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$access || !intval($access['can_view_contacts'])) {
@@ -150,21 +150,21 @@ try {
     // Count views within the access period (or this month if no period set)
     if ($access_start && $access_end) {
         // Check within the configured period
-        $alreadyStmt = $conn->prepare("SELECT id FROM seller_contact_views WHERE vendor_id = ? AND seller_id = ? AND viewed_at >= ? AND viewed_at <= ?");
-        $alreadyStmt->execute([$vendor_id, $seller_id, $access_start . ' 00:00:00', $access_end . ' 23:59:59']);
+        $alreadyStmt = $conn->prepare("SELECT id FROM seller_contact_views WHERE host_id = ? AND seller_id = ? AND viewed_at >= ? AND viewed_at <= ?");
+        $alreadyStmt->execute([$host_id, $seller_id, $access_start . ' 00:00:00', $access_end . ' 23:59:59']);
         $already_viewed = $alreadyStmt->fetch();
 
-        $usedStmt = $conn->prepare("SELECT COUNT(DISTINCT seller_id) as used FROM seller_contact_views WHERE vendor_id = ? AND viewed_at >= ? AND viewed_at <= ?");
-        $usedStmt->execute([$vendor_id, $access_start . ' 00:00:00', $access_end . ' 23:59:59']);
+        $usedStmt = $conn->prepare("SELECT COUNT(DISTINCT seller_id) as used FROM seller_contact_views WHERE host_id = ? AND viewed_at >= ? AND viewed_at <= ?");
+        $usedStmt->execute([$host_id, $access_start . ' 00:00:00', $access_end . ' 23:59:59']);
     } else {
         // Legacy: count within current month
         $month_start = date('Y-m-01 00:00:00');
-        $alreadyStmt = $conn->prepare("SELECT id FROM seller_contact_views WHERE vendor_id = ? AND seller_id = ? AND viewed_at >= ?");
-        $alreadyStmt->execute([$vendor_id, $seller_id, $month_start]);
+        $alreadyStmt = $conn->prepare("SELECT id FROM seller_contact_views WHERE host_id = ? AND seller_id = ? AND viewed_at >= ?");
+        $alreadyStmt->execute([$host_id, $seller_id, $month_start]);
         $already_viewed = $alreadyStmt->fetch();
 
-        $usedStmt = $conn->prepare("SELECT COUNT(DISTINCT seller_id) as used FROM seller_contact_views WHERE vendor_id = ? AND viewed_at >= ?");
-        $usedStmt->execute([$vendor_id, $month_start]);
+        $usedStmt = $conn->prepare("SELECT COUNT(DISTINCT seller_id) as used FROM seller_contact_views WHERE host_id = ? AND viewed_at >= ?");
+        $usedStmt->execute([$host_id, $month_start]);
     }
     $used = intval($usedStmt->fetch(PDO::FETCH_ASSOC)['used']);
 
@@ -197,8 +197,8 @@ try {
     }
 
     // Record the view
-    $insertStmt = $conn->prepare("INSERT INTO seller_contact_views (vendor_id, seller_id) VALUES (?, ?)");
-    $insertStmt->execute([$vendor_id, $seller_id]);
+    $insertStmt = $conn->prepare("INSERT INTO seller_contact_views (host_id, seller_id) VALUES (?, ?)");
+    $insertStmt->execute([$host_id, $seller_id]);
 
     echo json_encode([
         "success" => true,

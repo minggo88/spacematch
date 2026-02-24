@@ -75,8 +75,8 @@ $slots = [
     'directory_d',
     'seller_community_top',
     'seller_community_feed',
-    'vendor_community_top',
-    'vendor_community_feed',
+    'host_community_top',
+    'host_community_feed',
     'general_community_top',
     'general_community_feed'
 ];

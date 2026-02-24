@@ -1,6 +1,7 @@
 <?php
 include_once '../db_connect.php';
 include_once '../utils/geocode.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 // Configure upload limits (try to override server settings)
@@ -10,7 +11,7 @@ session_start();
 @ini_set('max_execution_time', '300');
 
 // Allow admin, superadmin, or vendor
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'vendor'])) {
+if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'host'])) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "Unauthorized access."));
     exit;
@@ -113,7 +114,7 @@ if ($name && $location && ($price !== null && $price !== '')) {
     $role = $_SESSION['user_role'];
 
     // Enforce Venue Limit for Vendors
-    if ($role === 'vendor') {
+    if ($role === 'host') {
         try {
             $limit_stmt = $conn->prepare("SELECT venue_limit FROM users WHERE id = ?");
             $limit_stmt->execute([$owner_id]);
@@ -350,7 +351,7 @@ if ($name && $location && ($price !== null && $price !== '')) {
         }
         // Check if vendor has active premium_space subscription
         $is_premium = 0;
-        if ($role === 'vendor') {
+        if ($role === 'host') {
             try {
                 $prem_stmt = $conn->prepare("SELECT p.id FROM payments p JOIN payment_plans pp ON p.plan_id = pp.id WHERE p.user_id = ? AND pp.category = 'premium_space' AND p.status = 'confirmed' ORDER BY p.created_at DESC LIMIT 1");
                 $prem_stmt->execute([$owner_id]);
@@ -420,7 +421,7 @@ if ($name && $location && ($price !== null && $price !== '')) {
                     $adminQuery = "SELECT id FROM users WHERE role IN ('admin', 'superadmin')";
                     $admins = $conn->query($adminQuery)->fetchAll(PDO::FETCH_ASSOC);
 
-                    $vendorName = $_SESSION['user_name'] ?? '벤더';
+                    $vendorName = $_SESSION['user_name'] ?? '호스트';
                     $notifMsg = "{$vendorName}님이 새 베뉴 '{$name}'을(를) 등록했습니다. 승인 대기 중입니다.";
                     $notifLink = "/admin/venues";
 
@@ -431,6 +432,31 @@ if ($name && $location && ($price !== null && $price !== '')) {
                     }
                 } catch (Exception $e) {
                     // Don't block venue creation if notification fails
+                }
+
+                // [EMAIL] Admin에게 새 베뉴 등록 이메일 알림 (다국어)
+                try {
+                    $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                    $adminIds = array_map(function ($a) {
+                        return $a['id'];
+                    }, $admins ?? []);
+                    if (!empty($adminIds)) {
+                        $_nm = $name;
+                        $_rg = $region;
+                        sendEmailToUsers(
+                            $conn,
+                            $adminIds,
+                            '',
+                            '',
+                            'cat_venue',
+                            function ($lang) use ($_nm, $_rg, $siteUrl) {
+                                $subj = _t(['ko' => "새 베뉴 등록 대기: {$_nm}", 'en' => "New Venue Pending: {$_nm}", 'ja' => "新規スペース登録: {$_nm}", 'vi' => "Không gian mới đang chờ: {$_nm}", 'th' => "พื้นที่ใหม่รอดำเนินการ: {$_nm}"], $lang);
+                                return ['subject' => $subj, 'html' => emailTemplateNewVenue($_nm, $_rg, $siteUrl, $lang)];
+                            }
+                        );
+                    }
+                } catch (Exception $emailErr) {
+                    error_log("Email error (add_venue): " . $emailErr->getMessage());
                 }
             }
 

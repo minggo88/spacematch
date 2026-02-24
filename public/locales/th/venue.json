@@ -58,7 +58,7 @@
     "sortByNewest": "ใหม่สุด",
     "sortByPopular": "นิยมสุด",
     "viewOnMap": "ดูบนแผนที่",
-    "contactVendor": "ติดต่อ",
+    "contactHost": "ติดต่อ",
     "applyNow": "สมัครเลย",
     "free": "ฟรี",
     "locationTBD": "ที่ตั้งยังไม่กำหนด",
@@ -108,7 +108,7 @@
             "gangwon": "คังวอน"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "โปรไฟล์ผู้ให้บริการ",
         "openSpaces": "พื้นที่เปิด",
         "about": "เกี่ยวกับ",

@@ -18,7 +18,7 @@ const STATUS_MAP_KEYS = {
 };
 
 const PERIOD_MAP_KEYS = { monthly: 'paymentsPage.periodMonthly', yearly: 'paymentsPage.periodYearly', once: 'paymentsPage.periodOnce' };
-const ROLE_MAP_KEYS = { all: 'paymentsPage.roleAll', vendor: 'paymentsPage.roleVendor', seller: 'paymentsPage.roleSeller' };
+const ROLE_MAP_KEYS = { all: 'paymentsPage.roleAll', host: 'paymentsPage.roleHost', seller: 'paymentsPage.roleSeller' };
 
 const LANG_OPTIONS = [
     { code: 'en', label: 'English', flag: '🇺🇸' },
@@ -695,7 +695,7 @@ const AdminPayments = () => {
                                                     <td className="px-5 py-4 text-gray-400 font-medium">{filteredPayments.length - idx}</td>
                                                     <td className="px-5 py-4">
                                                         <div className="font-bold text-gray-900">{p.user_name || '—'}</div>
-                                                        <div className="text-xs text-gray-400">{p.user_role === 'vendor' ? t('paymentsPage.vendor') : t('paymentsPage.seller')}</div>
+                                                        <div className="text-xs text-gray-400">{p.user_role === 'host' ? t('paymentsPage.host') : t('paymentsPage.seller')}</div>
                                                     </td>
                                                     <td className="px-5 py-4 text-gray-700 font-medium">{p.reference_label || p.payment_type}</td>
                                                     <td className="px-5 py-4 text-right font-bold text-gray-900">₩{parseInt(p.amount || 0).toLocaleString()}</td>
@@ -789,7 +789,7 @@ const AdminPayments = () => {
                                 <select value={planForm.target_role} onChange={e => setPlanForm(f => ({ ...f, target_role: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200">
                                     <option value="all">{t('paymentsPage.targetAll')}</option>
-                                    <option value="vendor">{t('paymentsPage.targetVendor')}</option>
+                                    <option value="host">{t('paymentsPage.targetVendor')}</option>
                                     <option value="seller">{t('paymentsPage.targetSeller')}</option>
                                 </select>
                             </div>
@@ -963,7 +963,7 @@ const AdminPayments = () => {
                         <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2"><CreditCard size={20} className="text-indigo-500" /> {t('paymentsPage.paymentDetail')}</h3>
                         <div className="space-y-3 text-sm">
                             {[
-                                [t('paymentsPage.detailUser'), `${detailModal.user_name} (${detailModal.user_role === 'vendor' ? t('paymentsPage.vendor') : t('paymentsPage.seller')})`],
+                                [t('paymentsPage.detailUser'), `${detailModal.user_name} (${detailModal.user_role === 'host' ? t('paymentsPage.host') : t('paymentsPage.seller')})`],
                                 [t('paymentsPage.detailService'), detailModal.reference_label || detailModal.payment_type],
                                 [t('paymentsPage.detailAmount'), `₩${parseInt(detailModal.amount || 0).toLocaleString()}`],
                                 [t('paymentsPage.detailDepositor'), detailModal.depositor_name || '—'],

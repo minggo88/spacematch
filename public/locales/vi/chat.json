@@ -18,7 +18,7 @@
   "dropFile": "Thả tệp vào đây",
   "uploading": "Đang tải lên...",
   "seller": "Người bán",
-  "vendor": "Nhà cung cấp",
+  "host": "Nhà cung cấp",
   "justNow": "Vừa xong",
   "minutesAgo": "{{count}} phút trước",
   "daysAgo": "{{count}} ngày trước",
@@ -34,5 +34,11 @@
   "csConnectDesc": "Trò chuyện trực tiếp với quản trị viên",
   "csConnectFailed": "Kết nối CS thất bại.",
   "csCreateFailed": "Không thể tạo cuộc trò chuyện CS.",
-  "csConnectError": "Đã xảy ra lỗi khi kết nối CS."
+  "csConnectError": "Đã xảy ra lỗi khi kết nối CS.",
+  "deleteMessage": "Xóa tin nhắn",
+  "deleteMessageConfirm": "Bạn có chắc muốn xóa tin nhắn này không? Tin nhắn đã xóa không thể khôi phục.",
+  "deleteConversation": "Xóa cuộc trò chuyện",
+  "deleteConversationConfirm": "Toàn bộ lịch sử cuộc trò chuyện sẽ bị xóa. Hành động này không thể hoàn tác. Tiếp tục?",
+  "deleted": "Đã xóa",
+  "cancel": "Hủy"
 }

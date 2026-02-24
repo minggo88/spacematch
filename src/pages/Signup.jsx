@@ -10,6 +10,7 @@ import {
     validatePhone, validateEmail, validatePassword, validateSignupForm,
     formatBusinessNumber, formatPhone
 } from '../utils/validation';
+import { getBusinessRegConfig } from '../utils/businessRegConfig';
 
 const Signup = () => {
     const navigate = useNavigate();
@@ -39,7 +40,7 @@ const Signup = () => {
         switch (name) {
             case 'realName': return validateRealName(value);
             case 'name': return validateBusinessName(value);
-            case 'businessNumber': return validateBusinessNumber(value);
+            case 'businessNumber': return validateBusinessNumber(value, formData.country);
             case 'phone': return validatePhone(value);
             case 'email': return validateEmail(value);
             case 'password': return validatePassword(value);
@@ -51,8 +52,16 @@ const Signup = () => {
         let { name, value } = e.target;
 
         // Auto-format
-        if (name === 'businessNumber') value = formatBusinessNumber(value);
+        if (name === 'businessNumber') value = formatBusinessNumber(value, formData.country);
         if (name === 'phone') value = formatPhone(value);
+
+        // 국가 변경 시 사업자번호 초기화 및 에러 클리어
+        if (name === 'country') {
+            setFormData(prev => ({ ...prev, country: value, businessNumber: '' }));
+            setFieldErrors(prev => ({ ...prev, businessNumber: null }));
+            setTouched(prev => ({ ...prev, businessNumber: false }));
+            return;
+        }
 
         setFormData(prev => ({ ...prev, [name]: value }));
 
@@ -173,23 +182,59 @@ const Signup = () => {
                         </div>
                     </div>
 
+                    {/* 국가 선택 — 사업자번호 필드 위에 배치 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('country')} <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <select
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 appearance-none"
+                            >
+                                <option value="ko">🇰🇷 대한민국 (Korea)</option>
+                                <option value="vi">🇻🇳 Việt Nam</option>
+                                <option value="ja">🇯🇵 日本 (Japan)</option>
+                                <option value="en">🇺🇸 United States</option>
+                                <option value="en-GB">🇬🇧 United Kingdom</option>
+                                <option value="en-CA">🇨🇦 Canada (English)</option>
+                                <option value="fr-CA">🇨🇦 Canada (Français)</option>
+                                <option value="th">🇹🇭 ประเทศไทย (Thailand)</option>
+                                <option value="km">🇰🇭 កម្ពុជា (Cambodia)</option>
+                                <option value="ru">🇷🇺 Россия (Russia)</option>
+                                <option value="uk">🇺🇦 Україна (Ukraine)</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('businessNumber')} <span className="text-red-500">*</span></label>
-                            <div className="relative">
-                                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                <input
-                                    name="businessNumber"
-                                    required
-                                    value={formData.businessNumber}
-                                    onChange={handleChange}
-                                    onBlur={handleBlur}
-                                    className={inputClass('businessNumber')}
-                                    placeholder="000-00-00000"
-                                    maxLength={12}
-                                />
-                            </div>
-                            <FieldError name="businessNumber" />
+                            {(() => {
+                                const bizConfig = getBusinessRegConfig(formData.country);
+                                return (
+                                    <>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t(bizConfig.labelKey, t('businessNumber'))}{' '}
+                                            <span className="text-gray-400 dark:text-gray-500 text-xs">({t('optional')})</span>
+                                        </label>
+                                        <div className="relative">
+                                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                            <input
+                                                name="businessNumber"
+                                                value={formData.businessNumber}
+                                                onChange={handleChange}
+                                                onBlur={handleBlur}
+                                                className={inputClass('businessNumber')}
+                                                placeholder={bizConfig.placeholder}
+                                                maxLength={bizConfig.maxLength}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t(bizConfig.helpKey, '')}</p>
+                                        <FieldError name="businessNumber" />
+                                    </>
+                                );
+                            })()}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')} <span className="text-red-500">*</span></label>
@@ -246,31 +291,7 @@ const Signup = () => {
                         <FieldError name="password" />
                     </div>
 
-                    {/* Country Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('country')} <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <select
-                                name="country"
-                                value={formData.country}
-                                onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 appearance-none"
-                            >
-                                <option value="ko">🇰🇷 대한민국 (Korea)</option>
-                                <option value="vi">🇻🇳 Việt Nam</option>
-                                <option value="ja">🇯🇵 日本 (Japan)</option>
-                                <option value="en">🇺🇸 United States</option>
-                                <option value="en-GB">🇬🇧 United Kingdom</option>
-                                <option value="en-CA">🇨🇦 Canada (English)</option>
-                                <option value="fr-CA">🇨🇦 Canada (Français)</option>
-                                <option value="th">🇹🇭 ประเทศไทย (Thailand)</option>
-                                <option value="km">🇰🇭 កម្ពុជា (Cambodia)</option>
-                                <option value="ru">🇷🇺 Россия (Russia)</option>
-                                <option value="uk">🇺🇦 Україна (Ukraine)</option>
-                            </select>
-                        </div>
-                    </div>
+
 
                     {/* English Name */}
                     <div>

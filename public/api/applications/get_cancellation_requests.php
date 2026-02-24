@@ -50,18 +50,18 @@ try {
                          {$venue_name_col} a.status as app_status,
                          seller.name as seller_name, seller.email as seller_email,
                          v.name as venue_title, v.location as venue_location,
-                         vendor.name as vendor_name,
+                         host.name as host_name,
                          decider.name as decided_by_name
                   FROM cancellation_requests cr
                   LEFT JOIN applications a ON cr.application_id = a.id
                   LEFT JOIN users seller ON cr.seller_id = seller.id
                   LEFT JOIN venues v ON cr.venue_id = v.id
-                  LEFT JOIN users vendor ON v.owner_id = vendor.id
+                  LEFT JOIN users vendor ON v.owner_id = host.id
                   LEFT JOIN users decider ON cr.decided_by = decider.id
                   ORDER BY cr.created_at DESC";
         $stmt = $conn->prepare($query);
         $stmt->execute();
-    } elseif ($user_role === 'vendor') {
+    } elseif ($user_role === 'host') {
         $query = "SELECT cr.*, 
                          {$venue_name_col} a.status as app_status,
                          seller.name as seller_name, seller.email as seller_email,

@@ -4,7 +4,7 @@ import {
     Store, BarChart3, Calendar, ArrowUp, ArrowDown, Search,
     Eye, X, ChevronDown, Package, Clock, CalendarDays, CalendarRange,
     ArrowUpRight, Activity, Target, Award, Zap, FileText, RefreshCw,
-    AlertCircle, Database, PlusCircle
+    AlertCircle, Database, PlusCircle, Globe
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -21,6 +21,20 @@ const COLORS = {
     dark: '#2d2b6e',
 };
 
+const COUNTRY_INFO = {
+    KR: { name: '한국', flag: '🇰🇷' },
+    US: { name: '미국', flag: '🇺🇸' },
+    GB: { name: '영국', flag: '🇬🇧' },
+    CA: { name: '캐나다', flag: '🇨🇦' },
+    JP: { name: '일본', flag: '🇯🇵' },
+    SG: { name: '싱가포르', flag: '🇸🇬' },
+    VN: { name: '베트남', flag: '🇻🇳' },
+    TH: { name: '태국', flag: '🇹🇭' },
+    KH: { name: '캄보디아', flag: '🇰🇭' },
+    RU: { name: '러시아', flag: '🇷🇺' },
+    UA: { name: '우크라이나', flag: '🇺🇦' },
+};
+
 const AdminSellerStats = () => {
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -28,6 +42,7 @@ const AdminSellerStats = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [countryFilter, setCountryFilter] = useState('ALL');
     const [activeTab, setActiveTab] = useState('overview');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -40,7 +55,7 @@ const AdminSellerStats = () => {
         try {
             setLoading(true);
             setError(null);
-            const res = await fetch(`${API_BASE}/seller_stats_admin.php?action=overview`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/seller_stats_admin.php?action=overview&country_code=${countryFilter}`, { credentials: 'include' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             if (json.success) {
@@ -54,7 +69,7 @@ const AdminSellerStats = () => {
             setError(msg);
             showToast(msg, 'error');
         } finally { setLoading(false); }
-    }, [showToast, t]);
+    }, [showToast, t, countryFilter]);
 
     useEffect(() => { fetchOverview(); }, [fetchOverview]);
 
@@ -98,6 +113,8 @@ const AdminSellerStats = () => {
     const monthlyTrend = data?.monthlyTrend || [];
     const categoryDist = data?.categoryDist || [];
     const regionDist = data?.regionDist || [];
+    const availableCountries = data?.availableCountries || [];
+    const countryBreakdown = data?.countryBreakdown || [];
     const recentActivity = data?.recentActivity || [];
     const typeSummary = {};
     (data?.typeSummary || []).forEach(ts => { typeSummary[ts.record_type] = ts; });
@@ -177,6 +194,37 @@ const AdminSellerStats = () => {
                     );
                 })}
             </div>
+
+            {/* Country Filter */}
+            {availableCountries.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <Globe size={14} className="text-gray-400 flex-shrink-0" />
+                    <button
+                        onClick={() => setCountryFilter('ALL')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${countryFilter === 'ALL'
+                            ? 'text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                        style={countryFilter === 'ALL' ? { background: COLORS.primary } : {}}
+                    >
+                        {t('sellerStatsPage.allCountries', '전체')}
+                    </button>
+                    {availableCountries.map(code => {
+                        const info = COUNTRY_INFO[code] || { name: code, flag: '🏳️' };
+                        const bd = countryBreakdown.find(b => b.country_code === code);
+                        return (
+                            <button key={code}
+                                onClick={() => setCountryFilter(code)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${countryFilter === code
+                                    ? 'text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                style={countryFilter === code ? { background: COLORS.primary } : {}}
+                            >
+                                <span>{info.flag}</span>
+                                <span>{info.name}</span>
+                                {bd && <span className={`text-[9px] ${countryFilter === code ? 'text-indigo-200' : 'text-gray-400'}`}>({bd.user_count})</span>}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* ════ EMPTY STATE ════ */}
             {isEmpty && activeTab === 'overview' && (

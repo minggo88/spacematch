@@ -58,7 +58,7 @@
     "sortByNewest": "Новые",
     "sortByPopular": "Популярные",
     "viewOnMap": "На карте",
-    "contactVendor": "Связаться",
+    "contactHost": "Связаться",
     "applyNow": "Подать заявку",
     "free": "Бесплатно",
     "locationTBD": "Место уточняется",
@@ -108,7 +108,7 @@
             "gangwon": "Канвон"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "Профиль поставщика",
         "openSpaces": "Доступные площадки",
         "about": "О нас",

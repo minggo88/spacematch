@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -47,6 +48,25 @@ try {
     $userName = $_SESSION['name'] ?? '사용자';
     while ($admin = $admins->fetch()) {
         $notifStmt->execute([$admin['id'], "{$userName}님이 입금 완료를 신고했습니다. 확인해주세요."]);
+
+        // [EMAIL] 입금 신고 이메일 알림 (다국어)
+        try {
+            $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $_un = $userName;
+            sendEmailToUser(
+                $conn,
+                $admin['id'],
+                '',
+                '',
+                'cat_payment',
+                function ($lang) use ($_un, $siteUrl) {
+                    $subj = _t(['ko' => '새 입금 신고가 접수되었습니다', 'en' => 'New Payment Submitted', 'ja' => '新規入金申告', 'vi' => 'Thanh toán mới đã nộp', 'th' => 'ส่งการชำระเงินใหม่แล้ว'], $lang);
+                    return ['subject' => $subj, 'html' => emailTemplatePayment('submitted', "{$_un}", $siteUrl, '/admin/payments', $lang)];
+                }
+            );
+        } catch (Exception $emailErr) {
+            error_log("Email error (payment_submitted): " . $emailErr->getMessage());
+        }
     }
 
     echo json_encode(['success' => true, 'message' => '입금 완료가 신고되었습니다. 관리자 확인 후 처리됩니다.']);

@@ -1,0 +1,370 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { User, Mail, Lock, Building, Phone, AlertCircle, Globe, Home } from 'lucide-react';
+import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
+import KeywordSelector from '../components/KeywordSelector';
+import {
+    validateRealName, validateBusinessName, validateBusinessNumber,
+    validatePhone, validateEmail, validatePassword, validateSignupForm,
+    formatBusinessNumber, formatPhone
+} from '../utils/validation';
+
+const SignupHost = () => {
+    const navigate = useNavigate();
+    const { signup } = useAuth();
+    const { t } = useTranslation('auth');
+    const [formData, setFormData] = useState({
+        email: '',
+        password: '',
+        realName: '',
+        name: '',
+        nameEn: '',
+        businessNumber: '',
+        phone: '',
+        country: 'ko',
+        role: 'host',
+        keywords: []
+    });
+    const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [touched, setTouched] = useState({});
+    const [pendingApproval, setPendingApproval] = useState(false);
+    const [agreements, setAgreements] = useState({ terms: false, privacy: false, marketing: false });
+
+    // Validate single field
+    const validateField = (name, value) => {
+        switch (name) {
+            case 'realName': return validateRealName(value);
+            case 'name': return validateBusinessName(value);
+            case 'businessNumber': return validateBusinessNumber(value);
+            case 'phone': return validatePhone(value);
+            case 'email': return validateEmail(value);
+            case 'password': return validatePassword(value);
+            default: return null;
+        }
+    };
+
+    const handleChange = (e) => {
+        let { name, value } = e.target;
+
+        // Auto-format
+        if (name === 'businessNumber') value = formatBusinessNumber(value);
+        if (name === 'phone') value = formatPhone(value);
+
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (touched[name]) {
+            const err = validateField(name, value);
+            setFieldErrors(prev => ({ ...prev, [name]: err }));
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        setTouched(prev => ({ ...prev, [name]: true }));
+        const err = validateField(name, value);
+        setFieldErrors(prev => ({ ...prev, [name]: err }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        const errors = validateSignupForm(formData, 'host');
+        setFieldErrors(errors);
+        setTouched({ realName: true, name: true, businessNumber: true, phone: true, email: true, password: true });
+
+        if (Object.keys(errors).length > 0) {
+            setError(t('formValidationError'));
+            return;
+        }
+
+        if (!isRequiredAgreed(agreements, 'host')) {
+            setError(t('termsRequired'));
+            return;
+        }
+
+        setError('');
+        signup({ ...formData, marketing_agreed: agreements.marketing }).then(result => {
+            if (result.success) {
+                setPendingApproval(true);
+            } else {
+                setError(result.message);
+            }
+        });
+    };
+
+    // Show approval pending screen after successful signup
+    if (pendingApproval) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-secondary py-10 px-4">
+                <div className="w-full max-w-lg p-8 bg-white rounded-xl shadow-lg text-center">
+                    <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Building className="text-amber-600" size={36} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('signupDone')}</h2>
+                    <p className="text-gray-600 mb-2">
+                        {t('hostSignupDone')}
+                    </p>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                        <p className="text-amber-800 font-semibold text-sm">
+                            ⏳ {t('pendingApproval')}
+                        </p>
+                        <p className="text-amber-700 text-sm mt-1">
+                            {t('approvalMessage')}<br />
+                            {t('approvalNotify')}
+                        </p>
+                    </div>
+                    <Link
+                        to="/login"
+                        className="inline-block px-8 py-3 bg-primary text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors shadow-md"
+                    >
+                        {t('goToLoginPage')}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // Field error message component
+    const FieldError = ({ name }) => {
+        if (!touched[name] || !fieldErrors[name]) return null;
+        return (
+            <p className="flex items-center gap-1 mt-1 text-xs text-red-500">
+                <AlertCircle size={12} />
+                {fieldErrors[name]}
+            </p>
+        );
+    };
+
+    const inputClass = (name) =>
+        `w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 outline-none transition-colors bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${touched[name] && fieldErrors[name]
+            ? 'border-red-400 focus:ring-red-200 dark:border-red-500 dark:focus:ring-red-800 bg-red-50/30 dark:bg-red-900/20'
+            : touched[name] && !fieldErrors[name] && formData[name]
+                ? 'border-green-400 focus:ring-green-200 dark:border-green-500 dark:focus:ring-green-800'
+                : 'border-gray-200 dark:border-gray-600 focus:ring-primary'
+        }`;
+
+    const hasFormErrors = Object.values(fieldErrors).some(e => e);
+    const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'host');
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900 py-10 px-4">
+            <div className="w-full max-w-lg p-6 md:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">{t('hostSubtitle')}</p>
+                </div>
+
+                {error && (
+                    <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm flex items-center gap-2">
+                        <AlertCircle size={16} />
+                        {error}
+                    </div>
+                )}
+
+                <div className="mb-5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <p className="text-blue-700 dark:text-blue-300 text-xs font-medium">
+                        ℹ️ {t('hostApprovalNotice')}
+                    </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('realName')} <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    name="realName"
+                                    required
+                                    value={formData.realName}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    className={inputClass('realName')}
+                                    placeholder={t('namePlaceholder')}
+                                />
+                            </div>
+                            <FieldError name="realName" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('companyHostName')} <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    name="name"
+                                    required
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    className={inputClass('name')}
+                                    placeholder={t('companyPlaceholder')}
+                                />
+                            </div>
+                            <FieldError name="name" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('businessNumber')} <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    name="businessNumber"
+                                    required
+                                    value={formData.businessNumber}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    className={inputClass('businessNumber')}
+                                    placeholder="000-00-00000"
+                                    maxLength={12}
+                                />
+                            </div>
+                            <FieldError name="businessNumber" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')} <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    name="phone"
+                                    required
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    className={inputClass('phone')}
+                                    placeholder="010-0000-0000"
+                                    maxLength={13}
+                                />
+                            </div>
+                            <FieldError name="phone" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('email')} <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="email"
+                                name="email"
+                                required
+                                value={formData.email}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                className={inputClass('email')}
+                                placeholder="host@example.com"
+                            />
+                        </div>
+                        <FieldError name="email" />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('password')} <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="password"
+                                name="password"
+                                required
+                                value={formData.password}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                className={inputClass('password')}
+                                placeholder={t('passwordPlaceholder')}
+                            />
+                        </div>
+                        <FieldError name="password" />
+                    </div>
+
+                    {/* Country Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('country')} <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <select
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 appearance-none"
+                            >
+                                <option value="ko">🇰🇷 대한민국 (Korea)</option>
+                                <option value="vi">🇻🇳 Việt Nam</option>
+                                <option value="ja">🇯🇵 日本 (Japan)</option>
+                                <option value="en">🇺🇸 United States</option>
+                                <option value="en-GB">🇬🇧 United Kingdom</option>
+                                <option value="en-CA">🇨🇦 Canada (English)</option>
+                                <option value="fr-CA">🇨🇦 Canada (Français)</option>
+                                <option value="th">🇹🇭 ประเทศไทย (Thailand)</option>
+                                <option value="km">🇰🇭 កម្ពុជា (Cambodia)</option>
+                                <option value="ru">🇷🇺 Россия (Russia)</option>
+                                <option value="uk">🇺🇦 Україна (Ukraine)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* English Name */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('nameEn')} <span className="text-gray-400 dark:text-gray-500 text-xs">({t('optional')})</span></label>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                name="nameEn"
+                                value={formData.nameEn}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                                placeholder={t('nameEnPlaceholder')}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('nameEnHelp')}</p>
+                    </div>
+
+                    {/* 키워드 선택 */}
+                    <KeywordSelector
+                        type="host"
+                        value={formData.keywords}
+                        onChange={(kws) => setFormData(prev => ({ ...prev, keywords: kws }))}
+                    />
+
+                    {/* 약관 동의 */}
+                    <TermsAgreement
+                        userType="host"
+                        agreements={agreements}
+                        onAgreementsChange={setAgreements}
+                    />
+
+                    <button
+                        type="submit"
+                        disabled={!isValid}
+                        className={`w-full py-3 rounded-lg font-semibold transition-colors shadow-md ${isValid
+                            ? 'bg-primary text-white hover:bg-indigo-700'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                            }`}
+                    >
+                        {t('submitSignup')}
+                    </button>
+                </form>
+
+                <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {t('alreadyHaveAccount')}{' '}
+                        <Link to="/login" className="text-primary hover:underline font-medium">
+                            {t('goToLogin')}
+                        </Link>
+                    </p>
+                    <Link
+                        to="/"
+                        className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+                    >
+                        <Home size={16} />
+                        {t('goHome')}
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SignupHost;

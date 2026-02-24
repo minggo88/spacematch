@@ -20,6 +20,7 @@ const PublicFooter = () => {
                             <Link to="/how-it-works" className="hover:text-white transition-colors">{t('nav.howItWorks')}</Link>
                             <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
                             <Link to="/contact" className="hover:text-white transition-colors">{t('nav.contact')}</Link>
+                            <Link to="/signup/host" className="text-gray-600 hover:text-gray-400 transition-colors">행사 주최자</Link>
                         </div>
                     </div>
 
@@ -28,7 +29,7 @@ const PublicFooter = () => {
                         <span>{t('footer.businessInfo')}</span>
                         <span className="mx-1.5 hidden md:inline">|</span>
                         <br className="md:hidden" />
-                        <span>050407775410 · <a href="http://pf.kakao.com/_xjGxoRX/chat" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">{t('footer.contact')}</a></span>
+                        <span><a href="mailto:spacedotmatch@gmail.com" className="text-indigo-400 hover:underline">spacedotmatch@gmail.com</a></span>
                         <span className="mx-1.5">·</span>
                         <span>{t('footer.copyright', { year: new Date().getFullYear() })}</span>
                     </div>

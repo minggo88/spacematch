@@ -4,7 +4,7 @@ include_once '../db_connect.php';
 session_start();
 
 // Allow admin, superadmin, or vendor
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'vendor'])) {
+if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'host'])) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "권한이 없습니다."));
     exit;
@@ -42,8 +42,8 @@ if (isset($data->id)) {
             exit;
         }
 
-        // Check ownership for vendors
-        if ($user_role === 'vendor') {
+        // Check ownership for hosts
+        if ($user_role === 'host') {
             if (intval($venue['owner_id']) !== intval($user_id)) {
                 http_response_code(403);
                 echo json_encode(array("success" => false, "message" => "본인이 등록한 베뉴만 삭제할 수 있습니다."));

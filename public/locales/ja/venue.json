@@ -58,7 +58,7 @@
     "sortByNewest": "新着順",
     "sortByPopular": "人気順",
     "viewOnMap": "地図で見る",
-    "contactVendor": "お問い合わせ",
+    "contactHost": "お問い合わせ",
     "applyNow": "今すぐ申請",
     "free": "無料",
     "locationTBD": "場所未定",
@@ -108,7 +108,7 @@
             "gangwon": "江原"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "スペース提供者プロフィール",
         "openSpaces": "オープンスペース",
         "about": "紹介",

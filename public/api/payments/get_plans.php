@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 
 try {
     $role = $_SESSION['user_role'] ?? ($_SESSION['role'] ?? '');
-    $userRole = in_array($role, ['vendor']) ? 'vendor' : 'seller';
+    $userRole = in_array($role, ['host']) ? 'host' : 'seller';
 
     // Get active plans (optionally filtered by target_role)
     $stmt = $conn->prepare("SELECT * FROM payment_plans WHERE is_active = 1 AND (target_role = 'all' OR target_role = ?) ORDER BY sort_order ASC, id ASC");

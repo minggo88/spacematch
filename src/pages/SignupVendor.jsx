@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Lock, Building, Phone, AlertCircle, Globe, Home } from 'lucide-react';
+import { User, Mail, Lock, Building, Phone, AlertCircle, Globe, Home, Package } from 'lucide-react';
 import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
 import KeywordSelector from '../components/KeywordSelector';
 import {
@@ -25,7 +25,8 @@ const SignupVendor = () => {
         phone: '',
         country: 'ko',
         role: 'vendor',
-        keywords: []
+        keywords: [],
+        description: ''
     });
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
@@ -100,18 +101,18 @@ const SignupVendor = () => {
         return (
             <div className="flex items-center justify-center min-h-screen bg-secondary py-10 px-4">
                 <div className="w-full max-w-lg p-8 bg-white rounded-xl shadow-lg text-center">
-                    <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Building className="text-amber-600" size={36} />
+                    <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Package className="text-teal-600" size={36} />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('signupDone')}</h2>
                     <p className="text-gray-600 mb-2">
-                        {t('vendorSignupDone')}
+                        {t('vendorSignupDone', '벤더 회원가입이 완료되었습니다.')}
                     </p>
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-                        <p className="text-amber-800 font-semibold text-sm">
+                    <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-6">
+                        <p className="text-teal-800 font-semibold text-sm">
                             ⏳ {t('pendingApproval')}
                         </p>
-                        <p className="text-amber-700 text-sm mt-1">
+                        <p className="text-teal-700 text-sm mt-1">
                             {t('approvalMessage')}<br />
                             {t('approvalNotify')}
                         </p>
@@ -154,7 +155,7 @@ const SignupVendor = () => {
             <div className="w-full max-w-lg p-6 md:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">{t('vendorSubtitle')}</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">{t('vendorSubtitle', '벤더(유통/납품) 회원가입')}</p>
                 </div>
 
                 {error && (
@@ -164,9 +165,9 @@ const SignupVendor = () => {
                     </div>
                 )}
 
-                <div className="mb-5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                    <p className="text-blue-700 dark:text-blue-300 text-xs font-medium">
-                        ℹ️ {t('vendorApprovalNotice')}
+                <div className="mb-5 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg p-3">
+                    <p className="text-teal-700 dark:text-teal-300 text-xs font-medium">
+                        ℹ️ {t('vendorApprovalNotice', '벤더 계정은 관리자 승인 후 이용할 수 있습니다. 승인 완료 시 이메일로 안내드립니다.')}
                     </p>
                 </div>
 
@@ -189,7 +190,7 @@ const SignupVendor = () => {
                             <FieldError name="realName" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('companyHostName')} <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('vendorCompanyName', '회사명(상호)')} <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                 <input
@@ -199,7 +200,7 @@ const SignupVendor = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     className={inputClass('name')}
-                                    placeholder={t('companyPlaceholder')}
+                                    placeholder={t('vendorCompanyPlaceholder', '유통 회사명을 입력하세요')}
                                 />
                             </div>
                             <FieldError name="name" />
@@ -255,7 +256,7 @@ const SignupVendor = () => {
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 className={inputClass('email')}
-                                placeholder="host@example.com"
+                                placeholder="vendor@example.com"
                             />
                         </div>
                         <FieldError name="email" />
@@ -321,9 +322,22 @@ const SignupVendor = () => {
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('nameEnHelp')}</p>
                     </div>
 
+                    {/* Company Description */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('vendorDescription', '회사 소개')} <span className="text-gray-400 dark:text-gray-500 text-xs">({t('optional')})</span></label>
+                        <textarea
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            rows={3}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 resize-none"
+                            placeholder={t('vendorDescriptionPlaceholder', '주요 취급 품목, 물류 역량, 유통 경험 등을 간략히 소개해 주세요')}
+                        />
+                    </div>
+
                     {/* 키워드 선택 */}
                     <KeywordSelector
-                        type="vendor"
+                        type="seller"
                         value={formData.keywords}
                         onChange={(kws) => setFormData(prev => ({ ...prev, keywords: kws }))}
                     />

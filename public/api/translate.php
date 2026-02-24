@@ -124,43 +124,84 @@ function setCache($conn, $sourceLang, $targetLang, $sourceText, $translatedText,
     }
 }
 
-// ─── Translate using MyMemory API ───
+// ─── Google Translate free endpoint (fallback) ───
+function translateWithGoogle($text, $src, $tgt)
+{
+    $url = "https://translate.googleapis.com/translate_a/single?" . http_build_query([
+        'client' => 'gtx',
+        'sl' => $src,
+        'tl' => $tgt,
+        'dt' => 't',
+        'q' => $text
+    ]);
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_USERAGENT => 'Mozilla/5.0',
+        CURLOPT_HTTPHEADER => ['Accept: application/json']
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($httpCode !== 200 || !$response)
+        return null;
+    $data = json_decode($response, true);
+    if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+        $result = '';
+        foreach ($data[0] as $seg) {
+            if (isset($seg[0]))
+                $result .= $seg[0];
+        }
+        return !empty($result) ? $result : null;
+    }
+    return null;
+}
+
+// ─── Translate using MyMemory API + Google fallback ───
 function translateWithMyMemory($text, $sourceLang, $targetLang)
 {
     $src = normalizeForMyMemory($sourceLang);
     $tgt = normalizeForMyMemory($targetLang);
 
+    // ── Provider 1: MyMemory ──
     $url = "https://api.mymemory.translated.net/get?" . http_build_query([
         'q' => $text,
         'langpair' => "$src|$tgt",
-        'de' => 'spacematch@example.com' // raises daily limit to 30k chars
+        'de' => 'spacematch@example.com'
     ]);
-
     $ch = curl_init();
     curl_setopt_array($ch, [
         CURLOPT_URL => $url,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
+        CURLOPT_TIMEOUT => 8,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_HTTPHEADER => ['Accept: application/json']
     ]);
-
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($httpCode !== 200 || !$response) {
-        return null;
+    if ($httpCode === 200 && $response) {
+        $data = json_decode($response, true);
+        if (isset($data['responseData']['translatedText'])) {
+            $translated = $data['responseData']['translatedText'];
+            $match = $data['responseData']['match'] ?? 0;
+            $quotaFinished = $data['quotaFinished'] ?? false;
+            $asciiOnly = preg_replace('/[^a-zA-Z]/', '', $translated);
+            $isGarbage = strlen($asciiOnly) > 10 && strtoupper($asciiOnly) === $asciiOnly;
+            if (!$isGarbage && $match >= 0.3 && !$quotaFinished && $translated !== $text) {
+                return $translated;
+            }
+        }
     }
 
-    $data = json_decode($response, true);
-    if (isset($data['responseData']['translatedText'])) {
-        $translated = $data['responseData']['translatedText'];
-        // MyMemory sometimes returns all-caps or error messages
-        if (strtoupper($translated) === $translated && strlen($translated) > 20) {
-            return null; // Likely an error
-        }
-        return $translated;
+    // ── Provider 2: Google Translate (fallback) ──
+    $googleResult = translateWithGoogle($text, $src, $tgt);
+    if ($googleResult && $googleResult !== $text) {
+        return $googleResult;
     }
 
     return null;

@@ -4,6 +4,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0); // Don't output HTML errors, we want JSON
 
 include_once '../db_connect.php';
+include_once '../notifications/send_push.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 header('Content-Type: application/json');
@@ -249,18 +251,61 @@ try {
                     $notifStmt->execute();
                 }
 
-                // Also notify venue owner (vendor)
+                // Also notify venue owner (host)
                 $ownerQuery = "SELECT owner_id FROM venues WHERE id = ?";
                 $ownerStmt = $conn->prepare($ownerQuery);
                 $ownerStmt->execute([$venue_id]);
                 $ownerData = $ownerStmt->fetch(PDO::FETCH_ASSOC);
                 if ($ownerData && $ownerData['owner_id']) {
                     $vendorMsg = $priorityPrefix . $seller_name . "님이 '{$venue_name}'에 입점 신청을 했습니다.";
-                    $vendorLink = "/vendor/dashboard";
+                    $vendorLink = "/host/dashboard";
                     $notifStmt->bindValue(':uid', $ownerData['owner_id']);
                     $notifStmt->bindValue(':msg', $vendorMsg);
                     $notifStmt->bindValue(':link', $vendorLink);
                     $notifStmt->execute();
+                }
+
+                // [WEB PUSH] Vendor에게 푸시 알림 발송
+                try {
+                    $pushRecipients = [];
+                    foreach ($admins as $admin) {
+                        $pushRecipients[] = $admin['id'];
+                    }
+                    if ($ownerData && $ownerData['owner_id']) {
+                        $pushRecipients[] = $ownerData['owner_id'];
+                    }
+                    if (!empty($pushRecipients)) {
+                        $pushTitle = $is_priority ? '⚡ 우선 입점 신청' : '📋 새 입점 신청';
+                        sendPushToUsers($conn, $pushRecipients, $pushTitle, $notifMsg, $notifLink);
+                    }
+                } catch (Exception $pushErr) {
+                    error_log("Push notification error (submit_application): " . $pushErr->getMessage());
+                }
+
+                // [EMAIL] Vendor에게 이메일 알림 발송 (다국어)
+                try {
+                    if (!empty($pushRecipients)) {
+                        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        sendEmailToUsers(
+                            $conn,
+                            $pushRecipients,
+                            '',
+                            '',
+                            'cat_application',
+                            function ($lang) use ($seller_name, $venue_name, $is_priority, $siteUrl) {
+                                $t = _t([
+                                    'ko' => ($is_priority ? '⚡ [우선] ' : '') . "새 입점 신청: {$seller_name} → {$venue_name}",
+                                    'en' => ($is_priority ? '⚡ [Priority] ' : '') . "New Application: {$seller_name} → {$venue_name}",
+                                    'ja' => ($is_priority ? '⚡ [優先] ' : '') . "新規申請: {$seller_name} → {$venue_name}",
+                                    'vi' => ($is_priority ? '⚡ [Ưu tiên] ' : '') . "Đơn mới: {$seller_name} → {$venue_name}",
+                                    'th' => ($is_priority ? '⚡ [เร่งด่วน] ' : '') . "ใบสมัครใหม่: {$seller_name} → {$venue_name}",
+                                ], $lang);
+                                return ['subject' => $t, 'html' => emailTemplateApplicationNew($seller_name, $venue_name, $is_priority, $siteUrl, $lang)];
+                            }
+                        );
+                    }
+                } catch (Exception $emailErr) {
+                    error_log("Email notification error (submit_application): " . $emailErr->getMessage());
                 }
             } catch (Exception $e) {
                 error_log("SpaceMatch Notification Error (submit_application): " . $e->getMessage());

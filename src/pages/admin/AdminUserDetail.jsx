@@ -58,12 +58,12 @@ const AdminUserDetail = () => {
                     <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-3 mb-2">
                             <h1 className="text-3xl font-extrabold text-gray-900">{user.name}</h1>
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${user.role === 'vendor' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${user.role === 'host' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                 user.role === 'seller' ? 'bg-green-50 text-green-700 border-green-100' :
                                     user.role === 'superadmin' ? 'bg-orange-50 text-orange-700 border-orange-100' :
                                         'bg-purple-50 text-purple-700 border-purple-100'
                                 }`}>
-                                {user.role === 'superadmin' ? '\uc288\ud37c\uad00\ub9ac\uc790' : user.role === 'admin' ? '\uad00\ub9ac\uc790' : user.role === 'vendor' ? '\ubca4\ub354' : '\uc140\ub7ec'}
+                                {user.role === 'superadmin' ? '\uc288\ud37c\uad00\ub9ac\uc790' : user.role === 'admin' ? '\uad00\ub9ac\uc790' : user.role === 'host' ? '\ubca4\ub354' : '\uc140\ub7ec'}
                             </span>
                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold text-white ${user.status === 'blocked' ? 'bg-red-500' : 'bg-emerald-500'
                                 }`}>
@@ -90,7 +90,7 @@ const AdminUserDetail = () => {
                                 <Calendar size={16} className="text-gray-400" />
                                 {'\uac00\uc785\uc77c:'} {new Date(user.created_at).toLocaleDateString()}
                             </div>
-                            {user.role === 'vendor' && (
+                            {user.role === 'host' && (
                                 <div className="flex items-center gap-2">
                                     <Award size={16} className="text-gray-400" />
                                     {'\ubca0\ub274 \ub4f1\ub85d \ud55c\ub3c4:'} {user.venue_limit}{'\uac1c'}
@@ -103,7 +103,7 @@ const AdminUserDetail = () => {
 
             {/* Overview Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {user.role === 'vendor' ? (
+                {user.role === 'host' ? (
                     <>
                         <StatCard icon={Store} label={'\ucd1d \ub4f1\ub85d \ubca0\ub274'} value={stats.total_venues} color="text-blue-600" bg="bg-blue-50" />
                         <StatCard icon={CheckCircle} label={'\uc2b9\uc778\ub41c \ubca0\ub274'} value={stats.approved_venues} color="text-green-600" bg="bg-green-50" />
@@ -126,12 +126,12 @@ const AdminUserDetail = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                     <h3 className="text-lg font-bold text-gray-900">
-                        {user.role === 'vendor' ? '\ub4f1\ub85d\ub41c \ubca0\ub274 \ubaa9\ub85d' : user.role === 'seller' ? '\uc785\uc810 \uc2e0\uccad \ub0b4\uc5ed' : '\ud65c\ub3d9 \ub0b4\uc5ed'}
+                        {user.role === 'host' ? '\ub4f1\ub85d\ub41c \ubca0\ub274 \ubaa9\ub85d' : user.role === 'seller' ? '\uc785\uc810 \uc2e0\uccad \ub0b4\uc5ed' : '\ud65c\ub3d9 \ub0b4\uc5ed'}
                     </h3>
                 </div>
 
                 <div className="p-6">
-                    {user.role === 'vendor' && venues.length > 0 ? (
+                    {user.role === 'host' && venues.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {venues.map(venue => (
                                 <div key={venue.id} className="group border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">

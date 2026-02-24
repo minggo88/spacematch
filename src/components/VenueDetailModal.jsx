@@ -6,7 +6,7 @@ import KakaoMap from './KakaoMap';
 
 const CATEGORY_OPTIONS = { food: '음식/요리', fashion: '패션/의류', beauty: '뷰티/화장품', art: '예술/공예', digital: '디지털/전자', lifestyle: '라이프스타일', pet: '반려동물', kids: '키즈/유아', sports: '스포츠/아웃도어', book: '도서/문구', eco: '친환경/에코', local: '지역특산물', health: '건강/웰빙', handmade: '핸드메이드', vintage: '빈티지/레트로', other: '기타' };
 
-const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied, isWishlisted, getPricingUnitLabel, isVendor = false }) => {
+const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied, isWishlisted, getPricingUnitLabel, isHost = false }) => {
     const { t } = useTranslation();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showShareMenu, setShowShareMenu] = useState(false);
@@ -583,16 +583,16 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
 
                             <button
                                 onClick={() => onApply(venue)}
-                                disabled={isApplied || isVendor}
+                                disabled={isApplied || isHost}
                                 className={`flex-1 flex items-center justify-center gap-2 rounded-xl font-bold text-base py-3 transition-all shadow-lg
-                                ${isVendor
+                                ${isHost
                                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                                         : isApplied ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
                                             : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-0.5 shadow-indigo-200'
                                     }`}
                             >
-                                {isVendor ? (
-                                    <span>{t('venueDetail.vendorCantApply')}</span>
+                                {isHost ? (
+                                    <span>{t('venueDetail.hostCantApply')}</span>
                                 ) : isApplied ? (
                                     <>
                                         <Sparkles size={18} />

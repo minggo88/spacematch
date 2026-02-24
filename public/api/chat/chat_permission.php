@@ -68,12 +68,12 @@ try {
     $reason = "no_relationship";
 
     // Determine who is vendor and who is seller
-    $vendor_id = ($user_role === 'vendor') ? $user_id : $target_id;
+    $host_id = ($user_role === 'host') ? $user_id : $target_id;
     $seller_id = ($user_role === 'seller') ? $user_id : $target_id;
 
     // Check 1: Contact unlocked (vendor viewed seller's contact)
-    $viewStmt = $conn->prepare("SELECT id FROM seller_contact_views WHERE vendor_id = ? AND seller_id = ?");
-    $viewStmt->execute([$vendor_id, $seller_id]);
+    $viewStmt = $conn->prepare("SELECT id FROM seller_contact_views WHERE host_id = ? AND seller_id = ?");
+    $viewStmt->execute([$host_id, $seller_id]);
     if ($viewStmt->fetch()) {
         $allowed = true;
         $reason = "contact_unlocked";
@@ -82,8 +82,8 @@ try {
     // Check 2: Seller viewed vendor's contact (if seller_vendor system exists)
     if (!$allowed) {
         try {
-            $viewStmt2 = $conn->prepare("SELECT id FROM vendor_contact_views WHERE seller_id = ? AND vendor_id = ?");
-            $viewStmt2->execute([$seller_id, $vendor_id]);
+            $viewStmt2 = $conn->prepare("SELECT id FROM vendor_contact_views WHERE seller_id = ? AND host_id = ?");
+            $viewStmt2->execute([$seller_id, $host_id]);
             if ($viewStmt2->fetch()) {
                 $allowed = true;
                 $reason = "vendor_contact_unlocked";
@@ -101,7 +101,7 @@ try {
             WHERE a.user_id = ? AND v.owner_id = ? AND a.status = 'approved'
             LIMIT 1
         ");
-        $appStmt->execute([$seller_id, $vendor_id]);
+        $appStmt->execute([$seller_id, $host_id]);
         if ($appStmt->fetch()) {
             $allowed = true;
             $reason = "application_approved";

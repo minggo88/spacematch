@@ -176,8 +176,8 @@ const AdminCS = () => {
                                         <div className="flex items-center justify-between mb-0.5">
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-sm font-bold truncate">{conv.other_name}</span>
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${conv.other_role === 'vendor' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
-                                                    {conv.other_role === 'vendor' ? t('vendor') : t('seller')}
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${conv.other_role === 'host' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                                                    {conv.other_role === 'host' ? t('host') : t('seller')}
                                                 </span>
                                             </div>
                                             <span className="text-[10px] text-gray-400">{formatTime(conv.last_message_at)}</span>

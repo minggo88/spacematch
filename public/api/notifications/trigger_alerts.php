@@ -3,6 +3,9 @@
  * Trigger space alerts for subscribed sellers whose preferences match a new venue.
  * Called internally from add_venue.php after a venue is approved/created.
  */
+include_once __DIR__ . '/send_push.php';
+include_once __DIR__ . '/send_email.php';
+
 function triggerSpaceAlerts($conn, $venueData)
 {
     try {
@@ -34,6 +37,8 @@ function triggerSpaceAlerts($conn, $venueData)
         $venuePrice = intval($venueData['price'] ?? 0);
         $venueName = $venueData['name'] ?? '';
         $venueId = $venueData['id'] ?? 0;
+
+        $pushRecipients = []; // 푸시 알림 수신 대상
 
         foreach ($prefs as $pref) {
             // Check if user has active popular_space_alert subscription
@@ -68,6 +73,38 @@ function triggerSpaceAlerts($conn, $venueData)
                 $notifStmt->bindValue(':msg', $msg);
                 $notifStmt->bindValue(':link', $link);
                 $notifStmt->execute();
+
+                $pushRecipients[] = $pref['user_id'];
+            }
+        }
+
+        // [WEB PUSH] 매칭된 유저들에게 푸시 알림 발송
+        if (!empty($pushRecipients)) {
+            try {
+                $pushMsg = ($venueRegion ? "[$venueRegion] " : "") . "새로운 공간: $venueName";
+                sendPushToUsers($conn, $pushRecipients, '🏠 새 공간 알림', $pushMsg, '/seller/dashboard');
+            } catch (Exception $pushErr) {
+                error_log("Push notification error (trigger_alerts): " . $pushErr->getMessage());
+            }
+
+            // [EMAIL] 매칭된 유저들에게 이메일 발송 (다국어)
+            try {
+                $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                $_vn = $venueName;
+                $_vr = $venueRegion;
+                sendEmailToUsers(
+                    $conn,
+                    $pushRecipients,
+                    '',
+                    '',
+                    'cat_venue',
+                    function ($lang) use ($_vn, $_vr, $siteUrl) {
+                        $subj = _t(['ko' => "🏠 새로운 공간이 등록되었습니다: {$_vn}", 'en' => "🏠 New Venue: {$_vn}", 'ja' => "🏠 新規スペース: {$_vn}", 'vi' => "🏠 Không gian mới: {$_vn}", 'th' => "🏠 พื้นที่ใหม่: {$_vn}"], $lang);
+                        return ['subject' => $subj, 'html' => emailTemplateNewVenue($_vn, $_vr, $siteUrl, $lang)];
+                    }
+                );
+            } catch (Exception $emailErr) {
+                error_log("Email error (trigger_alerts): " . $emailErr->getMessage());
             }
         }
     } catch (Exception $e) {

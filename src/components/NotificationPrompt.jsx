@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, X, Check, Smartphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { subscribeToPush } from '../utils/pushNotifications';
 
 /**
  * Persistent notification permission prompt.
@@ -71,6 +72,13 @@ const NotificationPrompt = () => {
                 // Clear dismiss history
                 localStorage.removeItem('spacematch_notif_dismiss');
                 localStorage.setItem('spacematch_notif_granted', 'true');
+
+                // Push 구독 자동 연동
+                try {
+                    await subscribeToPush();
+                } catch (pushErr) {
+                    console.warn('Push subscription failed:', pushErr);
+                }
 
                 // Show a test notification
                 new Notification(t('notifPrompt.enabled'), {

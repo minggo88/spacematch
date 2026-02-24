@@ -14,7 +14,7 @@ const AboutPage = () => {
     useEffect(() => { window.scrollTo(0, 0); }, []);
 
     const sellerFeatures = t('aboutPage.sellerFeatures', { returnObjects: true });
-    const vendorFeatures = t('aboutPage.vendorFeatures', { returnObjects: true });
+    const hostFeatures = t('aboutPage.hostFeatures', { returnObjects: true });
 
     return (
         <div className="min-h-screen bg-white">
@@ -136,13 +136,13 @@ const AboutPage = () => {
                                         <Building size={22} className="text-emerald-600" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-gray-900">{t('aboutPage.vendorTitle')}</h3>
-                                        <p className="text-sm text-gray-400">{t('aboutPage.vendorSubtitle')}</p>
+                                        <h3 className="text-lg font-bold text-gray-900">{t('aboutPage.hostTitle')}</h3>
+                                        <p className="text-sm text-gray-400">{t('aboutPage.hostSubtitle')}</p>
                                     </div>
                                 </div>
-                                <p className="text-gray-400 mb-5 leading-relaxed text-sm">{t('aboutPage.vendorDesc')}</p>
+                                <p className="text-gray-400 mb-5 leading-relaxed text-sm">{t('aboutPage.hostDesc')}</p>
                                 <ul className="space-y-2.5">
-                                    {Array.isArray(vendorFeatures) && vendorFeatures.map((item, i) => (
+                                    {Array.isArray(hostFeatures) && hostFeatures.map((item, i) => (
                                         <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
                                             <CheckCircle size={15} className="text-emerald-500 flex-shrink-0 mt-0.5" />
                                             <span>{item}</span>

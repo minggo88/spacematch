@@ -1,7 +1,8 @@
 /**
  * 회원가입 입력값 유효성 검사 유틸리티
- * - 실명, 브랜드명/업체명, 사업자등록번호, 전화번호, 이메일
+ * - 실명, 브랜드명/업체명, 사업자등록번호(선택/국가별), 전화번호, 이메일
  */
+import { validateBusinessReg, formatBusinessReg } from './businessRegConfig';
 
 // ─── 실명 검증 ───
 // 한글 2자 이상, 특수문자/숫자 불가
@@ -26,39 +27,15 @@ export const validateBusinessName = (value) => {
     return null;
 };
 
-// ─── 사업자등록번호 검증 ───
-// 한국 사업자등록번호 형식: XXX-XX-XXXXX (10자리 숫자)
-// 체크섬 검증 포함
-export const validateBusinessNumber = (value) => {
-    if (!value || !value.trim()) return '사업자등록번호를 입력해주세요.';
-
-    // 숫자만 추출
-    const digits = value.replace(/[^0-9]/g, '');
-
-    if (digits.length !== 10) return '사업자등록번호는 10자리 숫자입니다. (예: 123-45-67890)';
-
-    // 한국 사업자등록번호 체크섬 검증
-    const checkKeys = [1, 3, 7, 1, 3, 7, 1, 3, 5];
-    let sum = 0;
-    for (let i = 0; i < 9; i++) {
-        sum += parseInt(digits[i]) * checkKeys[i];
-    }
-    sum += Math.floor((parseInt(digits[8]) * 5) / 10);
-    const checkDigit = (10 - (sum % 10)) % 10;
-
-    if (checkDigit !== parseInt(digits[9])) {
-        return '유효하지 않은 사업자등록번호입니다. 다시 확인해주세요.';
-    }
-
-    return null;
+// ─── 사업자등록번호 검증 (국가별, 선택사항) ───
+// 빈 값이면 에러 없음 (선택사항). 값이 입력된 경우 해당 국가 형식으로 검증.
+export const validateBusinessNumber = (value, countryCode = 'ko') => {
+    return validateBusinessReg(value, countryCode);
 };
 
-// ─── 사업자등록번호 자동 포맷 (XXX-XX-XXXXX) ───
-export const formatBusinessNumber = (value) => {
-    const digits = value.replace(/[^0-9]/g, '').slice(0, 10);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-    return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+// ─── 사업자등록번호 자동 포맷 (국가별) ───
+export const formatBusinessNumber = (value, countryCode = 'ko') => {
+    return formatBusinessReg(value, countryCode);
 };
 
 // ─── 전화번호 검증 ───
@@ -139,7 +116,8 @@ export const validateSignupForm = (formData, userType = 'seller') => {
     const nameErr = validateBusinessName(formData.name);
     if (nameErr) errors.name = nameErr;
 
-    const bnErr = validateBusinessNumber(formData.businessNumber);
+    // 사업자번호는 선택사항 — 값이 입력된 경우에만 국가별 검증
+    const bnErr = validateBusinessNumber(formData.businessNumber, formData.country || 'ko');
     if (bnErr) errors.businessNumber = bnErr;
 
     const phoneErr = validatePhone(formData.phone);

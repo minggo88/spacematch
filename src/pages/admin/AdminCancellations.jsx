@@ -278,9 +278,9 @@ const AdminCancellations = () => {
                                                         <User size={12} className="text-gray-400" /> {req.seller_email}
                                                     </span>
                                                 )}
-                                                {req.vendor_name && (
+                                                {req.host_name && (
                                                     <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                                                        <Store size={12} className="text-gray-400" /> {req.vendor_name}
+                                                        <Store size={12} className="text-gray-400" /> {req.host_name}
                                                     </span>
                                                 )}
                                                 <span className="flex items-center gap-1.5 text-xs text-gray-500">

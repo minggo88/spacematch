@@ -58,7 +58,7 @@
     "sortByNewest": "ថ្មីបំផុត",
     "sortByPopular": "ពេញនិយម",
     "viewOnMap": "មើលលើផែនទី",
-    "contactVendor": "ទំនាក់ទំនង",
+    "contactHost": "ទំនាក់ទំនង",
     "applyNow": "ដាក់ពាក្យ",
     "free": "ឥតគិតថ្លៃ",
     "locationTBD": "ទីតាំងមិនទាន់កំណត់",
@@ -108,7 +108,7 @@
             "gangwon": "កាំងវ៉ន"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "ប្រវត្តិរូបអ្នកផ្គត់ផ្គង់",
         "openSpaces": "កន្លែងបើក",
         "about": "អំពី",

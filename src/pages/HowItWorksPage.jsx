@@ -31,10 +31,10 @@ const HowItWorksPage = () => {
         { step: '03', icon: <Handshake size={22} />, titleKey: 'howItWorksPage.sellerStep3.title', descKey: 'howItWorksPage.sellerStep3.desc', detailsKey: 'howItWorksPage.sellerStep3.details' }
     ];
 
-    const vendorSteps = [
-        { step: '01', icon: <ClipboardList size={22} />, titleKey: 'howItWorksPage.vendorStep1.title', descKey: 'howItWorksPage.vendorStep1.desc', detailsKey: 'howItWorksPage.vendorStep1.details' },
-        { step: '02', icon: <Search size={22} />, titleKey: 'howItWorksPage.vendorStep2.title', descKey: 'howItWorksPage.vendorStep2.desc', detailsKey: 'howItWorksPage.vendorStep2.details' },
-        { step: '03', icon: <Star size={22} />, titleKey: 'howItWorksPage.vendorStep3.title', descKey: 'howItWorksPage.vendorStep3.desc', detailsKey: 'howItWorksPage.vendorStep3.details' }
+    const hostSteps = [
+        { step: '01', icon: <ClipboardList size={22} />, titleKey: 'howItWorksPage.hostStep1.title', descKey: 'howItWorksPage.hostStep1.desc', detailsKey: 'howItWorksPage.hostStep1.details' },
+        { step: '02', icon: <Search size={22} />, titleKey: 'howItWorksPage.hostStep2.title', descKey: 'howItWorksPage.hostStep2.desc', detailsKey: 'howItWorksPage.hostStep2.details' },
+        { step: '03', icon: <Star size={22} />, titleKey: 'howItWorksPage.hostStep3.title', descKey: 'howItWorksPage.hostStep3.desc', detailsKey: 'howItWorksPage.hostStep3.details' }
     ];
 
     const StepCard = ({ item, accent = 'indigo' }) => {
@@ -58,7 +58,7 @@ const HowItWorksPage = () => {
                         <h3 className="text-lg font-bold text-gray-900">{title}</h3>
                     </div>
                 </div>
-                <p className="text-gray-400 text-sm leading-relaxed mb-5"><SmartText mobileMax={16} pcMax={22}>{desc}</SmartText></p>
+                <p className="text-gray-400 text-sm leading-relaxed mb-5"><SmartText mobileMax={20} pcMax={36}>{desc}</SmartText></p>
                 <div className={`${c.bg} rounded-xl p-4`}>
                     <ul className="space-y-2.5">
                         {Array.isArray(details) && details.map((d, j) => (
@@ -94,7 +94,7 @@ const HowItWorksPage = () => {
                         </span>
                     </h1>
                     <p className="text-base md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-                        <SmartText mobileMax={16} pcMax={24}>{t('howItWorksPage.heroDesc')}</SmartText>
+                        <SmartText mobileMax={20} pcMax={40}>{t('howItWorksPage.heroDesc')}</SmartText>
                     </p>
                 </div>
             </section>
@@ -126,12 +126,12 @@ const HowItWorksPage = () => {
                 <div className="max-w-5xl mx-auto px-4 md:px-6">
                     <div className="text-center mb-12">
                         <p className="text-emerald-600 text-sm font-semibold tracking-widest uppercase mb-3">
-                            {t('howItWorksPage.vendorBadge')}
+                            {t('howItWorksPage.hostBadge')}
                         </p>
-                        <h2 className="text-2xl md:text-4xl font-bold text-gray-900">{t('howItWorksPage.vendorTitle')}</h2>
+                        <h2 className="text-2xl md:text-4xl font-bold text-gray-900">{t('howItWorksPage.hostTitle')}</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-                        {vendorSteps.map((step, i) => (
+                        {hostSteps.map((step, i) => (
                             <StepCard key={i} item={step} accent="emerald" />
                         ))}
                     </div>

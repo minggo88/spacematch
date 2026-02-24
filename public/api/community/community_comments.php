@@ -6,6 +6,7 @@ header("Access-Control-Allow-Credentials: true");
 header('Content-Type: application/json; charset=utf-8');
 
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -208,9 +209,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $targetRole = $roleData ? $roleData['role'] : 'seller';
 
                     if ($targetRole === 'admin' || $targetRole === 'superadmin') {
-                        $base = ($communityType === 'seller') ? '/admin/community/seller' : (($communityType === 'vendor') ? '/admin/community/vendor' : '/admin/community/general');
-                    } elseif ($targetRole === 'vendor') {
-                        $base = ($communityType === 'general') ? '/vendor/community/general' : '/vendor/community';
+                        $base = ($communityType === 'seller') ? '/admin/community/seller' : (($communityType === 'host') ? '/admin/community/host' : '/admin/community/general');
+                    } elseif ($targetRole === 'host') {
+                        $base = ($communityType === 'general') ? '/host/community/general' : '/host/community';
                     } else {
                         $base = ($communityType === 'general') ? '/seller/community/general' : '/seller/community';
                     }
@@ -224,6 +225,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $notifSql = "INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'community_comment', ?, ?, NOW())";
                     $notifStmt = $conn->prepare($notifSql);
                     $notifStmt->execute([$postAuthorId, $notifMsg, $notifLink]);
+
+                    // [EMAIL] 댓글 이메일 알림 (다국어)
+                    try {
+                        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        $_un = $user_name;
+                        $_pt = $postInfo['title'];
+                        $_nl = $notifLink;
+                        sendEmailToUser(
+                            $conn,
+                            $postAuthorId,
+                            '',
+                            '',
+                            'cat_community',
+                            function ($lang) use ($_un, $_pt, $siteUrl, $_nl) {
+                                $subj = _t(['ko' => "{$_un}님이 댓글을 남겼습니다", 'en' => "{$_un} left a comment", 'ja' => "{$_un}さんがコメント", 'vi' => "{$_un} đã bình luận", 'th' => "{$_un} แสดงความคิดเห็น"], $lang);
+                                return ['subject' => $subj, 'html' => emailTemplateCommunityComment($_un, $_pt, false, $siteUrl, $_nl, $lang)];
+                            }
+                        );
+                    } catch (Exception $emailErr) {
+                        error_log("Email error (community_comment): " . $emailErr->getMessage());
+                    }
                 }
 
                 // If this is a reply, notify parent comment author too
@@ -237,6 +259,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $replySql = "INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'community_reply', ?, ?, NOW())";
                         $replyStmt = $conn->prepare($replySql);
                         $replyStmt->execute([intval($parentData['user_id']), $replyMsg, $replyLink]);
+
+                        // [EMAIL] 답글 이메일 알림 (다국어)
+                        try {
+                            $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                            $_un = $user_name;
+                            $_pt = $postInfo['title'];
+                            $_rl = $replyLink;
+                            sendEmailToUser(
+                                $conn,
+                                intval($parentData['user_id']),
+                                '',
+                                '',
+                                'cat_community',
+                                function ($lang) use ($_un, $_pt, $siteUrl, $_rl) {
+                                    $subj = _t(['ko' => "{$_un}님이 답글을 남겼습니다", 'en' => "{$_un} replied", 'ja' => "{$_un}さんが返信", 'vi' => "{$_un} đã trả lời", 'th' => "{$_un} ตอบกลับ"], $lang);
+                                    return ['subject' => $subj, 'html' => emailTemplateCommunityComment($_un, $_pt, true, $siteUrl, $_rl, $lang)];
+                                }
+                            );
+                        } catch (Exception $emailErr) {
+                            error_log("Email error (community_reply): " . $emailErr->getMessage());
+                        }
                     }
                 }
             }

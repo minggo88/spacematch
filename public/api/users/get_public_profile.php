@@ -51,7 +51,7 @@ try {
 
     // Mask contact info if vendor is viewing a seller profile (NOT admin)
     $requester_role = $_SESSION['user_role'] ?? '';
-    if ($requester_role === 'vendor' && $user['role'] === 'seller') {
+    if ($requester_role === 'host' && $user['role'] === 'seller') {
         if (isset($user['instagram']))
             $user['instagram'] = '';
         if (isset($user['phone']))
@@ -71,8 +71,8 @@ try {
     ];
 
     // 2. Role-based activity data
-    if ($user['role'] === 'vendor') {
-        // Vendor: show approved venues (public info only)
+    if ($user['role'] === 'host') {
+        // Host: show approved venues (public info only)
         $vStmt = $conn->prepare("SELECT id, name, location, type, status, price, images FROM venues WHERE owner_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 10");
         $vStmt->execute([$user['id']]);
         $venues = $vStmt->fetchAll(PDO::FETCH_ASSOC);

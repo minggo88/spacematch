@@ -3,7 +3,7 @@ include_once '../db_connect.php';
 session_start();
 
 // Check if vendor or admin
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['vendor', 'admin', 'superadmin'])) {
+if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['host', 'admin', 'superadmin'])) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "Unauthorized."));
     exit;
@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['vendor
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['user_role'];
 
-if ($role === 'vendor') {
+if ($role === 'host') {
     // Vendors see only their own venues
     $query = "SELECT v.*, 
               (SELECT COUNT(*) FROM applications a WHERE a.venue_id = v.id AND a.status = 'approved') as approved_count

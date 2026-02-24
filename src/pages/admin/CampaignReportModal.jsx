@@ -10,7 +10,7 @@ const SLOT_KEY_MAP = {
     home_c: 'slotHomeC', home_d: 'slotHomeD', home_hero_bg: 'slotHomeHeroBg',
     directory_a: 'slotDirectoryA', directory_b: 'slotDirectoryB', directory_c: 'slotDirectoryC', directory_d: 'slotDirectoryD',
     seller_community_top: 'slotSellerCommunityTop', seller_community_feed: 'slotSellerCommunityFeed',
-    vendor_community_top: 'slotVendorCommunityTop', vendor_community_feed: 'slotVendorCommunityFeed',
+    host_community_top: 'slotHostCommunityTop', host_community_feed: 'slotHostCommunityFeed',
     general_community_top: 'slotGeneralCommunityTop', general_community_feed: 'slotGeneralCommunityFeed',
     landing_a: 'slotLandingA', landing_b: 'slotLandingB', landing_b2: 'slotLandingB2',
 };

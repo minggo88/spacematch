@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 // Allow only admin or superadmin
@@ -43,11 +44,32 @@ if (isset($data->id) && isset($data->status)) {
                     $statusLabel = $statusLabels[$status] ?? $status;
                     $venueName = $venueInfo['name'];
                     $notifMsg = "'{$venueName}' 공간이 [{$statusLabel}] 처리되었습니다.";
-                    $notifLink = "/vendor/venues";
+                    $notifLink = "/host/venues";
 
                     $notifSql = "INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'venue_status', ?, ?, NOW())";
                     $notifStmt = $conn->prepare($notifSql);
                     $notifStmt->execute([$venueInfo['owner_id'], $notifMsg, $notifLink]);
+
+                    // [EMAIL] 베뉴 상태 변경 이메일 알림 (다국어)
+                    try {
+                        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        $_vn = $venueName;
+                        $_st = $status;
+                        $_nl = $notifLink;
+                        sendEmailToUser(
+                            $conn,
+                            $venueInfo['owner_id'],
+                            '',
+                            '',
+                            'cat_venue',
+                            function ($lang) use ($_vn, $_st, $siteUrl, $_nl) {
+                                $subj = _t(['ko' => "'{$_vn}' 공간 상태가 변경되었습니다", 'en' => "'{$_vn}' status changed", 'ja' => "'{$_vn}' 状態変更", 'vi' => "'{$_vn}' đã thay đổi trạng thái", 'th' => "'{$_vn}' สถานะเปลี่ยนแปลง"], $lang);
+                                return ['subject' => $subj, 'html' => emailTemplateVenueStatus($_vn, $_st, $siteUrl, $_nl, $lang)];
+                            }
+                        );
+                    } catch (Exception $emailErr) {
+                        error_log("Email error (venue_status): " . $emailErr->getMessage());
+                    }
                 } catch (Exception $e) {
                     // Don't block venue status update if notification fails
                 }

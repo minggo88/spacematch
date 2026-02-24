@@ -2,12 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
 import { useTranslation } from 'react-i18next';
 import { Store, MapPin, Sparkles, XCircle, AlertTriangle, Send, Clock, CheckCircle, X, Zap } from 'lucide-react';
+import { useDemoGuard } from '../../hooks/useDemoGuard';
 
 const API_BASE = '/api';
 
 const SellerApplications = () => {
     const { applications, fetchApplications } = useData();
     const { t } = useTranslation('seller');
+    const { isDemoUser, demoAlert } = useDemoGuard();
 
     React.useEffect(() => {
         fetchApplications();
@@ -50,6 +52,7 @@ const SellerApplications = () => {
 
     // Direct cancel (pending/rejected only)
     const handleCancel = async (appId, venueName) => {
+        if (isDemoUser) { demoAlert('신청 취소'); return; }
         if (!confirm(t('appPage.confirmCancel', { venue: venueName }))) return;
         setCancelling(appId);
         try {
@@ -75,6 +78,7 @@ const SellerApplications = () => {
 
     // Submit cancellation request (approved only)
     const handleCancelRequest = async () => {
+        if (isDemoUser) { demoAlert('취소 요청'); return; }
         if (!cancelReason.trim()) {
             alert(t('appPage.cancelReasonRequired'));
             return;

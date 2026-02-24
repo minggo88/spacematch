@@ -58,7 +58,7 @@
     "sortByNewest": "Mới nhất",
     "sortByPopular": "Phổ biến nhất",
     "viewOnMap": "Xem trên bản đồ",
-    "contactVendor": "Liên hệ",
+    "contactHost": "Liên hệ",
     "applyNow": "Đăng ký ngay",
     "free": "Miễn phí",
     "locationTBD": "Địa điểm chưa xác định",
@@ -108,7 +108,7 @@
             "gangwon": "Gangwon"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "Hồ sơ nhà cung cấp",
         "openSpaces": "Không gian mở",
         "about": "Giới thiệu",

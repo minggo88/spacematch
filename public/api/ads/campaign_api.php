@@ -45,6 +45,15 @@ try {
 } catch (PDOException $ignore) {
 }
 
+// Auto-add target_countries column if missing
+try {
+    $col = $conn->query("SHOW COLUMNS FROM ad_campaigns LIKE 'target_countries'");
+    if (!$col->fetch()) {
+        $conn->exec("ALTER TABLE ad_campaigns ADD COLUMN target_countries VARCHAR(500) NOT NULL DEFAULT 'all'");
+    }
+} catch (PDOException $ignore) {
+}
+
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $action = $data['action'] ?? ($_GET['action'] ?? '');
 
@@ -80,7 +89,7 @@ try {
                 echo json_encode(['success' => false, 'message' => '캠페인명을 입력하세요.']);
                 exit();
             }
-            $stmt = $conn->prepare("INSERT INTO ad_campaigns (name, advertiser, budget, start_date, end_date, status, memo) VALUES (:name, :advertiser, :budget, :start_date, :end_date, :status, :memo)");
+            $stmt = $conn->prepare("INSERT INTO ad_campaigns (name, advertiser, budget, start_date, end_date, status, memo, target_countries) VALUES (:name, :advertiser, :budget, :start_date, :end_date, :status, :memo, :target_countries)");
             $stmt->execute([
                 ':name' => $name,
                 ':advertiser' => $advertiser,
@@ -89,6 +98,7 @@ try {
                 ':end_date' => $data['end_date'] ?? null,
                 ':status' => $data['status'] ?? 'active',
                 ':memo' => $data['memo'] ?? null,
+                ':target_countries' => $data['target_countries'] ?? 'all',
             ]);
             echo json_encode(['success' => true, 'id' => $conn->lastInsertId(), 'message' => '캠페인이 생성되었습니다.']);
             break;
@@ -100,7 +110,7 @@ try {
                 echo json_encode(['success' => false, 'message' => 'id required']);
                 exit();
             }
-            $stmt = $conn->prepare("UPDATE ad_campaigns SET name=:name, advertiser=:advertiser, budget=:budget, start_date=:start_date, end_date=:end_date, status=:status, memo=:memo WHERE id=:id");
+            $stmt = $conn->prepare("UPDATE ad_campaigns SET name=:name, advertiser=:advertiser, budget=:budget, start_date=:start_date, end_date=:end_date, status=:status, memo=:memo, target_countries=:target_countries WHERE id=:id");
             $stmt->execute([
                 ':id' => $id,
                 ':name' => trim($data['name'] ?? ''),
@@ -110,6 +120,7 @@ try {
                 ':end_date' => $data['end_date'] ?? null,
                 ':status' => $data['status'] ?? 'active',
                 ':memo' => $data['memo'] ?? null,
+                ':target_countries' => $data['target_countries'] ?? 'all',
             ]);
             echo json_encode(['success' => true, 'message' => '캠페인이 수정되었습니다.']);
             break;

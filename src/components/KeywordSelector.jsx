@@ -17,8 +17,8 @@ const VENDOR_KEYWORD_KEYS = [
 const KeywordSelector = ({ type = 'seller', value = [], onChange, maxKeywords = 10 }) => {
     const [customInput, setCustomInput] = useState('');
     const { t } = useTranslation('auth');
-    const keywordKeys = type === 'vendor' ? VENDOR_KEYWORD_KEYS : SELLER_KEYWORD_KEYS;
-    const prefix = type === 'vendor' ? 'vendorKeywords' : 'sellerKeywords';
+    const keywordKeys = type === 'host' ? VENDOR_KEYWORD_KEYS : SELLER_KEYWORD_KEYS;
+    const prefix = type === 'host' ? 'hostKeywords' : 'sellerKeywords';
 
     const getLabel = (key) => t(`${prefix}.${key}`);
 

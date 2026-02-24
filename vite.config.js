@@ -8,8 +8,17 @@ export default defineConfig(({ mode }) => ({
     build: {
         // ── Security: 프로덕션 빌드 보안 설정 ──
         minify: mode === 'production' ? 'terser' : false,
-        chunkSizeWarningLimit: 2000,
+        chunkSizeWarningLimit: 2500,
         sourcemap: false, // Source map 비활성화 (코드 노출 방지)
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-xlsx': ['xlsx'],
+                    'vendor-icons': ['lucide-react'],
+                    'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector', 'i18next-http-backend'],
+                }
+            }
+        },
         terserOptions: mode === 'production' ? {
             compress: {
                 drop_console: true,    // console.log 등 제거

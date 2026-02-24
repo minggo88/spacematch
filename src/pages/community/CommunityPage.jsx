@@ -2,13 +2,27 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { MessageSquare, Send, Trash2, ChevronLeft, ChevronRight, PenLine, X, User, Clock, ImagePlus, Tag, Filter, Edit3, Check, CornerDownRight, MessageCircle, Heart, Eye, Flame, Share2, Link2, ExternalLink, ShieldAlert, Search, Hash, AtSign, MapPin, Store, Calendar, ClipboardList, AlertTriangle, CheckCircle, TrendingUp, Zap, Crown, ArrowUpDown, Users, BarChart3, ArrowLeft, ArrowRight, Pin, Megaphone, ChevronDown, Globe } from 'lucide-react';
+import { MessageSquare, Send, Trash2, ChevronLeft, ChevronRight, PenLine, X, User, Clock, ImagePlus, Tag, Filter, Edit3, Check, CornerDownRight, MessageCircle, Heart, Eye, Flame, Share2, Link2, ExternalLink, ShieldAlert, Search, Hash, AtSign, MapPin, Store, Calendar, ClipboardList, AlertTriangle, CheckCircle, TrendingUp, Zap, Crown, ArrowUpDown, Users, BarChart3, ArrowLeft, ArrowRight, Pin, Megaphone, ChevronDown, Globe, Bookmark, BookmarkCheck, Vote, BarChart2, Trophy, ShoppingBag, Star, Building2, UserPlus, CalendarDays, HelpCircle, Handshake, Newspaper, Network, CalendarClock, Flag } from 'lucide-react';
 import AdSlot from '../../components/AdSlot';
 import TranslatedText from '../../components/TranslatedText';
 import CountryBadge, { COUNTRY_FLAGS } from '../../components/CountryBadge';
 import { getDisplayName, countryToLang } from '../../utils/translateText';
+import { useDemoGuard } from '../../hooks/useDemoGuard';
 
 const API_BASE = '/api/community';
+
+// Community-specific label sets
+const COMMON_LABEL_KEYS = ['labels.free', 'labels.question', 'labels.infoShare', 'labels.review', 'labels.jobSeeker', 'labels.info', 'labels.other'];
+const COMMON_LABEL_KO = ['자유', '질문', '정보공유', '후기', '구인/구직', '정보', '기타'];
+
+const SELLER_EXTRA_LABEL_KEYS = ['labels.salesProof', 'labels.productPromo', 'labels.venueReview', 'labels.knowhow', 'labels.poll'];
+const SELLER_EXTRA_LABEL_KO = ['매출인증', '제품홍보', '베뉴후기', '노하우', '투표'];
+
+const VENDOR_EXTRA_LABEL_KEYS = ['labels.spaceShowcase', 'labels.sellerRecruit', 'labels.event', 'labels.operationQA', 'labels.sellerReview'];
+const VENDOR_EXTRA_LABEL_KO = ['공간자랑', '셀러모집', '이벤트', '운영Q&A', '셀러후기'];
+
+const GENERAL_EXTRA_LABEL_KEYS = ['labels.successStory', 'labels.industryNews', 'labels.networking', 'labels.eventSchedule'];
+const GENERAL_EXTRA_LABEL_KO = ['성공사례', '업계뉴스', '네트워킹', '행사일정'];
 
 const COMMUNITY_CONFIG = {
     seller: {
@@ -25,10 +39,12 @@ const COMMUNITY_CONFIG = {
         buttonBg: 'bg-violet-600 hover:bg-violet-700',
         labelColor: 'bg-violet-100 text-violet-700 border-violet-200',
         labelActiveColor: 'bg-violet-600 text-white',
+        labelKeys: [...COMMON_LABEL_KEYS, ...SELLER_EXTRA_LABEL_KEYS],
+        labelKoValues: [...COMMON_LABEL_KO, ...SELLER_EXTRA_LABEL_KO],
     },
-    vendor: {
-        titleKey: 'vendorCommunity',
-        subtitleKey: 'vendorSubtitle',
+    host: {
+        titleKey: 'hostCommunity',
+        subtitleKey: 'hostSubtitle',
         gradient: 'from-emerald-500 to-teal-600',
         accentBg: 'bg-emerald-50',
         accentText: 'text-emerald-600',
@@ -36,6 +52,8 @@ const COMMUNITY_CONFIG = {
         buttonBg: 'bg-emerald-600 hover:bg-emerald-700',
         labelColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
         labelActiveColor: 'bg-emerald-600 text-white',
+        labelKeys: [...COMMON_LABEL_KEYS, ...VENDOR_EXTRA_LABEL_KEYS],
+        labelKoValues: [...COMMON_LABEL_KO, ...VENDOR_EXTRA_LABEL_KO],
     },
     general: {
         titleKey: 'generalCommunity',
@@ -47,20 +65,24 @@ const COMMUNITY_CONFIG = {
         buttonBg: 'bg-blue-600 hover:bg-blue-700',
         labelColor: 'bg-blue-100 text-blue-700 border-blue-200',
         labelActiveColor: 'bg-blue-600 text-white',
+        labelKeys: [...COMMON_LABEL_KEYS, ...GENERAL_EXTRA_LABEL_KEYS],
+        labelKoValues: [...COMMON_LABEL_KO, ...GENERAL_EXTRA_LABEL_KO],
     }
 };
 
-const DEFAULT_LABEL_KEYS = ['labels.free', 'labels.question', 'labels.infoShare', 'labels.review', 'labels.jobSeeker', 'labels.info', 'labels.other'];
-
-// Korean DB values corresponding to each label key (for consistent DB storage)
-const LABEL_KO_VALUES = ['자유', '질문', '정보공유', '후기', '구인/구직', '정보', '기타'];
+// Fallback (now derived from config)
+const DEFAULT_LABEL_KEYS = COMMON_LABEL_KEYS;
+const LABEL_KO_VALUES = COMMON_LABEL_KO;
 
 const CommunityPage = ({ type = 'general' }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation('community');
-    // Label options: { ko: Korean DB value, display: translated text }
-    const LABEL_OPTIONS = DEFAULT_LABEL_KEYS.map((key, i) => ({ ko: LABEL_KO_VALUES[i], display: t(key) }));
+    const config = COMMUNITY_CONFIG[type] || COMMUNITY_CONFIG.general;
+    // Label options: use community-specific labels from config
+    const currentLabelKeys = config.labelKeys || DEFAULT_LABEL_KEYS;
+    const currentLabelKoValues = config.labelKoValues || LABEL_KO_VALUES;
+    const LABEL_OPTIONS = currentLabelKeys.map((key, i) => ({ ko: currentLabelKoValues[i], display: t(key) }));
     const DEFAULT_LABELS = LABEL_OPTIONS.map(opt => opt.display);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -95,19 +117,52 @@ const CommunityPage = ({ type = 'general' }) => {
 
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
-    // Map Korean DB label values → i18n keys for translation
-    const LABEL_KO_TO_KEY = {
-        '자유': 'labels.free',
-        '질문': 'labels.question',
-        '정보공유': 'labels.infoShare',
-        '후기': 'labels.review',
-        '구인/구직': 'labels.jobSeeker',
-        '정보': 'labels.info',
-        '기타': 'labels.other'
-    };
+    // Enhanced role badge system
+    const getRoleBadge = useCallback((role) => {
+        switch (role) {
+            case 'superadmin': return { label: t('badgeSuperAdmin'), color: 'bg-gradient-to-r from-red-500 to-orange-500 text-white', icon: Crown };
+            case 'admin': return { label: t('roleAdmin'), color: 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white', icon: ShieldAlert };
+            case 'host': return { label: t('roleHost'), color: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white', icon: Building2 };
+            case 'seller': return { label: t('roleSeller'), color: 'bg-gradient-to-r from-violet-500 to-purple-500 text-white', icon: ShoppingBag };
+            default: return { label: t('badgeUser'), color: 'bg-gray-100 text-gray-600', icon: User };
+        }
+    }, [t]);
+    const { isDemoUser, demoAlert } = useDemoGuard();
+
+    // Activity level badge helper
+    const getActivityBadge = useCallback((level) => {
+        const badges = {
+            1: { emoji: '🌱', label: 'Lv.1', color: 'text-green-500' },
+            2: { emoji: '🌿', label: 'Lv.2', color: 'text-emerald-500' },
+            3: { emoji: '🌳', label: 'Lv.3', color: 'text-teal-600' },
+            4: { emoji: '⭐', label: 'Lv.4', color: 'text-amber-500' },
+            5: { emoji: '👑', label: 'Lv.5', color: 'text-red-500' },
+        };
+        return badges[level] || badges[1];
+    }, []);
+
+    // Report modal state
+    const [reportModal, setReportModal] = useState(null); // { postId }
+    const [reportReason, setReportReason] = useState('');
+    const [reportDetail, setReportDetail] = useState('');
+    const [reportSubmitting, setReportSubmitting] = useState(false);
+
+    // Map Korean DB label values → i18n keys for translation (build dynamically from config)
+    const LABEL_KO_TO_KEY = useMemo(() => {
+        const map = {};
+        const keys = config.labelKeys || DEFAULT_LABEL_KEYS;
+        const koVals = config.labelKoValues || LABEL_KO_VALUES;
+        keys.forEach((key, i) => { map[koVals[i]] = key; });
+        return map;
+    }, [config]);
     const translateLabel = (label) => {
         const key = LABEL_KO_TO_KEY[label];
         return key ? t(key) : label;
+    };
+    // Translate hashtag using community.json hashtags map
+    const translateTag = (tag) => {
+        const translated = t(`hashtags.${tag}`, { defaultValue: '' });
+        return translated || tag;
     };
     // Reverse: translated display text → Korean DB value
     const toLabelKo = (displayLabel) => {
@@ -151,18 +206,27 @@ const CommunityPage = ({ type = 'general' }) => {
     const [doubleTapHeart, setDoubleTapHeart] = useState(null);
     const lastTapRef = useRef({});
 
+    // Bookmark state
+    const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
+    const [showBookmarks, setShowBookmarks] = useState(false);
+
+    // Poll state
+    const [pollData, setPollData] = useState({}); // { postId: pollInfo }
+    const [newPollOptions, setNewPollOptions] = useState(['', '']); // For write form
+    const [showPollForm, setShowPollForm] = useState(false);
+    const [pollEndDate, setPollEndDate] = useState('');
+
     // Sort & Mode (DC Inside style)
     const [sortBy, setSortBy] = useState('latest'); // latest, likes, comments, views
     const [feedMode, setFeedMode] = useState('all'); // all, best, hot
 
     // Country filter — auto-landing on user's country
-    const [countryFilter, setCountryFilter] = useState(user?.country || 'all');
+    const [countryFilter, setCountryFilter] = useState('all');
 
     // Notification highlight
     const [searchParams, setSearchParams] = useSearchParams();
     const [highlightedPostId, setHighlightedPostId] = useState(null);
 
-    const config = COMMUNITY_CONFIG[type] || COMMUNITY_CONFIG.general;
 
     // Trending hashtags (computed from popular posts keywords)
     const trendingTags = useMemo(() => {
@@ -195,6 +259,22 @@ const CommunityPage = ({ type = 'general' }) => {
         setLoading(true);
         try {
             let url = `${API_BASE}/community_posts.php?type=${type}&page=${page}`;
+
+            // Bookmark mode: fetch from bookmark API instead
+            if (feedMode === 'bookmarks') {
+                url = `${API_BASE}/community_bookmarks.php?type=${type}&page=${page}`;
+                const res = await fetch(url, { credentials: 'include' });
+                const data = await res.json();
+                if (data.success) {
+                    setPosts(data.posts || []);
+                    setTotalPages(data.totalPages || 1);
+                    const bm = new Set();
+                    (data.posts || []).forEach(p => bm.add(p.id));
+                    setBookmarkedPosts(bm);
+                }
+                return;
+            }
+
             if (filterLabel) url += `&label=${encodeURIComponent(filterLabel)}`;
             if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
             if (sortBy !== 'latest') url += `&sort=${sortBy}`;
@@ -212,6 +292,10 @@ const CommunityPage = ({ type = 'general' }) => {
                 setPosts(data.posts || []);
                 setTotalPages(data.totalPages || 1);
                 if (data.labels) setAvailableLabels(data.labels);
+                // Initialize bookmark state from server
+                const bm = new Set();
+                (data.posts || []).forEach(p => { if (p.is_bookmarked) bm.add(p.id); });
+                setBookmarkedPosts(bm);
             }
         } catch (err) {
             console.error('Failed to load posts:', err);
@@ -371,6 +455,7 @@ const CommunityPage = ({ type = 'general' }) => {
 
     const handleSubmitPost = async (e) => {
         e.preventDefault();
+        if (isDemoUser) { demoAlert('글 작성'); return; }
         if (!newPost.title.trim() || !newPost.content.trim()) {
             showToast(t('titleContentRequired'), 'error');
             return;
@@ -402,6 +487,23 @@ const CommunityPage = ({ type = 'general' }) => {
             });
             const data = await res.json();
             if (data.success) {
+                // Create poll if poll options were filled
+                const validPollOptions = newPollOptions.filter(o => o.trim());
+                if (validPollOptions.length >= 2 && (newPost.label === t('labels.poll') || showPollForm)) {
+                    try {
+                        await fetch(`${API_BASE}/community_polls.php`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                post_id: data.post.id,
+                                options: validPollOptions,
+                                end_date: pollEndDate || null
+                            })
+                        });
+                    } catch { }
+                }
+
                 if (data.post.is_notice > 0) {
                     setNotices(prev => [data.post, ...prev]);
                 } else {
@@ -411,6 +513,9 @@ const CommunityPage = ({ type = 'general' }) => {
                 setNewPhotos([]);
                 setPhotoPreviewUrls([]);
                 setShowWriteForm(false);
+                setNewPollOptions(['', '']);
+                setShowPollForm(false);
+                setPollEndDate('');
                 if (data.post.label && !availableLabels.includes(data.post.label)) {
                     setAvailableLabels(prev => [...prev, data.post.label]);
                 }
@@ -426,6 +531,7 @@ const CommunityPage = ({ type = 'general' }) => {
     };
 
     const handleDeletePost = async (postId) => {
+        if (isDemoUser) { demoAlert('글 삭제'); return; }
         setConfirmModal({
             title: t('deletePostTitle'),
             message: t('deletePostMessage'),
@@ -467,13 +573,97 @@ const CommunityPage = ({ type = 'general' }) => {
         return d.toLocaleDateString();
     };
 
-    const getRoleBadge = (role) => {
-        switch (role) {
-            case 'seller': return { label: 'Seller', color: 'bg-violet-100 text-violet-700' };
-            case 'vendor': return { label: 'Vendor', color: 'bg-emerald-100 text-emerald-700' };
-            case 'admin': return { label: 'Admin', color: 'bg-red-100 text-red-700' };
-            case 'superadmin': return { label: t('badgeSuperAdmin'), color: 'bg-yellow-100 text-yellow-700' };
-            default: return { label: t('badgeUser'), color: 'bg-gray-100 text-gray-700' };
+    // Bookmark toggle handler
+    const handleToggleBookmark = async (e, postId) => {
+        e.stopPropagation();
+        if (isDemoUser) { demoAlert('북마크'); return; }
+        try {
+            const res = await fetch(`${API_BASE}/community_bookmarks.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ post_id: postId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBookmarkedPosts(prev => {
+                    const next = new Set(prev);
+                    if (data.bookmarked) { next.add(postId); showToast(t('bookmarkAdded')); }
+                    else { next.delete(postId); showToast(t('bookmarkRemoved')); }
+                    return next;
+                });
+            }
+        } catch { }
+    };
+
+    // Poll vote handler
+    const handlePollVote = async (pollId, optionId, postId) => {
+        if (isDemoUser) { demoAlert('투표'); return; }
+        try {
+            const res = await fetch(`${API_BASE}/community_polls.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ action: 'vote', poll_id: pollId, option_id: optionId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setPollData(prev => ({
+                    ...prev,
+                    [postId]: {
+                        ...prev[postId],
+                        options: data.options,
+                        total_votes: data.total_votes,
+                        user_voted: data.user_voted,
+                    }
+                }));
+                showToast(t('pollVote') + '!');
+            } else {
+                showToast(data.message || t('pollAlreadyVoted'), 'error');
+            }
+        } catch { }
+    };
+
+    // Fetch poll data for a post
+    const fetchPollData = async (postId) => {
+        try {
+            const res = await fetch(`${API_BASE}/community_polls.php?post_id=${postId}`, { credentials: 'include' });
+            const data = await res.json();
+            if (data.success && data.poll) {
+                setPollData(prev => ({ ...prev, [postId]: data.poll }));
+            }
+        } catch { }
+    };
+
+    // Report handler
+    const handleSubmitReport = async () => {
+        if (!reportModal || !reportReason) return;
+        if (isDemoUser) { demoAlert('신고'); return; }
+        setReportSubmitting(true);
+        try {
+            const res = await fetch(`${API_BASE}/community_reports.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    post_id: reportModal.postId,
+                    reason: reportReason,
+                    detail: reportDetail || null
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(t('reportSubmitted'), 'success');
+                setReportModal(null);
+                setReportReason('');
+                setReportDetail('');
+            } else {
+                showToast(data.message || t('reportFailed'), 'error');
+            }
+        } catch {
+            showToast(t('reportFailed'), 'error');
+        } finally {
+            setReportSubmitting(false);
         }
     };
 
@@ -493,6 +683,7 @@ const CommunityPage = ({ type = 'general' }) => {
     };
 
     const handleEditPost = async (postId) => {
+        if (isDemoUser) { demoAlert('글 수정'); return; }
         if (!editData.title.trim() || !editData.content.trim()) {
             showToast(t('titleContentRequired'), 'error');
             return;
@@ -530,6 +721,7 @@ const CommunityPage = ({ type = 'general' }) => {
     };
 
     const handleSubmitComment = async (postId) => {
+        if (isDemoUser) { demoAlert('댓글 작성'); return; }
         if (!commentInput.trim()) return;
         setSubmittingComment(true);
         try {
@@ -554,6 +746,7 @@ const CommunityPage = ({ type = 'general' }) => {
     };
 
     const handleSubmitReply = async (postId, parentId) => {
+        if (isDemoUser) { demoAlert('답글 작성'); return; }
         if (!replyInput.trim()) return;
         setSubmittingComment(true);
         try {
@@ -579,6 +772,7 @@ const CommunityPage = ({ type = 'general' }) => {
     };
 
     const handleDeleteComment = async (postId, commentId) => {
+        if (isDemoUser) { demoAlert('댓글 삭제'); return; }
         setConfirmModal({
             title: t('deleteCommentTitle'),
             message: t('deleteCommentMessage'),
@@ -610,6 +804,7 @@ const CommunityPage = ({ type = 'general' }) => {
     // Like toggle (optimistic)
     const handleToggleLike = async (e, postId) => {
         e.stopPropagation();
+        if (isDemoUser) { demoAlert('좋아요'); return; }
         // Optimistic update
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_liked: !p.is_liked, like_count: p.is_liked ? p.like_count - 1 : p.like_count + 1 } : p));
         setPopularPosts(prev => prev.map(p => p.id === postId ? { ...p, is_liked: !p.is_liked, like_count: p.is_liked ? p.like_count - 1 : p.like_count + 1 } : p));
@@ -645,7 +840,7 @@ const CommunityPage = ({ type = 'general' }) => {
             return updated;
         });
         try {
-            const res = await fetch(`${API_BASE}/community_likes.php`, {
+            const res = await fetch(`${API_BASE}/community_comment_likes.php`, {
                 method: 'POST', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ comment_id: commentId })
@@ -717,10 +912,17 @@ const CommunityPage = ({ type = 'general' }) => {
         setProfileData(null);
         setProfileLoading(true);
         try {
-            const res = await fetch(`/api/users/get_public_profile.php?id=${userId}`, { credentials: 'include' });
-            const data = await res.json();
-            if (data.success) {
-                setProfileData(data);
+            const [profileRes, activityRes] = await Promise.all([
+                fetch(`/api/users/get_public_profile.php?id=${userId}`, { credentials: 'include' }),
+                fetch(`${API_BASE}/community_activity.php?user_id=${userId}`, { credentials: 'include' })
+            ]);
+            const profileJson = await profileRes.json();
+            const activityJson = await activityRes.json();
+            if (profileJson.success) {
+                setProfileData({
+                    ...profileJson,
+                    activity: activityJson.success ? activityJson.activity : null
+                });
             }
         } catch (err) {
             console.error(err);
@@ -773,7 +975,7 @@ const CommunityPage = ({ type = 'general' }) => {
                         <p className="text-white/80 text-sm">{t(config.subtitleKey)}</p>
                     </div>
                     <button
-                        onClick={() => setShowWriteForm(!showWriteForm)}
+                        onClick={() => { if (isDemoUser) { demoAlert('글 작성'); return; } setShowWriteForm(!showWriteForm); }}
                         className="flex items-center gap-2 px-5 py-2.5 bg-white/20 backdrop-blur rounded-xl font-bold text-sm hover:bg-white/30 transition-colors"
                     >
                         <PenLine size={16} />
@@ -790,32 +992,37 @@ const CommunityPage = ({ type = 'general' }) => {
                 </div>
             </div>
 
-            {/* Mode Tabs (DC Inside style: 전체 / 개념글) */}
-            <div className="flex items-center gap-1 bg-gray-50 rounded-xl p-1">
-                {[
-                    { key: 'all', label: t('feedAll'), icon: <BarChart3 size={13} /> },
-                    { key: 'best', label: t('feedBest'), icon: <Crown size={13} /> },
-                ].map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => { setFeedMode(tab.key); setPage(1); }}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${feedMode === tab.key
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        {tab.icon}
-                        {tab.label}
-                        {tab.key === 'best' && <span className="text-[9px] text-amber-500 font-extrabold">🏅</span>}
-                    </button>
-                ))}
+            {/* Mode Tabs + Sort */}
+            <div className="flex items-center gap-2">
+                <div className="flex-1 overflow-x-auto scrollbar-hide">
+                    <div className="flex items-center gap-1 bg-gray-50 rounded-xl p-1 min-w-max">
+                        {[
+                            { key: 'all', label: t('feedAll'), icon: <BarChart3 size={13} /> },
+                            { key: 'best', label: t('feedBest'), icon: <Crown size={13} /> },
+                            { key: 'bookmarks', label: t('myBookmarks'), icon: <Bookmark size={13} /> },
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => { setFeedMode(tab.key); setPage(1); }}
+                                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${feedMode === tab.key
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                                {tab.key === 'best' && <span className="text-[9px] text-amber-500 font-extrabold">🏅</span>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 {/* Sort Dropdown */}
-                <div className="ml-auto flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0 bg-gray-50 rounded-xl px-2.5 py-2">
                     <ArrowUpDown size={12} className="text-gray-400" />
                     <select
                         value={sortBy}
                         onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-                        className="text-xs font-bold text-gray-600 bg-transparent border-none outline-none cursor-pointer py-1 pr-1"
+                        className="text-xs font-bold text-gray-600 bg-transparent border-none outline-none cursor-pointer"
                     >
                         <option value="latest">{t('sortBy.latest')}</option>
                         <option value="likes">{t('sortBy.likes')}</option>
@@ -825,6 +1032,35 @@ const CommunityPage = ({ type = 'general' }) => {
                 </div>
             </div>
 
+            {/* 🔥 Trending Hashtags */}
+            {trendingTags.length > 0 && (
+                <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
+                    <div className="flex items-center gap-1.5 py-1 min-w-max">
+                        <Flame size={14} className="text-orange-400 flex-shrink-0" />
+                        <span className="text-[10px] font-bold text-gray-400 mr-1">{t('trendingTags')}</span>
+                        {trendingTags.map(tag => (
+                            <button
+                                key={tag}
+                                onClick={() => {
+                                    if (searchQuery === tag) {
+                                        setSearchQuery('');
+                                    } else {
+                                        setSearchQuery(tag);
+                                    }
+                                    setPage(1);
+                                }}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${searchQuery === tag
+                                    ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white shadow-sm'
+                                    : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
+                                    }`}
+                            >
+                                #{translateTag(tag)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* 🌍 Country Filter Tabs */}
             <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
                 <div className="flex items-center gap-1.5 py-1 min-w-max">
@@ -832,8 +1068,8 @@ const CommunityPage = ({ type = 'general' }) => {
                     <button
                         onClick={() => { setCountryFilter('all'); setPage(1); }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === 'all'
-                                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                             }`}
                     >
                         🌍 {t('allCountries')}
@@ -843,10 +1079,10 @@ const CommunityPage = ({ type = 'general' }) => {
                             key={code}
                             onClick={() => { setCountryFilter(code); setPage(1); }}
                             className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === code
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
-                                    : code === user?.country
-                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
+                                : code === user?.country
+                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                 }`}
                         >
                             <span>{info.flag}</span>
@@ -874,23 +1110,25 @@ const CommunityPage = ({ type = 'general' }) => {
             {/* Label Filter */}
             {
                 availableLabels.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Filter size={14} className="text-gray-400" />
-                        <button
-                            onClick={() => { setFilterLabel(''); setPage(1); }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${filterLabel === '' ? config.labelActiveColor : config.labelColor}`}
-                        >
-                            {t('all')}
-                        </button>
-                        {availableLabels.map(lbl => (
+                    <div className="overflow-x-auto scrollbar-hide">
+                        <div className="flex items-center gap-2 min-w-max py-0.5">
+                            <Filter size={14} className="text-gray-400" />
                             <button
-                                key={lbl}
-                                onClick={() => { setFilterLabel(lbl); setPage(1); }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${filterLabel === lbl ? config.labelActiveColor : config.labelColor}`}
+                                onClick={() => { setFilterLabel(''); setPage(1); }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${filterLabel === '' ? config.labelActiveColor : config.labelColor}`}
                             >
-                                {translateLabel(lbl)}
+                                {t('all')}
                             </button>
-                        ))}
+                            {availableLabels.map(lbl => (
+                                <button
+                                    key={lbl}
+                                    onClick={() => { setFilterLabel(lbl); setPage(1); }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${filterLabel === lbl ? config.labelActiveColor : config.labelColor}`}
+                                >
+                                    {translateLabel(lbl)}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 )
             }
@@ -919,7 +1157,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                         className="group flex items-center gap-1 px-3 py-1.5 bg-white/80 dark:bg-white/10 backdrop-blur border border-orange-100 dark:border-orange-800/40 rounded-full text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-500 hover:text-white hover:border-transparent transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105"
                                     >
                                         <Hash size={11} className="text-orange-400 group-hover:text-white/80" />
-                                        {tag}
+                                        {translateTag(tag)}
                                         {i === 0 && <Flame size={11} className="text-orange-500 group-hover:text-yellow-200 ml-0.5" />}
                                     </button>
                                 ))}
@@ -1180,7 +1418,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             </div>
                                                             <div>
                                                                 <span className="text-sm font-bold text-gray-900">{mu.name}</span>
-                                                                <span className="ml-2 text-[10px] text-gray-400 font-medium">{mu.role === 'seller' ? '' : mu.role === 'vendor' ? 'Vendor' : mu.role}</span>
+                                                                <span className="ml-2 text-[10px] text-gray-400 font-medium">{mu.role === 'seller' ? '' : mu.role === 'host' ? 'Host' : mu.role}</span>
                                                             </div>
                                                         </button>
                                                     ))}
@@ -1204,6 +1442,61 @@ const CommunityPage = ({ type = 'general' }) => {
                                         />
                                         <p className="text-[10px] text-gray-400 mt-1">{t('keywordsHint')}</p>
                                     </div>
+
+                                    {/* Poll Options (shown when '투표' label is selected) */}
+                                    {(newPost.label === t('labels.poll') || showPollForm) && (
+                                        <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-4 border border-indigo-100">
+                                            <label className="block text-xs font-bold text-indigo-600 mb-3 flex items-center gap-1">
+                                                <BarChart2 size={12} />
+                                                {t('pollTitle')}
+                                            </label>
+                                            <div className="space-y-2">
+                                                {newPollOptions.map((opt, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-indigo-400 w-5">{idx + 1}</span>
+                                                        <input
+                                                            type="text"
+                                                            placeholder={t('pollOptionPlaceholder', { index: idx + 1 })}
+                                                            value={opt}
+                                                            onChange={(e) => {
+                                                                const updated = [...newPollOptions];
+                                                                updated[idx] = e.target.value;
+                                                                setNewPollOptions(updated);
+                                                            }}
+                                                            className="flex-1 px-3 py-2 bg-white border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm"
+                                                        />
+                                                        {newPollOptions.length > 2 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setNewPollOptions(prev => prev.filter((_, i) => i !== idx))}
+                                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {newPollOptions.length < 6 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewPollOptions(prev => [...prev, ''])}
+                                                    className="mt-2 text-xs font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+                                                >
+                                                    + {t('pollAddOption')}
+                                                </button>
+                                            )}
+                                            <div className="mt-3 flex items-center gap-2">
+                                                <label className="text-xs font-bold text-gray-500">{t('pollEndDate')}:</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={pollEndDate}
+                                                    onChange={(e) => setPollEndDate(e.target.value)}
+                                                    className="px-2 py-1 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Photo Upload */}
                                     <div>
@@ -1330,9 +1623,19 @@ const CommunityPage = ({ type = 'general' }) => {
                     </div>
                 ) : posts.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
-                        <MessageSquare className="mx-auto text-gray-300 mb-4" size={48} />
-                        <p className="text-gray-500 font-medium">{t('noPostsYet')}</p>
-                        <p className="text-gray-400 text-sm mt-1">{t('writeFirstPost')}</p>
+                        {feedMode === 'bookmarks' ? (
+                            <>
+                                <Bookmark className="mx-auto text-amber-300 mb-4" size={48} />
+                                <p className="text-gray-500 font-medium">{t('noBookmarks')}</p>
+                                <p className="text-gray-400 text-sm mt-1">{t('noBookmarksDesc')}</p>
+                            </>
+                        ) : (
+                            <>
+                                <MessageSquare className="mx-auto text-gray-300 mb-4" size={48} />
+                                <p className="text-gray-500 font-medium">{t('noPostsYet')}</p>
+                                <p className="text-gray-400 text-sm mt-1">{t('writeFirstPost')}</p>
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -1439,11 +1742,24 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             className="font-bold text-gray-900 text-sm cursor-pointer hover:text-indigo-600 transition-colors"
                                                             onClick={(e) => openUserProfile(e, post.user_id)}
                                                         >{getDisplayName(post, countryToLang(user?.country))}</span>
-                                                        {type === 'general' && (
-                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${roleBadge.color}`}>
-                                                                {roleBadge.label}
-                                                            </span>
-                                                        )}
+                                                        {type === 'general' && (() => {
+                                                            const RoleBadgeIcon = roleBadge.icon;
+                                                            return (
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${roleBadge.color}`}>
+                                                                    {RoleBadgeIcon && <RoleBadgeIcon size={9} />}
+                                                                    {roleBadge.label}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                        {/* Activity Level Badge */}
+                                                        {(() => {
+                                                            const actBadge = getActivityBadge(post.activity_level || 1);
+                                                            return (
+                                                                <span className={`text-[10px] font-bold ${actBadge.color}`} title={t('activityLevel', { level: actBadge.label })}>
+                                                                    {actBadge.emoji}{actBadge.label}
+                                                                </span>
+                                                            );
+                                                        })()}
                                                         {post.label && (
                                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${config.labelColor}`}>
                                                                 {translateLabel(post.label)}
@@ -1492,8 +1808,8 @@ const CommunityPage = ({ type = 'general' }) => {
                                                             ))}
                                                         </div>
                                                     )}
-                                                    {/* Like / View count / Share bar */}
-                                                    <div className="flex items-center gap-4 mt-3">
+                                                    {/* Like / View count / Share / Bookmark bar */}
+                                                    <div className="flex items-center gap-3 mt-3">
                                                         <button
                                                             onClick={(e) => handleToggleLike(e, post.id)}
                                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${post.is_liked ? 'text-red-500 bg-red-50 scale-105' : 'text-gray-400 hover:text-red-400 hover:bg-red-50/50'}`}
@@ -1654,6 +1970,14 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        {/* Bookmark button */}
+                                                        <button
+                                                            onClick={(e) => handleToggleBookmark(e, post.id)}
+                                                            className={`ml-auto flex items-center gap-1 px-2 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${bookmarkedPosts.has(post.id) ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50/50'}`}
+                                                            title={t('bookmark')}
+                                                        >
+                                                            {bookmarkedPosts.has(post.id) ? <BookmarkCheck size={16} className="fill-amber-500" /> : <Bookmark size={16} />}
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1713,6 +2037,81 @@ const CommunityPage = ({ type = 'general' }) => {
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {/* Poll UI (if post has poll data) */}
+                                                {(() => {
+                                                    const poll = pollData[post.id];
+                                                    if (!poll) {
+                                                        // Fetch poll data on expand if label matches
+                                                        if (isExpanded && (post.label === '투표' || post.label === 'Poll' || post.label === '投票' || post.label === 'Bình chọn' || post.label === 'โหวต' || post.label === 'ការបោះឆ្នោត' || post.label === 'Опрос' || post.label === 'Опитування')) {
+                                                            if (!pollData[post.id] && !pollData[`loading_${post.id}`]) {
+                                                                setPollData(prev => ({ ...prev, [`loading_${post.id}`]: true }));
+                                                                fetchPollData(post.id);
+                                                            }
+                                                        }
+                                                        return null;
+                                                    }
+
+                                                    const hasVoted = poll.user_voted !== null;
+                                                    const showResults = hasVoted || poll.is_ended;
+
+                                                    return (
+                                                        <div className="mt-4 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-4 border border-indigo-100">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <h5 className="text-sm font-bold text-indigo-700 flex items-center gap-1.5">
+                                                                    <BarChart2 size={14} />
+                                                                    {t('pollTitle')}
+                                                                </h5>
+                                                                <span className="text-xs text-gray-400">
+                                                                    {t('pollTotalVotes', { count: poll.total_votes })}
+                                                                </span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {poll.options.map(opt => {
+                                                                    const pct = poll.total_votes > 0 ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
+                                                                    const isSelected = poll.user_voted === opt.id;
+
+                                                                    return showResults ? (
+                                                                        <div key={opt.id} className="relative">
+                                                                            <div className={`relative overflow-hidden rounded-lg px-3 py-2.5 border ${isSelected ? 'border-indigo-400 bg-white' : 'border-gray-200 bg-white'}`}>
+                                                                                <div
+                                                                                    className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${isSelected ? 'bg-indigo-100' : 'bg-gray-100'}`}
+                                                                                    style={{ width: `${pct}%` }}
+                                                                                />
+                                                                                <div className="relative flex items-center justify-between">
+                                                                                    <span className={`text-sm font-medium ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
+                                                                                        {isSelected && <CheckCircle size={12} className="inline mr-1" />}
+                                                                                        {opt.option_text}
+                                                                                    </span>
+                                                                                    <span className={`text-xs font-bold ${isSelected ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                                                                        {pct}%
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            key={opt.id}
+                                                                            onClick={(e) => { e.stopPropagation(); handlePollVote(poll.id, opt.id, post.id); }}
+                                                                            className="w-full text-left px-3 py-2.5 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 hover:border-indigo-400 transition-all text-sm font-medium text-gray-700"
+                                                                        >
+                                                                            {opt.option_text}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            {poll.end_date && (
+                                                                <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+                                                                    <CalendarClock size={10} />
+                                                                    {t('pollEndDate')}: {new Date(poll.end_date).toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                            {poll.is_ended && (
+                                                                <p className="text-xs text-red-400 font-bold mt-1">{t('pollEnded')}</p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                                 {post.can_manage && (
                                                     <div className="mt-4 flex justify-end gap-3">
                                                         {editingPost === post.id ? (
@@ -1750,6 +2149,19 @@ const CommunityPage = ({ type = 'general' }) => {
                                                                 </button>
                                                             </>
                                                         )}
+                                                    </div>
+                                                )}
+
+                                                {/* Report button (not for own posts) */}
+                                                {!post.is_mine && (
+                                                    <div className={`${post.can_manage ? '' : 'mt-4'} flex justify-end`}>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setReportModal({ postId: post.id }); setReportReason(''); setReportDetail(''); }}
+                                                            className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors"
+                                                        >
+                                                            <Flag size={12} />
+                                                            {t('reportPost')}
+                                                        </button>
                                                     </div>
                                                 )}
 
@@ -2037,11 +2449,11 @@ const CommunityPage = ({ type = 'general' }) => {
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <h3 className="text-xl font-extrabold text-gray-900">{profileData.user.name}</h3>
-                                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${profileData.user.role === 'vendor' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${profileData.user.role === 'host' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                                         profileData.user.role === 'seller' ? 'bg-green-50 text-green-700 border-green-100' :
                                                             'bg-purple-50 text-purple-700 border-purple-100'
                                                         }`}>
-                                                        {profileData.user.role === 'vendor' ? t('roleVendor') : profileData.user.role === 'seller' ? t('roleSeller') : profileData.user.role === 'superadmin' ? t('roleSuperAdmin') : t('roleAdmin')}
+                                                        {profileData.user.role === 'host' ? t('roleHost') : profileData.user.role === 'seller' ? t('roleSeller') : profileData.user.role === 'superadmin' ? t('roleSuperAdmin') : t('roleAdmin')}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
@@ -2072,13 +2484,44 @@ const CommunityPage = ({ type = 'general' }) => {
                                         </div>
                                         <div className="text-center py-4">
                                             <p className="text-lg font-extrabold text-gray-900">
-                                                {profileData.user.role === 'vendor' ? (profileData.stats?.total_venues || 0) : (profileData.stats?.total_applications || 0)}
+                                                {profileData.user.role === 'host' ? (profileData.stats?.total_venues || 0) : (profileData.stats?.total_applications || 0)}
                                             </p>
                                             <p className="text-[10px] text-gray-400 font-medium">
-                                                {profileData.user.role === 'vendor' ? t('registeredVenues') : t('applicationActivity')}
+                                                {profileData.user.role === 'host' ? t('registeredVenues') : t('applicationActivity')}
                                             </p>
                                         </div>
                                     </div>
+
+                                    {/* Activity Level Card */}
+                                    {profileData.activity && (
+                                        <div className="px-5 py-4 border-b border-gray-100">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-2xl">{profileData.activity.level_emoji}</span>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-gray-900">
+                                                            {t('activityLevel', { level: `Lv.${profileData.activity.level}` })}
+                                                        </p>
+                                                        <p className="text-[10px] text-gray-400">
+                                                            {t('activityScore')}: {profileData.activity.total_activity}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                                                    <span>📝 {profileData.activity.post_count}</span>
+                                                    <span>💬 {profileData.activity.comment_count}</span>
+                                                    <span>❤️ {profileData.activity.received_likes}</span>
+                                                </div>
+                                            </div>
+                                            {/* Level progress bar */}
+                                            <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-green-400 via-amber-400 to-red-400 rounded-full transition-all"
+                                                    style={{ width: `${Math.min(100, (profileData.activity.total_activity / 100) * 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Seller Product Photos */}
                                     {profileData.seller_photos && profileData.seller_photos.length > 0 && (
@@ -2098,7 +2541,7 @@ const CommunityPage = ({ type = 'general' }) => {
                                     )}
 
                                     {/* Vendor Venues */}
-                                    {profileData.user.role === 'vendor' && profileData.venues && profileData.venues.length > 0 && (
+                                    {profileData.user.role === 'host' && profileData.venues && profileData.venues.length > 0 && (
                                         <div className="p-5 border-b border-gray-100">
                                             <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1.5">
                                                 <Store size={14} className="text-blue-500" />
@@ -2216,13 +2659,65 @@ const CommunityPage = ({ type = 'general' }) => {
                 !showWriteForm && user && (
                     <button
                         onClick={() => setShowWriteForm(true)}
-                        className={`fixed bottom-8 right-8 w-14 h-14 ${config.buttonBg} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 hover:scale-110 active:scale-95`}
+                        className={`fixed bottom-[5.5rem] right-6 w-14 h-14 ${config.buttonBg} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 hover:scale-110 active:scale-95`}
                         title={t('writePost')}
                     >
                         <PenLine size={22} />
                     </button>
                 )
             }
+
+            {/* Report Modal */}
+            {reportModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+                    onClick={() => setReportModal(null)}>
+                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Flag size={18} className="text-red-500" />
+                                {t('reportPost')}
+                            </h3>
+                            <button onClick={() => setReportModal(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                                <X size={18} className="text-gray-400" />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">{t('reportDesc')}</p>
+                        <div className="space-y-2 mb-4">
+                            {[
+                                { key: 'spam', label: t('reportSpam') },
+                                { key: 'inappropriate', label: t('reportInappropriate') },
+                                { key: 'advertising', label: t('reportAdvertising') },
+                                { key: 'other', label: t('reportOther') },
+                            ].map(r => (
+                                <label key={r.key}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${reportReason === r.key ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                    <input type="radio" name="report_reason" value={r.key}
+                                        checked={reportReason === r.key}
+                                        onChange={() => setReportReason(r.key)}
+                                        className="accent-red-500" />
+                                    <span className="text-sm font-medium text-gray-700">{r.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {reportReason === 'other' && (
+                            <textarea
+                                placeholder={t('reportDetailPlaceholder')}
+                                value={reportDetail}
+                                onChange={e => setReportDetail(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none resize-none mb-4"
+                                rows={3}
+                            />
+                        )}
+                        <button
+                            onClick={handleSubmitReport}
+                            disabled={!reportReason || reportSubmitting}
+                            className="w-full py-2.5 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {reportSubmitting ? '...' : t('submitReport')}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Heart burst animation CSS */}
             <style>{`

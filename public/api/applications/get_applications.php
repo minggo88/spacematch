@@ -26,7 +26,7 @@ if ($role === 'admin' || $role === 'superadmin') {
               ORDER BY a.is_priority DESC, a.created_at DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
-} elseif ($role === 'vendor') {
+} elseif ($role === 'host') {
     // Vendor sees applications for THEIR venues
     $query = "SELECT a.*, v.name as venue_name, v.images as venue_images, u.name as applicant_name, u.email as applicant_email, u.phone as applicant_phone, u.category as applicant_category, u.instagram as applicant_instagram, u.description as applicant_description, u.brand_name as applicant_brand, u.keywords as applicant_keywords, u.created_at as applicant_joined_at, u.is_verified
               FROM applications a 

@@ -3,7 +3,7 @@
  * toggle_service.php
  * 
  * Admin API to toggle user service permissions:
- * - analytics_report (for vendors)
+ * - analytics_report (for hosts)
  * - popular_alerts (for sellers)
  * - priority_application (for sellers)
  * 

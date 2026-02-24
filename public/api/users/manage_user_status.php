@@ -5,6 +5,7 @@ header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 
 session_start();
 
@@ -56,8 +57,8 @@ try {
 
     if ($action === 'approve') {
         // Approve pending vendor
-        if ($user['role'] !== 'vendor') {
-            echo json_encode(array("success" => false, "message" => "벤더만 승인할 수 있습니다."));
+        if ($user['role'] !== 'host') {
+            echo json_encode(array("success" => false, "message" => "호스트만 승인할 수 있습니다."));
             exit;
         }
         $updateStmt = $conn->prepare("UPDATE users SET status = 'active' WHERE id = ? AND status = 'pending'");
@@ -67,10 +68,28 @@ try {
             try {
                 $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'vendor_approved', '가입 승인이 완료되었습니다. 이제 로그인할 수 있습니다!', '/login', NOW())");
                 $notifStmt->execute([$user_id]);
+
+                // [EMAIL] 가입 승인 이메일 알림 (다국어)
+                try {
+                    $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                    sendEmailToUser(
+                        $conn,
+                        $user_id,
+                        '',
+                        '',
+                        'cat_account',
+                        function ($lang) use ($siteUrl) {
+                            $subj = _t(['ko' => 'SpaceMatch 가입이 승인되었습니다', 'en' => 'Your SpaceMatch Account is Approved', 'ja' => 'SpaceMatchアカウントが承認されました', 'vi' => 'Tài khoản SpaceMatch đã được phê duyệt', 'th' => 'บัญชี SpaceMatch ได้รับการอนุมัติ'], $lang);
+                            return ['subject' => $subj, 'html' => emailTemplateAccountNotice('approved', '', $siteUrl, $lang)];
+                        }
+                    );
+                } catch (Exception $emailErr) {
+                    error_log("Email error (vendor_approved): " . $emailErr->getMessage());
+                }
             } catch (Exception $e) {
                 error_log("Notification error (approve): " . $e->getMessage());
             }
-            echo json_encode(array("success" => true, "message" => "벤더가 승인되었습니다."));
+            echo json_encode(array("success" => true, "message" => "호스트가 승인되었습니다."));
         } else {
             echo json_encode(array("success" => false, "message" => "이미 승인되었거나 대기 상태가 아닙니다."));
         }

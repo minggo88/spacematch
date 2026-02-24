@@ -71,7 +71,7 @@ const TermItem = ({ termKey, title, required, requiredLabel, optionalLabel, cont
 const TermsAgreement = ({ userType = 'seller', agreements, onAgreementsChange }) => {
     const [expandedItems, setExpandedItems] = useState({});
     const { t } = useTranslation('auth');
-    const prefix = userType === 'vendor' ? 'vendorTerms' : 'sellerTerms';
+    const prefix = userType === 'host' ? 'hostTerms' : 'sellerTerms';
 
     const allChecked = TERM_KEYS.every(key => agreements[key]);
     const requiredAllChecked = TERM_KEYS.filter(k => TERM_REQUIRED[k]).every(k => agreements[k]);

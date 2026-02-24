@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import PublicNav from '../components/PublicNav';
 import PublicFooter from '../components/PublicFooter';
 import Toast from '../components/Toast';
+import KakaoMap from '../components/KakaoMap';
+import { COUNTRY_FLAGS } from '../components/CountryBadge';
 import {
     Flame, MapPin, Calendar, Store, ArrowRight, Search,
-    Filter, X, Clock, ChevronDown, ChevronRight, Star,
-    TrendingUp, Building, Users, Sparkles, Eye, FolderOpen, Heart, Share2, Link2, Check
+    Filter, X, Clock, ChevronDown, ChevronLeft, ChevronRight, Star,
+    TrendingUp, Building, Users, Sparkles, Eye, FolderOpen, Heart, Share2, Link2, Check,
+    Globe, LayoutGrid, List, Map
 } from 'lucide-react';
 
 const API_BASE = '/api';
@@ -25,8 +28,130 @@ const getImgSrc = (imgPath) => {
 
 // getPricingUnitLabel moved into component to use t()
 
+// ─── Region options by country ───
+const REGION_OPTIONS_BY_COUNTRY = {
+    'ko': [
+        { value: '서울특별시', label: '서울' },
+        { value: '경기도', label: '경기도' },
+        { value: '인천광역시', label: '인천' },
+        { value: '대전광역시', label: '대전' },
+        { value: '대구광역시', label: '대구' },
+        { value: '광주광역시', label: '광주' },
+        { value: '울산광역시', label: '울산' },
+        { value: '부산광역시', label: '부산' },
+        { value: '제주특별자치도', label: '제주' },
+        { value: '강원도', label: '강원' },
+    ],
+    'en': [
+        { value: 'New York', label: 'New York' },
+        { value: 'California', label: 'California' },
+        { value: 'Texas', label: 'Texas' },
+        { value: 'Florida', label: 'Florida' },
+        { value: 'Illinois', label: 'Illinois' },
+        { value: 'Washington', label: 'Washington' },
+        { value: 'Georgia', label: 'Georgia' },
+        { value: 'Massachusetts', label: 'Massachusetts' },
+        { value: 'Pennsylvania', label: 'Pennsylvania' },
+        { value: 'Nevada', label: 'Nevada' },
+        { value: 'Hawaii', label: 'Hawaii' },
+    ],
+    'en-GB': [
+        { value: 'London', label: 'London' },
+        { value: 'Manchester', label: 'Manchester' },
+        { value: 'Birmingham', label: 'Birmingham' },
+        { value: 'Edinburgh', label: 'Edinburgh' },
+        { value: 'Glasgow', label: 'Glasgow' },
+        { value: 'Liverpool', label: 'Liverpool' },
+        { value: 'Bristol', label: 'Bristol' },
+        { value: 'Cardiff', label: 'Cardiff' },
+        { value: 'Belfast', label: 'Belfast' },
+        { value: 'Leeds', label: 'Leeds' },
+    ],
+    'en-CA': [
+        { value: 'Ontario', label: 'Ontario' },
+        { value: 'British Columbia', label: 'British Columbia' },
+        { value: 'Quebec', label: 'Quebec' },
+        { value: 'Alberta', label: 'Alberta' },
+        { value: 'Manitoba', label: 'Manitoba' },
+        { value: 'Saskatchewan', label: 'Saskatchewan' },
+        { value: 'Nova Scotia', label: 'Nova Scotia' },
+    ],
+    'fr-CA': [
+        { value: 'Ontario', label: 'Ontario' },
+        { value: 'Colombie-Britannique', label: 'Colombie-Britannique' },
+        { value: 'Québec', label: 'Québec' },
+        { value: 'Alberta', label: 'Alberta' },
+        { value: 'Manitoba', label: 'Manitoba' },
+        { value: 'Saskatchewan', label: 'Saskatchewan' },
+        { value: 'Nouvelle-Écosse', label: 'Nouvelle-Écosse' },
+    ],
+    'ja': [
+        { value: '東京都', label: '東京都' },
+        { value: '大阪府', label: '大阪府' },
+        { value: '京都府', label: '京都府' },
+        { value: '北海道', label: '北海道' },
+        { value: '愛知県', label: '愛知県' },
+        { value: '福岡県', label: '福岡県' },
+        { value: '神奈川県', label: '神奈川県' },
+        { value: '兵庫県', label: '兵庫県' },
+        { value: '広島県', label: '広島県' },
+        { value: '沖縄県', label: '沖縄県' },
+    ],
+    'vi': [
+        { value: 'Hà Nội', label: 'Hà Nội' },
+        { value: 'TP. Hồ Chí Minh', label: 'TP. HCM' },
+        { value: 'Đà Nẵng', label: 'Đà Nẵng' },
+        { value: 'Hải Phòng', label: 'Hải Phòng' },
+        { value: 'Cần Thơ', label: 'Cần Thơ' },
+        { value: 'Nha Trang', label: 'Nha Trang' },
+        { value: 'Huế', label: 'Huế' },
+        { value: 'Đà Lạt', label: 'Đà Lạt' },
+        { value: 'Vũng Tàu', label: 'Vũng Tàu' },
+    ],
+    'th': [
+        { value: 'กรุงเทพมหานคร', label: 'กรุงเทพฯ' },
+        { value: 'เชียงใหม่', label: 'เชียงใหม่' },
+        { value: 'ภูเก็ต', label: 'ภูเก็ต' },
+        { value: 'พัทยา', label: 'พัทยา' },
+        { value: 'เชียงราย', label: 'เชียงราย' },
+        { value: 'ขอนแก่น', label: 'ขอนแก่น' },
+        { value: 'สงขลา', label: 'สงขลา' },
+    ],
+    'km': [
+        { value: 'ភ្នំពេញ', label: 'ភ្នំពេញ' },
+        { value: 'សៀមរាប', label: 'សៀមរាប' },
+        { value: 'បាត់ដំបង', label: 'បាត់ដំបង' },
+        { value: 'ព្រះសីហនុ', label: 'ព្រះសីហនុ' },
+        { value: 'កំពង់ចាម', label: 'កំពង់ចាម' },
+        { value: 'កំពត', label: 'កំពត' },
+    ],
+    'ru': [
+        { value: 'Москва', label: 'Москва' },
+        { value: 'Санкт-Петербург', label: 'С.-Петербург' },
+        { value: 'Новосибирск', label: 'Новосибирск' },
+        { value: 'Екатеринбург', label: 'Екатеринбург' },
+        { value: 'Казань', label: 'Казань' },
+        { value: 'Владивосток', label: 'Владивосток' },
+        { value: 'Сочи', label: 'Сочи' },
+    ],
+    'uk': [
+        { value: 'Київ', label: 'Київ' },
+        { value: 'Харків', label: 'Харків' },
+        { value: 'Одеса', label: 'Одеса' },
+        { value: 'Дніпро', label: 'Дніпро' },
+        { value: 'Львів', label: 'Львів' },
+        { value: 'Запоріжжя', label: 'Запоріжжя' },
+        { value: 'Вінниця', label: 'Вінниця' },
+    ],
+};
+
+const getRegionOptions = (code) => {
+    if (!code || code === 'all') return REGION_OPTIONS_BY_COUNTRY['ko'];
+    return REGION_OPTIONS_BY_COUNTRY[code] || REGION_OPTIONS_BY_COUNTRY['ko'];
+};
+
 const RecruitmentDashboard = () => {
-    const { t } = useTranslation('venue');
+    const { t, i18n } = useTranslation('venue');
     const [data, setData] = useState({ hot_top: [], hot_mid: [], category_featured: {}, all: [] });
     const [allVenues, setAllVenues] = useState([]);
     const [trendingVenues, setTrendingVenues] = useState([]);
@@ -37,6 +162,20 @@ const RecruitmentDashboard = () => {
     const [priceRange, setPriceRange] = useState('all');
     const [selectedVenue, setSelectedVenue] = useState(null);
     const [toast, setToast] = useState(null);
+    const [heroIndex, setHeroIndex] = useState(0);
+    const [countryFilter, setCountryFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [showMap, setShowMap] = useState(true);
+    const [viewMode, setViewMode] = useState('grid');
+
+    // Get region options for the selected country
+    const regionOptions = useMemo(() => getRegionOptions(countryFilter), [countryFilter]);
+
+    // Reset location filter when country changes
+    useEffect(() => { setFilterLocation('all'); }, [countryFilter]);
+
+    const trendingRef = useRef(null);
+    const hotPromoRef = useRef(null);
     const { user } = useAuth();
     const location = useLocation();
 
@@ -59,6 +198,15 @@ const RecruitmentDashboard = () => {
     };
 
     useEffect(() => { window.scrollTo(0, 0); fetchData(); fetchAllVenues(); fetchTrendingVenues(); }, []);
+
+    // Hero auto-slide
+    const hotPromoVenues = useMemo(() => (data.hot_mid || []).map(v => ({ ...v, id: v.venue_id || v.id })), [data.hot_mid]);
+    const curatedVenues = useMemo(() => (data.hot_top || []).map(v => ({ ...v, id: v.venue_id || v.id })), [data.hot_top]);
+    useEffect(() => {
+        if (hotPromoVenues.length <= 1) return;
+        const timer = setInterval(() => setHeroIndex(prev => (prev + 1) % hotPromoVenues.length), 5000);
+        return () => clearInterval(timer);
+    }, [hotPromoVenues.length]);
 
     // Auto-open venue from shared URL (?venue=ID)
     useEffect(() => {
@@ -128,13 +276,14 @@ const RecruitmentDashboard = () => {
     const displayVenues = allVenues.length > 0 ? allVenues : data.all;
 
     const filteredVenues = useMemo(() => {
-        return displayVenues.filter(v => {
+        const filtered = displayVenues.filter(v => {
             const name = v.name || '';
-            const location = v.location || '';
+            const loc = v.location || '';
             const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.toLowerCase().includes(searchTerm.toLowerCase());
+                loc.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesType = filterType === 'all' || v.type === filterType;
-            const matchesLocation = filterLocation === 'all' || v.region === filterLocation || location.includes(filterLocation);
+            const matchesLocation = filterLocation === 'all' || v.region === filterLocation || loc.includes(filterLocation);
+            const matchesCountry = countryFilter === 'all' || v.owner_country === countryFilter;
 
             let matchesPrice = true;
             const price = parseInt(v.price) || 0;
@@ -142,17 +291,29 @@ const RecruitmentDashboard = () => {
             if (priceRange === 'mid') matchesPrice = price > 100000 && price <= 300000;
             if (priceRange === 'high') matchesPrice = price > 300000;
 
-            return matchesSearch && matchesType && matchesLocation && matchesPrice;
+            return matchesSearch && matchesType && matchesLocation && matchesPrice && matchesCountry;
         });
-    }, [displayVenues, searchTerm, filterType, filterLocation, priceRange]);
+        const sorted = [...filtered];
+        if (sortOrder === 'priceAsc') sorted.sort((a, b) => (parseInt(a.price) || 0) - (parseInt(b.price) || 0));
+        else if (sortOrder === 'priceDesc') sorted.sort((a, b) => (parseInt(b.price) || 0) - (parseInt(a.price) || 0));
+        else if (sortOrder === 'popular') sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+        else sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        return sorted;
+    }, [displayVenues, searchTerm, filterType, filterLocation, priceRange, countryFilter, sortOrder]);
 
-    // Hot places (combined hot_top + hot_mid)
-    const hotPlaces = useMemo(() => {
-        return [...data.hot_top, ...data.hot_mid].map(v => ({
-            ...v,
-            id: v.venue_id || v.id,
-        }));
-    }, [data.hot_top, data.hot_mid]);
+    // Country stats
+    const countryStats = useMemo(() => {
+        const target = countryFilter === 'all' ? displayVenues : displayVenues.filter(v => v.owner_country === countryFilter);
+        const totalCount = target.length;
+        const prices = target.map(v => parseInt(v.price) || 0).filter(p => p > 0);
+        const avgPrice = prices.length ? Math.round(prices.reduce((s, p) => s + p, 0) / prices.length) : 0;
+        const activeCount = target.filter(v => {
+            const cur = parseInt(v.current_sellers) || 0;
+            const max = parseInt(v.max_sellers) || 0;
+            return max === 0 || cur < max;
+        }).length;
+        return { totalCount, avgPrice, activeCount };
+    }, [displayVenues, countryFilter]);
 
     // Card Components (matching SellerDashboard style)
 
@@ -210,7 +371,7 @@ const RecruitmentDashboard = () => {
                     <div className="flex items-center gap-2 mt-1 pt-2 border-t border-gray-50">
                         {user ? (
                             <Link
-                                to={user.role === 'seller' ? '/seller' : user.role === 'vendor' ? '/vendor' : '/admin'}
+                                to={user.role === 'seller' ? '/seller' : user.role === 'host' ? '/host' : '/admin'}
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold text-center hover:bg-indigo-700 transition-colors"
                             >
@@ -350,7 +511,7 @@ const RecruitmentDashboard = () => {
                     <div className="flex items-center gap-2 mt-2 pt-3 border-t border-gray-100">
                         {user ? (
                             <Link
-                                to={user.role === 'seller' ? '/seller' : user.role === 'vendor' ? '/vendor' : '/admin'}
+                                to={user.role === 'seller' ? '/seller' : user.role === 'host' ? '/host' : '/admin'}
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold text-center hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all"
                             >
@@ -519,7 +680,7 @@ const RecruitmentDashboard = () => {
 
                             {user ? (
                                 <Link
-                                    to={user.role === 'seller' ? '/seller' : user.role === 'vendor' ? '/vendor' : '/admin'}
+                                    to={user.role === 'seller' ? '/seller' : user.role === 'host' ? '/host' : '/admin'}
                                     className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-center hover:bg-indigo-700 transition-colors text-sm"
                                 >
                                     {t('applyForEntry')}
@@ -554,48 +715,225 @@ const RecruitmentDashboard = () => {
         <div className="min-h-screen bg-gray-50">
             <PublicNav />
 
-            {/* Hero */}
-            <section className="pt-24 pb-10 md:pt-32 md:pb-16 bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20"
-                    style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(120,119,198,0.4) 0%, transparent 50%), radial-gradient(circle at 70% 30%, rgba(167,139,250,0.3) 0%, transparent 50%)' }}
-                />
-                <div className="relative z-10 max-w-5xl mx-auto px-4 md:px-6 text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm text-white/80 font-medium mb-4 md:mb-6">
-                        <Flame size={14} />
-                        FIND YOUR SPACE
+            {/* ━━ Hero Banner Carousel (핫한 모집) ━━ */}
+            <div className="pt-20 md:pt-24">
+                {hotPromoVenues.length > 0 ? (
+                    <section className="max-w-7xl mx-auto px-4 md:px-6 pt-4">
+                        <div className="relative rounded-3xl overflow-hidden shadow-xl">
+                            <div className="relative h-[250px] md:h-[400px] bg-gray-900">
+                                {hotPromoVenues.map((venue, i) => {
+                                    const firstImage = venue.images?.[0];
+                                    const imgSrc = firstImage?.startsWith?.('uploads/') ? `/${firstImage}` : firstImage;
+                                    return (
+                                        <div
+                                            key={venue.promotion_id || i}
+                                            className={`absolute inset-0 transition-all duration-700 ease-in-out cursor-pointer ${i === heroIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+                                            onClick={() => setSelectedVenue(venue)}
+                                        >
+                                            {imgSrc ? (
+                                                <img src={imgSrc} alt={venue.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center">
+                                                    <Store size={64} className="text-white/30" />
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                            <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                                            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-2.5 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full text-xs font-bold flex items-center gap-1">
+                                                        <Flame size={11} /> HOT
+                                                    </span>
+                                                    {venue.type && (
+                                                        <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs font-medium">
+                                                            {TYPE_LABELS[venue.type] || venue.type}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h2 className="text-xl md:text-3xl font-black text-white mb-1.5 line-clamp-1">{venue.name}</h2>
+                                                {venue.admin_note && <p className="text-sm text-orange-200 font-medium mb-1 line-clamp-1">{venue.admin_note}</p>}
+                                                <div className="flex items-center gap-3 text-white/70 text-sm">
+                                                    <span className="flex items-center gap-1"><MapPin size={14} />{venue.location?.split(' ').slice(0, 2).join(' ')}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {hotPromoVenues.length > 1 && (
+                                    <>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setHeroIndex(prev => (prev - 1 + hotPromoVenues.length) % hotPromoVenues.length); }}
+                                            className="absolute left-3 md:left-5 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all z-10"
+                                        >
+                                            <ChevronLeft size={20} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setHeroIndex(prev => (prev + 1) % hotPromoVenues.length); }}
+                                            className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all z-10"
+                                        >
+                                            <ChevronRight size={20} />
+                                        </button>
+                                    </>
+                                )}
+                                {hotPromoVenues.length > 1 && (
+                                    <div className="absolute bottom-3 right-6 md:right-10 flex gap-1.5 z-10">
+                                        {hotPromoVenues.map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={(e) => { e.stopPropagation(); setHeroIndex(i); }}
+                                                className={`rounded-full transition-all ${i === heroIndex ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/60'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                ) : (
+                    <section className="max-w-7xl mx-auto px-4 md:px-6 pt-4">
+                        <div className="flex flex-col gap-2">
+                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-300">
+                                Find Your Space
+                            </h1>
+                            <p className="text-gray-400 mt-2 font-medium">{t('recruitment.heroDesc')}</p>
+                        </div>
+                    </section>
+                )}
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-8 pb-16 pt-8">
+
+                {/* ━━ 🌍 Country Filter Tabs ━━ */}
+                <section>
+                    <div className="flex items-center gap-3 mb-4">
+                        <h2 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2">
+                            <Globe size={20} className="text-indigo-500" />
+                            {t('recruitment.countryFilter')}
+                        </h2>
+                        <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
+                        <select
+                            value={sortOrder}
+                            onChange={e => setSortOrder(e.target.value)}
+                            className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 focus:outline-none focus:border-indigo-400 transition-colors"
+                        >
+                            <option value="latest">{t('recruitment.sortLatest')}</option>
+                            <option value="priceAsc">{t('recruitment.sortPriceAsc')}</option>
+                            <option value="priceDesc">{t('recruitment.sortPriceDesc')}</option>
+                            <option value="popular">{t('recruitment.sortPopular')}</option>
+                        </select>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-black text-white mb-3 md:mb-4 leading-tight">
-                        {t('recruitment.heroTitle1')}
-                        <br />
-                        <span className="bg-gradient-to-r from-orange-300 to-amber-300 bg-clip-text text-transparent">{t('recruitment.heroTitle2')}</span>{t('recruitment.heroTitle3')}</h1>
-                    <p className="text-sm md:text-lg text-white/60 max-w-xl mx-auto">
-                        {t('recruitment.heroDesc')}
-                    </p>
-                </div>
-            </section>
+                    <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
+                        <div className="flex items-center gap-2 pb-2 min-w-max">
+                            <button
+                                onClick={() => setCountryFilter('all')}
+                                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${countryFilter === 'all'
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                                    }`}
+                            >
+                                🌍 {t('recruitment.allCountries')}
+                                <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-md text-[11px]">{displayVenues.length}</span>
+                            </button>
+                            {Object.entries(COUNTRY_FLAGS).map(([code, info]) => {
+                                const cnt = displayVenues.filter(v => v.owner_country === code).length;
+                                return (
+                                    <button
+                                        key={code}
+                                        onClick={() => setCountryFilter(code)}
+                                        className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${countryFilter === code
+                                            ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
+                                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <span>{info.flag}</span>
+                                        <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
+                                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-md text-[11px] ${countryFilter === code ? 'bg-white/20' : 'bg-gray-100 text-gray-500'}`}>{cnt}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    {countryFilter !== 'all' && (
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/60 dark:to-purple-950/60 rounded-xl p-3 text-center border border-indigo-100 dark:border-indigo-800/50">
+                                <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{countryStats.totalCount}</div>
+                                <div className="text-[11px] font-bold text-indigo-400 dark:text-indigo-300/70 mt-0.5">{t('recruitment.venueCount')}</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/60 dark:to-teal-950/60 rounded-xl p-3 text-center border border-emerald-100 dark:border-emerald-800/50">
+                                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                    {countryStats.avgPrice > 0 ? `${Math.round(countryStats.avgPrice / 10000)}만` : '-'}
+                                </div>
+                                <div className="text-[11px] font-bold text-emerald-400 dark:text-emerald-300/70 mt-0.5">{t('recruitment.avgPrice')}</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/60 dark:to-orange-950/60 rounded-xl p-3 text-center border border-amber-100 dark:border-amber-800/50">
+                                <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{countryStats.activeCount}</div>
+                                <div className="text-[11px] font-bold text-amber-400 dark:text-amber-300/70 mt-0.5">{t('recruitment.activeRecruit')}</div>
+                            </div>
+                        </div>
+                    )}
+                </section>
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-10 pb-16">
+                {/* ━━ Category Filter Chips ━━ */}
+                <section>
+                    <div className="flex items-center gap-3 mb-4">
+                        <h2 className="text-lg md:text-xl font-black text-gray-900">{t('recruitment.category')}</h2>
+                        <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                        {[
+                            { key: 'all', label: t('recruitment.allTypes'), icon: <LayoutGrid size={14} /> },
+                            { key: 'popup', label: t('spaceType.popup'), icon: <Sparkles size={14} /> },
+                            { key: 'fleamarket', label: t('spaceType.fleamarket'), icon: <Store size={14} /> },
+                            { key: 'gallery', label: t('spaceType.gallery'), icon: <Eye size={14} /> },
+                            { key: 'cafe', label: t('spaceType.cafe'), icon: <Store size={14} /> },
+                            { key: 'showroom', label: t('spaceType.showroom'), icon: <Store size={14} /> },
+                            { key: 'store', label: t('spaceType.store', '스토어'), icon: <Store size={14} /> },
+                        ].map(cat => (
+                            <button
+                                key={cat.key}
+                                onClick={() => setFilterType(cat.key)}
+                                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${filterType === cat.key
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                                    }`}
+                            >
+                                {cat.icon}
+                                {cat.label}
+                            </button>
+                        ))}
+                    </div>
+                </section>
 
-                {/* 핫한 플레이스 (horizontal scroll, same as SellerDashboard) */}
-                {hotPlaces.length > 0 && (
-                    <section className="pt-8 md:pt-12">
+                {/* ━━ 엄선된 모집 정보 (Horizontal Scroll) ━━ */}
+                {curatedVenues.length > 0 && (
+                    <section>
                         <div className="flex items-center gap-3 mb-5">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl">
-                                <Flame size={18} />
+                            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl">
+                                <Sparkles size={18} />
                                 <h2 className="text-lg font-black">{t('recruitment.hotPlaces')}</h2>
                             </div>
                             <p className="text-sm text-gray-400 font-medium hidden md:block">{t('recruitment.hotPlacesDesc')}</p>
-                            <div className="flex-1 h-px bg-gradient-to-r from-orange-200 to-transparent" />
+                            <div className="flex-1 h-px bg-gradient-to-r from-indigo-200 to-transparent" />
+                            <div className="flex gap-1.5">
+                                <button onClick={() => hotPromoRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+                                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-all">
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <button onClick={() => hotPromoRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
+                                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-all">
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-thin">
-                            {hotPlaces.map((venue, i) => (
+                        <div ref={hotPromoRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scroll-smooth">
+                            {curatedVenues.map((venue, i) => (
                                 <HotPlaceCard key={venue.promotion_id || i} venue={venue} />
                             ))}
                         </div>
                     </section>
                 )}
 
-                {/* 급상승 공간 */}
+                {/* ━━ 급상승 공간 (Horizontal Scroll) ━━ */}
                 {trendingVenues.length > 0 && (
                     <section>
                         <div className="flex items-center gap-3 mb-5">
@@ -605,45 +943,100 @@ const RecruitmentDashboard = () => {
                             </div>
                             <p className="text-sm text-gray-400 font-medium hidden md:block">{t('recruitment.trendingDesc')}</p>
                             <div className="flex-1 h-px bg-gradient-to-r from-violet-200 to-transparent" />
+                            <div className="flex gap-1.5">
+                                <button onClick={() => trendingRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+                                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-all">
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <button onClick={() => trendingRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
+                                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-all">
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div ref={trendingRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scroll-smooth">
                             {trendingVenues.map((venue) => (
-                                <TrendingCard key={venue.id} venue={venue} />
+                                <div key={venue.id} className="flex-shrink-0 w-64 md:w-72">
+                                    <TrendingCard venue={venue} />
+                                </div>
                             ))}
                         </div>
                     </section>
                 )}
 
-                {/* 모든 공간 (same card style as SellerDashboard) */}
+                {/* ━━ 지도로 보기 ━━ */}
                 <section>
                     <div className="flex items-center gap-3 mb-5">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl">
+                        <button
+                            onClick={() => setShowMap(!showMap)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black text-lg ${showMap
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                }`}
+                        >
+                            <Map size={18} />
+                            {t('recruitment.mapView')}
+                        </button>
+                        {showMap && (
+                            <span className="text-sm text-gray-400 font-medium hidden md:block">{t('recruitment.mapHint')}</span>
+                        )}
+                        <div className="flex-1 h-px bg-gradient-to-r from-emerald-200 to-transparent" />
+                    </div>
+                    {showMap && (
+                        <KakaoMap
+                            venues={filteredVenues}
+                            height="450px"
+                            onMarkerClick={(venue) => setSelectedVenue(venue)}
+                            countryCode={countryFilter}
+                            className="mb-2"
+                        />
+                    )}
+                </section>
+
+                {/* ━━ 모든 공간 ━━ */}
+                <section>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-5">
+                        <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-800 text-white rounded-xl">
                             <Eye size={18} />
-                            <h2 className="text-lg font-black">{t('recruitment.allSpaces')}</h2>
+                            <h2 className="text-base sm:text-lg font-black">{t('recruitment.allSpaces')}</h2>
                         </div>
                         <span className="text-sm text-gray-400 font-medium">{filteredVenues.length}</span>
-                        <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
+                        <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent hidden sm:block" />
+                        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                <LayoutGrid size={16} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                <List size={16} />
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Search & Filter Bar (same as SellerDashboard) */}
-                    <div className="bg-white p-2 rounded-2xl shadow-lg shadow-gray-100 border border-gray-100 flex flex-col md:flex-row gap-3 items-center sticky top-20 z-30 transition-all mb-6">
-                        <div className="relative flex-1 w-full">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
-                                <Search size={16} />
+                    {/* Search & Filter Bar */}
+                    <div className="bg-white p-2 sm:p-3 rounded-2xl shadow-lg shadow-gray-100 border border-gray-100 flex flex-col gap-2 sm:gap-3 sticky top-4 z-30 transition-all mb-6">
+                        <div className="relative w-full">
+                            <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
+                                <Search size={15} />
                             </div>
                             <input
                                 type="text"
                                 placeholder={t('searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-14 pr-4 py-3.5 border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-transparent text-gray-700 placeholder-gray-400 font-medium"
+                                className="w-full pl-12 sm:pl-14 pr-4 py-3 sm:py-3.5 border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-transparent text-gray-700 placeholder-gray-400 font-medium text-sm sm:text-base"
                             />
                         </div>
-                        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 px-2 md:px-0">
+                        <div className="grid grid-cols-3 sm:flex gap-1.5 sm:gap-2 w-full">
                             <div className="relative group">
-                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-indigo-600 transition-colors" size={16} />
+                                <Filter className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-indigo-600 transition-colors" size={14} />
                                 <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
-                                    className="pl-10 pr-8 py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all min-w-[140px]">
+                                    className="w-full pl-8 sm:pl-10 pr-6 sm:pr-8 py-2.5 sm:py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all text-xs sm:text-sm sm:min-w-[140px]">
                                     <option value="all">{t('recruitment.allTypes')}</option>
                                     <option value="popup">{t('spaceType.popup')}</option>
                                     <option value="fleamarket">{t('spaceType.fleamarket')}</option>
@@ -651,36 +1044,29 @@ const RecruitmentDashboard = () => {
                                     <option value="cafe">{t('spaceType.cafe')}</option>
                                     <option value="showroom">{t('spaceType.showroom')}</option>
                                 </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
                             </div>
                             <div className="relative group">
-                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-indigo-600 transition-colors" size={16} />
+                                <MapPin className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-indigo-600 transition-colors" size={14} />
                                 <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}
-                                    className="pl-10 pr-8 py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all min-w-[140px]">
+                                    className="w-full pl-8 sm:pl-10 pr-6 sm:pr-8 py-2.5 sm:py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all text-xs sm:text-sm sm:min-w-[140px]">
                                     <option value="all">{t('recruitment.allRegions')}</option>
-                                    <option value="서울특별시">{t('recruitment.regions.seoul')}</option>
-                                    <option value="경기도">{t('recruitment.regions.gyeonggi')}</option>
-                                    <option value="인천광역시">{t('recruitment.regions.incheon')}</option>
-                                    <option value="대전광역시">{t('recruitment.regions.daejeon')}</option>
-                                    <option value="대구광역시">{t('recruitment.regions.daegu')}</option>
-                                    <option value="광주광역시">{t('recruitment.regions.gwangju')}</option>
-                                    <option value="울산광역시">{t('recruitment.regions.ulsan')}</option>
-                                    <option value="부산광역시">{t('recruitment.regions.busan')}</option>
-                                    <option value="제주특별자치도">{t('recruitment.regions.jeju')}</option>
-                                    <option value="강원도">{t('recruitment.regions.gangwon')}</option>
+                                    {regionOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
                                 </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
                             </div>
                             <div className="relative group">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-serif"></span>
+                                <span className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">₩</span>
                                 <select value={priceRange} onChange={(e) => setPriceRange(e.target.value)}
-                                    className="pl-9 pr-8 py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all min-w-[140px]">
+                                    className="w-full pl-7 sm:pl-9 pr-6 sm:pr-8 py-2.5 sm:py-3 bg-gray-50 border border-transparent hover:bg-white hover:border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 appearance-none cursor-pointer font-medium text-gray-700 transition-all text-xs sm:text-sm sm:min-w-[140px]">
                                     <option value="all">{t('recruitment.allPrices')}</option>
                                     <option value="low">{t('recruitment.under100k')}</option>
                                     <option value="mid">{t('recruitment.range100to300k')}</option>
                                     <option value="high">{t('recruitment.over300k')}</option>
                                 </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
                             </div>
                         </div>
                     </div>

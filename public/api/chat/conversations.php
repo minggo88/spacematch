@@ -113,11 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($isAdmin && $type === 'cs') {
             $query .= " WHERE c.type = 'cs'";
         } else if ($type === 'cs') {
-            $query .= " WHERE c.type = 'cs' AND (c.participant_1 = :uid4 OR c.participant_2 = :uid4)";
+            $query .= " WHERE c.type = 'cs' AND (c.participant_1 = :uid4 OR c.participant_2 = :uid5)";
             $params[':uid4'] = $user_id;
+            $params[':uid5'] = $user_id;
         } else {
-            $query .= " WHERE (c.participant_1 = :uid4 OR c.participant_2 = :uid4)";
+            $query .= " WHERE (c.participant_1 = :uid4 OR c.participant_2 = :uid5)";
             $params[':uid4'] = $user_id;
+            $params[':uid5'] = $user_id;
             if ($type === 'direct') {
                 $query .= " AND c.type = 'direct'";
             }
@@ -234,14 +236,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // vendor↔seller: check relationship
-                $vendor_id = ($myRole === 'vendor') ? $user_id : $target_id;
+                $host_id = ($myRole === 'host') ? $user_id : $target_id;
                 $seller_id = ($myRole === 'seller') ? $user_id : $target_id;
                 $allowed = false;
 
                 // Check 1: Vendor viewed seller contact
                 try {
-                    $v1 = $conn->prepare("SELECT id FROM seller_contact_views WHERE vendor_id = ? AND seller_id = ?");
-                    $v1->execute([$vendor_id, $seller_id]);
+                    $v1 = $conn->prepare("SELECT id FROM seller_contact_views WHERE host_id = ? AND seller_id = ?");
+                    $v1->execute([$host_id, $seller_id]);
                     if ($v1->fetch())
                         $allowed = true;
                 } catch (PDOException $e) {
@@ -250,8 +252,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Check 2: Seller viewed vendor contact
                 if (!$allowed) {
                     try {
-                        $v2 = $conn->prepare("SELECT id FROM vendor_contact_views WHERE seller_id = ? AND vendor_id = ?");
-                        $v2->execute([$seller_id, $vendor_id]);
+                        $v2 = $conn->prepare("SELECT id FROM vendor_contact_views WHERE seller_id = ? AND host_id = ?");
+                        $v2->execute([$seller_id, $host_id]);
                         if ($v2->fetch())
                             $allowed = true;
                     } catch (PDOException $e) {
@@ -261,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Check 3: Approved application
                 if (!$allowed) {
                     $appStmt = $conn->prepare("SELECT a.id FROM applications a JOIN venues v ON a.venue_id = v.id WHERE a.user_id = ? AND v.owner_id = ? AND a.status = 'approved' LIMIT 1");
-                    $appStmt->execute([$seller_id, $vendor_id]);
+                    $appStmt->execute([$seller_id, $host_id]);
                     if ($appStmt->fetch())
                         $allowed = true;
                 }
@@ -309,6 +311,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         "success" => true,
         "conversation" => $conv,
         "created" => !$existing
+    ]);
+    exit;
+}
+
+// ─── DELETE: Delete entire conversation (admin/superadmin only) ───
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $convId = intval($input['conversation_id'] ?? 0);
+
+    if ($convId <= 0) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "conversation_id는 필수입니다."]);
+        exit;
+    }
+
+    // Check admin role
+    $roleStmt = $conn->prepare("SELECT role FROM users WHERE id = ?");
+    $roleStmt->execute([$user_id]);
+    $userRole = $roleStmt->fetchColumn();
+
+    if (!in_array($userRole, ['admin', 'superadmin'])) {
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "관리자만 대화를 삭제할 수 있습니다."]);
+        exit;
+    }
+
+    // Verify conversation exists
+    $convStmt = $conn->prepare("SELECT id FROM chat_conversations WHERE id = ?");
+    $convStmt->execute([$convId]);
+    if (!$convStmt->fetch()) {
+        http_response_code(404);
+        echo json_encode(["success" => false, "message" => "대화를 찾을 수 없습니다."]);
+        exit;
+    }
+
+    // Delete attached files from server
+    $fileStmt = $conn->prepare("SELECT file_url FROM chat_messages WHERE conversation_id = ? AND file_url IS NOT NULL AND file_url != ''");
+    $fileStmt->execute([$convId]);
+    $files = $fileStmt->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($files as $fileUrl) {
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . $fileUrl;
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+    }
+
+    // Delete all messages in the conversation
+    $delMsgStmt = $conn->prepare("DELETE FROM chat_messages WHERE conversation_id = ?");
+    $delMsgStmt->execute([$convId]);
+    $deletedCount = $delMsgStmt->rowCount();
+
+    // Delete the conversation itself
+    $delConvStmt = $conn->prepare("DELETE FROM chat_conversations WHERE id = ?");
+    $delConvStmt->execute([$convId]);
+
+    echo json_encode([
+        "success" => true,
+        "message" => "대화가 삭제되었습니다.",
+        "deleted_messages" => $deletedCount
     ]);
     exit;
 }

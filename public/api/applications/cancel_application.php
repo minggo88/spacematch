@@ -39,7 +39,7 @@ try {
     if ($app['status'] === 'approved') {
         echo json_encode([
             "success" => false,
-            "message" => "승인된 신청은 직접 취소할 수 없습니다. '취소 요청'을 통해 벤더의 승인을 받아야 합니다.",
+            "message" => "승인된 신청은 직접 취소할 수 없습니다. '취소 요청'을 통해 호스트의 승인을 받아야 합니다.",
             "require_cancellation_request" => true
         ]);
         exit;

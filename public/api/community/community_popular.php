@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $type = isset($_GET['type']) ? $_GET['type'] : 'general';
     $country_filter = isset($_GET['country']) ? trim($_GET['country']) : '';
 
-    if (!in_array($type, ['seller', 'vendor', 'general'])) {
+    if (!in_array($type, ['seller', 'host', 'general'])) {
         echo json_encode(["success" => false, "message" => "Invalid community type"]);
         exit;
     }

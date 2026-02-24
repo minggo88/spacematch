@@ -31,7 +31,7 @@ try {
     ];
 
     // 2. Get Activities based on Role
-    if ($user['role'] === 'vendor') {
+    if ($user['role'] === 'host') {
         // Get Venues
         $vStmt = $conn->prepare("SELECT * FROM venues WHERE owner_id = ? ORDER BY created_at DESC");
         $vStmt->execute([$id]);

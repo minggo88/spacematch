@@ -22,11 +22,11 @@ $user_id = $_SESSION['user_id'];
 try {
     $conn->exec("CREATE TABLE IF NOT EXISTS seller_favorites (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        vendor_id INT NOT NULL,
+        host_id INT NOT NULL,
         seller_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uk_vendor_seller (vendor_id, seller_id),
-        INDEX idx_vendor (vendor_id)
+        UNIQUE KEY uk_vendor_seller (host_id, seller_id),
+        INDEX idx_vendor (host_id)
     )");
 } catch (PDOException $e) { /* table exists */
 }
@@ -34,7 +34,7 @@ try {
 // GET: List favorite seller IDs
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
-        $stmt = $conn->prepare("SELECT seller_id FROM seller_favorites WHERE vendor_id = ? ORDER BY created_at DESC");
+        $stmt = $conn->prepare("SELECT seller_id FROM seller_favorites WHERE host_id = ? ORDER BY created_at DESC");
         $stmt->execute([$user_id]);
         $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -60,13 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Check if already favorited
-        $checkStmt = $conn->prepare("SELECT id FROM seller_favorites WHERE vendor_id = ? AND seller_id = ?");
+        $checkStmt = $conn->prepare("SELECT id FROM seller_favorites WHERE host_id = ? AND seller_id = ?");
         $checkStmt->execute([$user_id, $seller_id]);
         $existing = $checkStmt->fetch();
 
         if ($existing) {
             // Remove favorite
-            $delStmt = $conn->prepare("DELETE FROM seller_favorites WHERE vendor_id = ? AND seller_id = ?");
+            $delStmt = $conn->prepare("DELETE FROM seller_favorites WHERE host_id = ? AND seller_id = ?");
             $delStmt->execute([$user_id, $seller_id]);
             echo json_encode([
                 "success" => true,
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ], JSON_UNESCAPED_UNICODE);
         } else {
             // Add favorite
-            $insStmt = $conn->prepare("INSERT INTO seller_favorites (vendor_id, seller_id) VALUES (?, ?)");
+            $insStmt = $conn->prepare("INSERT INTO seller_favorites (host_id, seller_id) VALUES (?, ?)");
             $insStmt->execute([$user_id, $seller_id]);
             echo json_encode([
                 "success" => true,

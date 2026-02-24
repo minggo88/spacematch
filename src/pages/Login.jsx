@@ -19,6 +19,8 @@ const Login = () => {
                 const role = result.user?.role;
                 if (role === 'superadmin' || role === 'admin') {
                     navigate('/admin');
+                } else if (role === 'host') {
+                    navigate('/host');
                 } else if (role === 'vendor') {
                     navigate('/vendor');
                 } else {
@@ -101,12 +103,11 @@ const Login = () => {
                         </Link>
                     </p>
                     <a
-                        href="http://pf.kakao.com/_xjGxoRX/chat"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-4 block w-full py-2 text-center bg-yellow-400 text-gray-800 rounded-lg hover:bg-yellow-500 font-medium transition-colors"
+                        href="mailto:spacedotmatch@gmail.com?subject=[SpaceMatch] 문의사항"
+                        className="mt-4 flex items-center justify-center gap-2 w-full py-2 text-center bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-medium transition-colors border border-indigo-100"
                     >
-                        💬 {t('inquiry')}
+                        <Mail size={16} />
+                        {t('inquiry')}
                     </a>
                     <Link
                         to="/"

@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
@@ -79,7 +80,7 @@ try {
     $insertStmt = $conn->prepare("INSERT INTO cancellation_requests (application_id, seller_id, venue_id, reason) VALUES (?, ?, ?, ?)");
     $insertStmt->execute([$application_id, $user_id, $app['venue_id'], $reason]);
 
-    // Send notification to venue owner (vendor)
+    // Send notification to venue owner (host)
     try {
         $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
             id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
@@ -89,15 +90,35 @@ try {
 
         $sellerName = $_SESSION['user_name'] ?? '셀러';
         $notifMsg = "[취소 요청] {$sellerName}님이 \"{$app['venue_name']}\" 입점 취소를 요청했습니다. 사유: " . mb_substr($reason, 0, 50);
-        $notifLink = "/vendor/applications";
+        $notifLink = "/host/applications";
 
         $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'cancellation_request', ?, ?)");
         $notifStmt->execute([$app['owner_id'], $notifMsg, $notifLink]);
+
+        // [EMAIL] 취소 요청 이메일 알림 (다국어)
+        try {
+            $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $_vn = $app['venue_name'];
+            $_rs = mb_substr($reason, 0, 100);
+            sendEmailToUser(
+                $conn,
+                $app['owner_id'],
+                '',
+                '',
+                'cat_application',
+                function ($lang) use ($_vn, $_rs, $siteUrl) {
+                    $subj = _t(['ko' => '입점 취소 요청이 접수되었습니다', 'en' => 'Cancellation Request Submitted', 'ja' => 'キャンセル要求が送信されました', 'vi' => 'Yêu cầu hủy đã được gửi', 'th' => 'ส่งคำขอยกเลิกแล้ว'], $lang);
+                    return ['subject' => $subj, 'html' => emailTemplateCancellation('request', $_vn, $_rs, $siteUrl, '/host/applications', $lang)];
+                }
+            );
+        } catch (Exception $emailErr) {
+            error_log("Email error (cancellation_request): " . $emailErr->getMessage());
+        }
     } catch (Exception $e) {
         error_log("SpaceMatch Notification Error (request_cancellation): " . $e->getMessage());
     }
 
-    echo json_encode(["success" => true, "message" => "취소 요청이 접수되었습니다. 벤더의 승인을 기다려주세요."]);
+    echo json_encode(["success" => true, "message" => "취소 요청이 접수되었습니다. 호스트의 승인을 기다려주세요."]);
 
 } catch (PDOException $e) {
     http_response_code(500);

@@ -42,8 +42,8 @@ const SLOT_OPTIONS_RAW = [
     { value: 'directory_d', labelKey: 'slotDirectoryD', pageKey: 'slotSearch' },
     { value: 'seller_community_top', labelKey: 'slotSellerCommunityTop', pageKey: 'slotSellerCommunity' },
     { value: 'seller_community_feed', labelKey: 'slotSellerCommunityFeed', pageKey: 'slotSellerCommunity' },
-    { value: 'vendor_community_top', labelKey: 'slotVendorCommunityTop', pageKey: 'slotVendorCommunity' },
-    { value: 'vendor_community_feed', labelKey: 'slotVendorCommunityFeed', pageKey: 'slotVendorCommunity' },
+    { value: 'host_community_top', labelKey: 'slotHostCommunityTop', pageKey: 'slotVendorCommunity' },
+    { value: 'host_community_feed', labelKey: 'slotHostCommunityFeed', pageKey: 'slotVendorCommunity' },
     { value: 'general_community_top', labelKey: 'slotGeneralCommunityTop', pageKey: 'slotGeneralCommunity' },
     { value: 'general_community_feed', labelKey: 'slotGeneralCommunityFeed', pageKey: 'slotGeneralCommunity' },
 ];
@@ -66,8 +66,8 @@ const SLOT_SIZE_GUIDE = {
     directory_d2: { format: 'card', size: '800 × 450px', ratio: '16:9' },
     seller_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
     seller_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    vendor_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    vendor_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
+    host_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
+    host_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
     general_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
     general_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
     landing_a: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
@@ -110,7 +110,7 @@ const AdminAds = () => {
     const [expandedCampaign, setExpandedCampaign] = useState(null);
     const [showCampaignForm, setShowCampaignForm] = useState(false);
     const [editingCampaign, setEditingCampaign] = useState(null);
-    const [campaignForm, setCampaignForm] = useState({ name: '', advertiser: '', budget: '', start_date: '', end_date: '', status: 'active', memo: '' });
+    const [campaignForm, setCampaignForm] = useState({ name: '', advertiser: '', budget: '', start_date: '', end_date: '', status: 'active', memo: '', target_countries: 'all' });
     const [campaignReportId, setCampaignReportId] = useState(null);
     const [assigningCampaignId, setAssigningCampaignId] = useState(null);
     const [assignSelectedAds, setAssignSelectedAds] = useState(new Set());
@@ -177,7 +177,7 @@ const AdminAds = () => {
             });
             const data = await res.json();
             showToast(data.message || (data.success ? t('adsPage.done') : t('adsPage.failed')), data.success ? 'success' : 'error');
-            if (data.success) { setShowCampaignForm(false); setEditingCampaign(null); setCampaignForm({ name: '', advertiser: '', budget: '', start_date: '', end_date: '', status: 'active', memo: '' }); fetchCampaigns(); }
+            if (data.success) { setShowCampaignForm(false); setEditingCampaign(null); setCampaignForm({ name: '', advertiser: '', budget: '', start_date: '', end_date: '', status: 'active', memo: '', target_countries: 'all' }); fetchCampaigns(); }
         } catch { showToast(t('adsPage.errorOccurred'), 'error'); }
     };
 
@@ -703,6 +703,30 @@ const AdminAds = () => {
                                     <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('adsPage.startDate')}</label><input type="date" value={campaignForm.start_date} onChange={e => setCampaignForm({ ...campaignForm, start_date: e.target.value })} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm" /></div>
                                     <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('adsPage.endDate')}</label><input type="date" value={campaignForm.end_date} onChange={e => setCampaignForm({ ...campaignForm, end_date: e.target.value })} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm" /></div>
                                     <div className="md:col-span-2"><label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('adsPage.memo')}</label><textarea value={campaignForm.memo} onChange={e => setCampaignForm({ ...campaignForm, memo: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm resize-none" /></div>
+                                    <div className="md:col-span-2">
+                                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1.5">{t('adsPage.targetCountries', '타겟 국가')}</label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            <button type="button" onClick={() => setCampaignForm({ ...campaignForm, target_countries: 'all' })} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${campaignForm.target_countries === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200'}`}>🌍 {t('adsPage.allCountriesTarget', '전체')}</button>
+                                            {COUNTRY_OPTIONS.map(co => {
+                                                const countries = campaignForm.target_countries || 'all';
+                                                const arr = countries === 'all' ? [] : countries.split(',');
+                                                const isOn = countries === 'all' || arr.includes(co.code);
+                                                const toggle = () => {
+                                                    if (countries === 'all') {
+                                                        setCampaignForm({ ...campaignForm, target_countries: co.code });
+                                                    } else if (isOn) {
+                                                        const next = arr.filter(c => c !== co.code);
+                                                        setCampaignForm({ ...campaignForm, target_countries: next.length ? next.join(',') : 'all' });
+                                                    } else {
+                                                        setCampaignForm({ ...campaignForm, target_countries: [...arr, co.code].join(',') });
+                                                    }
+                                                };
+                                                return (
+                                                    <button key={co.code} type="button" onClick={toggle} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${countries !== 'all' && isOn ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200'}`}>{co.flag} {co.label}</button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="flex justify-end gap-2 mt-4">
                                     <button onClick={() => { setShowCampaignForm(false); setEditingCampaign(null); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-bold">{t('adsPage.cancel')}</button>
@@ -744,6 +768,14 @@ const AdminAds = () => {
                                                 <div className="flex items-center gap-3 mt-1">
                                                     {c.advertiser && <span className="text-[11px] text-gray-400 dark:text-gray-500">{c.advertiser}</span>}
                                                     {c.start_date && <span className="text-[10px] text-gray-300 dark:text-gray-600">{c.start_date} ~ {c.end_date || t('adsPage.ongoing')}</span>}
+                                                    {c.target_countries && c.target_countries !== 'all' && (
+                                                        <span className="flex items-center gap-0.5">
+                                                            {c.target_countries.split(',').map(cc => {
+                                                                const opt = COUNTRY_OPTIONS.find(o => o.code === cc);
+                                                                return opt ? <span key={cc} className="text-[11px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md font-bold">{opt.flag}</span> : null;
+                                                            })}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="hidden md:flex items-center gap-5 text-right">
@@ -810,7 +842,7 @@ const AdminAds = () => {
                                             <div className="px-5 py-3 border-t border-gray-50 dark:border-gray-700/50 flex items-center gap-2 flex-wrap">
                                                 <button onClick={() => setCampaignReportId(c.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-lg text-xs font-bold hover:bg-violet-100 dark:hover:bg-violet-500/20"><BarChart3 size={13} /> {t('adsPage.report')}</button>
                                                 <button onClick={() => { setAssigningCampaignId(c.id); setAssignSelectedAds(new Set()); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-500/20"><Plus size={13} /> {t('adsPage.assignAds')}</button>
-                                                <button onClick={() => { setEditingCampaign(c); setCampaignForm({ name: c.name, advertiser: c.advertiser || '', budget: c.budget || '', start_date: c.start_date || '', end_date: c.end_date || '', status: c.status, memo: c.memo || '' }); setShowCampaignForm(true); }}
+                                                <button onClick={() => { setEditingCampaign(c); setCampaignForm({ name: c.name, advertiser: c.advertiser || '', budget: c.budget || '', start_date: c.start_date || '', end_date: c.end_date || '', status: c.status, memo: c.memo || '', target_countries: c.target_countries || 'all' }); setShowCampaignForm(true); }}
                                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20"><Edit3 size={13} /> {t('adsPage.edit')}</button>
                                                 <button onClick={() => handleCampaignDelete(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 ml-auto"><Trash2 size={13} /> {t('adsPage.deleteAction')}</button>
                                             </div>
@@ -891,13 +923,21 @@ const AdminAds = () => {
                 };
 
                 const handleBatchToggle = async (activate) => {
-                    for (const id of selectedIds) {
-                        const ad = ads.find(a => a.id === id);
-                        if (ad && (activate ? ad.is_active != 1 : ad.is_active == 1)) {
-                            await handleToggleActive(ad);
+                    try {
+                        const res = await fetch(`${API_BASE}/batch_update_ads.php`, {
+                            method: 'POST', credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ids: [...selectedIds], fields: { is_active: activate ? 1 : 0 } })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            showToast(data.message || (activate ? t('adsPage.batchActivated') : t('adsPage.batchDeactivated')));
+                            setSelectedIds(new Set());
+                            fetchAds();
+                        } else {
+                            showToast(data.message || t('adsPage.errorOccurred'), 'error');
                         }
-                    }
-                    setSelectedIds(new Set());
+                    } catch { showToast(t('adsPage.serverError'), 'error'); }
                 };
                 const handleBatchDelete = () => {
                     setConfirmModal({

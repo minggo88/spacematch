@@ -3,12 +3,13 @@ import { Outlet, NavLink, useNavigate, Navigate, useLocation } from 'react-route
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Store, ClipboardList, LogOut, UserCircle, Bell, Menu, X, Users, Building, ShoppingBag, MessageSquare, Flame, Home, Database, ChevronDown, Settings, AlertTriangle, Megaphone, Shield, AtSign, Heart, UserCheck, UserPlus, XCircle, CheckCircle2, BarChart3, Moon, Sun, CreditCard, TrendingUp, Monitor, ExternalLink, Trash2, MessageCircle, Headphones } from 'lucide-react';
+import { LayoutDashboard, Store, ClipboardList, LogOut, UserCircle, Bell, Menu, X, Users, Building, ShoppingBag, MessageSquare, Flame, Home, Database, ChevronDown, Settings, AlertTriangle, Megaphone, Shield, AtSign, Heart, UserCheck, UserPlus, XCircle, CheckCircle2, BarChart3, Moon, Sun, CreditCard, TrendingUp, Monitor, ExternalLink, Trash2, MessageCircle, Headphones, Eye, Package, Send, Inbox, Wallet, Truck } from 'lucide-react';
 import NotificationPrompt from './NotificationPrompt';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
 import { countryToLang, getPopupLocalized } from '../utils/translateText';
 import ChatPage from '../pages/ChatPage';
+import { subscribeToPush } from '../utils/pushNotifications';
 
 const Layout = () => {
     const { user, logout } = useAuth();
@@ -17,10 +18,14 @@ const Layout = () => {
     const { notifications, markAsRead, markAllAsRead, deleteReadNotifications } = useData();
     const navigate = useNavigate();
     const location = useLocation();
+    const basePath = location.pathname.startsWith('/admin') ? '/admin' :
+        location.pathname.startsWith('/host') ? '/host' :
+            location.pathname.startsWith('/vendor') ? '/vendor' : '/seller';
     const [showNotifs, setShowNotifs] = useState(false);
     const notifRef = useRef(null);
     const [paymentEnabled, setPaymentEnabled] = useState(false);
     const [showChatPopup, setShowChatPopup] = useState(false);
+    const [hiddenMenus, setHiddenMenus] = useState([]);
 
     // Login popup state
     const [loginPopups, setLoginPopups] = useState([]);
@@ -35,6 +40,26 @@ const Layout = () => {
             .then(d => { if (d.success) setPaymentEnabled(!!parseInt(d.settings?.is_payment_enabled)); })
             .catch(() => { });
     }, []);
+
+    // Fetch hidden menus for seller/host
+    useEffect(() => {
+        if (!user || user.role === 'admin' || user.role === 'superadmin') return;
+        fetch('/api/menu/get_menu_visibility.php', { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => { if (d.success) setHiddenMenus(d.hiddenMenus || []); })
+            .catch(() => { });
+    }, [user]);
+
+    // 로그인 + 알림 권한 granted 시 자동 Push 구독 (세션당 1회)
+    useEffect(() => {
+        if (!user) return;
+        if (sessionStorage.getItem('push_subscribed')) return;
+        if ('Notification' in window && Notification.permission === 'granted') {
+            subscribeToPush()
+                .then(ok => { if (ok) sessionStorage.setItem('push_subscribed', '1'); })
+                .catch(() => { });
+        }
+    }, [user]);
 
     // Fetch login popups on mount (with country filtering)
     useEffect(() => {
@@ -77,7 +102,7 @@ const Layout = () => {
     }, [user, i18n.language]);
 
     // Re-show popups when user navigates back to home page
-    const isHomePath = ['/admin', '/seller', '/vendor', '/'].includes(location.pathname) || location.pathname === '';
+    const isHomePath = ['/admin', '/seller', '/host', '/vendor', '/'].includes(location.pathname) || location.pathname === '';
     useEffect(() => {
         if (!user || !isHomePath || allPopupsRef.current.length === 0) return;
         const today = new Date().toDateString();
@@ -114,6 +139,12 @@ const Layout = () => {
     const myNotifs = notifications; // Backend handles filtering by session
     // DB 'is_read' is 0 or 1.
     const unreadCount = myNotifs.filter(n => n.is_read == 0).length;
+
+    // 탭 타이틀에 읽지 않은 알림 수 표시
+    useEffect(() => {
+        document.title = unreadCount > 0 ? `(${unreadCount}) SpaceMatch` : 'SpaceMatch';
+    }, [unreadCount]);
+
     const [notifFilter, setNotifFilter] = useState('all');
     const [unreadOnly, setUnreadOnly] = useState(false);
 
@@ -200,7 +231,7 @@ const Layout = () => {
         { to: '/admin/dashboard', icon: LayoutDashboard, label: t('sidebar.adminDashboard') },
         { to: '/admin/analytics', icon: BarChart3, label: t('sidebar.analytics') },
         { to: '/admin/sellers', icon: ShoppingBag, label: t('sidebar.sellerDirectory') },
-        { to: '/admin/vendors', icon: Building, label: t('sidebar.vendorDirectory') },
+        { to: '/admin/hosts', icon: Building, label: t('sidebar.hostDirectory') },
         { to: '/admin/popular', icon: Flame, label: t('sidebar.popularSpaces') },
     ];
     const adminManagementLinks = [
@@ -211,10 +242,13 @@ const Layout = () => {
         { to: '/admin/users', icon: Users, label: t('sidebar.userManagement') },
         { to: '/admin/seller-stats', icon: TrendingUp, label: t('sidebar.sellerStatsManagement') },
         { to: '/admin/payments', icon: CreditCard, label: t('sidebar.paymentManagement') },
-        { to: '/admin/vendor-report', icon: BarChart3, label: t('sidebar.analyticsReport') },
+        { to: '/admin/host-report', icon: BarChart3, label: t('sidebar.analyticsReport') },
         { to: '/admin/ads', icon: Megaphone, label: t('sidebar.adManagement') },
+        { to: '/admin/marketing', icon: Megaphone, label: t('sidebar.marketingManagement', '마케팅 관리') },
+        { to: '/admin/vendor-management', icon: Truck, label: t('sidebar.vendorTransactionManagement', '벤더 거래 관리') },
         { to: '/admin/popups', icon: Monitor, label: t('sidebar.popupManagement') },
         { to: '/admin/security', icon: Shield, label: t('sidebar.securitySettings') },
+        { to: '/admin/menu-visibility', icon: Eye, label: t('sidebar.menuVisibility') },
     ];
     const adminBottomLinks = [
         { to: '/admin/trash', icon: Trash2, label: t('sidebar.trash') },
@@ -225,16 +259,20 @@ const Layout = () => {
     const adminCommunityLinks = [
         { to: '/admin/community/general', icon: Users, label: t('sidebar.integratedCommunity') },
         { to: '/admin/community/seller', icon: ShoppingBag, label: t('sidebar.sellerCommunity') },
-        { to: '/admin/community/vendor', icon: Store, label: t('sidebar.vendorCommunity') },
+        { to: '/admin/community/host', icon: Store, label: t('sidebar.hostCommunity') },
     ];
 
     const sellerLinks = [
         { to: '/seller', icon: Home, label: t('sidebar.home') },
         { to: '/seller/applications', icon: ClipboardList, label: t('sidebar.applicationStatus') },
-        { to: '/seller/vendors', icon: Building, label: t('sidebar.vendorDirectory') },
+        { to: '/seller/hosts', icon: Building, label: t('sidebar.hostDirectory') },
         { to: '/seller/popular', icon: Flame, label: t('sidebar.popularSpaces') },
+        { to: '/seller/proposals', icon: Inbox, label: t('sidebar.distributionProposals', '유통 제안') },
+        { to: '/seller/shipments', icon: Package, label: t('sidebar.shippingManagement', '배송 관리') },
+        { to: '/seller/settlements', icon: Wallet, label: t('sidebar.settlements', '정산') },
         { to: '/seller/stats', icon: TrendingUp, label: t('sidebar.salesManagement') },
         { to: '/seller/analytics', icon: BarChart3, label: t('sidebar.analytics') },
+        { to: '/seller/marketing', icon: Megaphone, label: t('sidebar.marketing', '마케팅') },
     ];
     const sellerBottomLinks = [
         { to: '/seller/profile', icon: UserCircle, label: t('sidebar.myProfile') },
@@ -246,40 +284,74 @@ const Layout = () => {
         { to: '/seller/community/general', icon: Users, label: t('sidebar.integratedCommunity') },
     ];
 
+    const hostLinks = [
+        { to: '/host', icon: Home, label: t('sidebar.home') },
+        { to: '/host/dashboard', icon: LayoutDashboard, label: t('sidebar.dashboard') },
+        { to: '/host/sellers', icon: ShoppingBag, label: t('sidebar.sellerDirectory') },
+        { to: '/host/stats', icon: TrendingUp, label: t('sidebar.salesManagement') },
+        { to: '/host/analytics', icon: BarChart3, label: t('sidebar.analytics') },
+        { to: '/host/report', icon: TrendingUp, label: t('sidebar.analyticsReport') },
+        { to: '/host/marketing', icon: Megaphone, label: t('sidebar.marketing', '마케팅') },
+    ];
+    const hostManagementLinks = [
+        { to: '/host/venues', icon: Store, label: t('sidebar.spaceManagement') },
+        { to: '/host/applications', icon: ClipboardList, label: t('sidebar.applicationManagement') },
+        { to: '/host/cancellations', icon: AlertTriangle, label: t('sidebar.cancellationRequests') },
+    ];
+    const hostBottomLinks = [
+        { to: '/host/profile', icon: UserCircle, label: t('sidebar.myProfile') },
+        ...(paymentEnabled ? [{ to: '/host/payments', icon: CreditCard, label: t('sidebar.servicePayment') }] : []),
+    ];
+
+    const hostCommunityLinks = [
+        { to: '/host/community', icon: Store, label: t('sidebar.hostCommunity') },
+        { to: '/host/community/general', icon: Users, label: t('sidebar.integratedCommunity') },
+    ];
+
     const vendorLinks = [
         { to: '/vendor', icon: Home, label: t('sidebar.home') },
-        { to: '/vendor/dashboard', icon: LayoutDashboard, label: t('sidebar.dashboard') },
         { to: '/vendor/sellers', icon: ShoppingBag, label: t('sidebar.sellerDirectory') },
-        { to: '/vendor/analytics', icon: BarChart3, label: t('sidebar.analytics') },
-        { to: '/vendor/report', icon: TrendingUp, label: t('sidebar.analyticsReport') },
-    ];
-    const vendorManagementLinks = [
-        { to: '/vendor/venues', icon: Store, label: t('sidebar.spaceManagement') },
-        { to: '/vendor/applications', icon: ClipboardList, label: t('sidebar.applicationManagement') },
-        { to: '/vendor/cancellations', icon: AlertTriangle, label: t('sidebar.cancellationRequests') },
+        { to: '/vendor/proposals', icon: Send, label: t('sidebar.distributionProposals', '유통 제안') },
+        { to: '/vendor/shipments', icon: Package, label: t('sidebar.shippingManagement', '배송 관리') },
+        { to: '/vendor/settlements', icon: Wallet, label: t('sidebar.settlements', '정산') },
+        { to: '/vendor/chat', icon: MessageCircle, label: t('sidebar.chat', '채팅') },
     ];
     const vendorBottomLinks = [
         { to: '/vendor/profile', icon: UserCircle, label: t('sidebar.myProfile') },
-        ...(paymentEnabled ? [{ to: '/vendor/payments', icon: CreditCard, label: t('sidebar.servicePayment') }] : []),
-    ];
-
-    const vendorCommunityLinks = [
-        { to: '/vendor/community', icon: Store, label: t('sidebar.vendorCommunity') },
-        { to: '/vendor/community/general', icon: Users, label: t('sidebar.integratedCommunity') },
+        { to: '/vendor/notification-settings', icon: Bell, label: t('sidebar.notificationSettings', '알림 설정') },
     ];
 
     const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+    const isHost = user.role === 'host';
     const isVendor = user.role === 'vendor';
-    const links = isAdmin ? adminLinks : (isVendor ? vendorLinks : sellerLinks);
-    const managementLinks = isAdmin ? adminManagementLinks : (isVendor ? vendorManagementLinks : []);
-    const communityLinks = isAdmin ? adminCommunityLinks : (isVendor ? vendorCommunityLinks : sellerCommunityLinks);
-    const bottomLinks = isAdmin ? adminBottomLinks : (isVendor ? vendorBottomLinks : sellerBottomLinks);
+    const filterHidden = (items) => isAdmin ? items.filter(l => l.to === '/admin/marketing' ? !hiddenMenus.includes(l.to) : true) : items.filter(l => !hiddenMenus.includes(l.to));
+    const links = filterHidden(isAdmin ? adminLinks : (isHost ? hostLinks : (isVendor ? vendorLinks : sellerLinks)));
+    const managementLinks = filterHidden(isAdmin ? adminManagementLinks : (isHost ? hostManagementLinks : []));
+    const communityLinks = filterHidden(isAdmin ? adminCommunityLinks : (isHost ? hostCommunityLinks : (isVendor ? [] : sellerCommunityLinks)));
+    const bottomLinks = filterHidden(isAdmin ? adminBottomLinks : (isHost ? hostBottomLinks : (isVendor ? vendorBottomLinks : sellerBottomLinks)));
+
+    // Auto-redirect: if current page is hidden, go to first visible page
+    const allVisibleLinks = [...links, ...managementLinks, ...communityLinks, ...bottomLinks];
+
+    useEffect(() => {
+        if (isAdmin || hiddenMenus.length === 0 || allVisibleLinks.length === 0) return;
+        const currentPath = location.pathname;
+        // Check if current path is the base index or a hidden menu
+        const isIndex = currentPath === basePath || currentPath === basePath + '/';
+        const isHidden = hiddenMenus.includes(currentPath);
+        if (isIndex || isHidden) {
+            const firstVisible = allVisibleLinks[0];
+            if (firstVisible && firstVisible.to !== currentPath) {
+                navigate(firstVisible.to, { replace: true });
+            }
+        }
+    }, [hiddenMenus, location.pathname, allVisibleLinks, basePath, isAdmin]);
 
     const renderSidebar = () => (
         <div className="flex flex-col h-full">
             <div className="p-6 flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-                    <img src="/favicon.png" alt="SpaceMatch" className="w-8 h-8 rounded-lg object-contain" />
+                    <img src="/favicon.png" alt="SpaceMatch" className="w-8 h-8 rounded-lg object-contain dark:brightness-0 dark:invert" />
                     SpaceMatch
                 </h1>
                 {/* Mobile Close Button */}
@@ -293,7 +365,7 @@ const Layout = () => {
             <nav className="mt-6 flex-1 overflow-y-auto pb-4">
                 {/* Main Links */}
                 {links.map(link => {
-                    const needsEnd = link.to === '/admin' || link.to === '/seller' || link.to === '/vendor'
+                    const needsEnd = link.to === '/admin' || link.to === '/seller' || link.to === '/host' || link.to === '/vendor'
                         || links.some(other => other.to !== link.to && other.to.startsWith(link.to + '/'));
                     return (
                         <NavLink
@@ -314,8 +386,8 @@ const Layout = () => {
                     );
                 })}
 
-                {/* Management Section (renders BEFORE community for vendor, AFTER for admin) */}
-                {isVendor && managementLinks.length > 0 && (
+                {/* Management Section (renders BEFORE community for host, AFTER for admin) */}
+                {isHost && managementLinks.length > 0 && (
                     <div>
                         <button
                             onClick={() => setManagementOpen(!managementOpen)}
@@ -384,7 +456,7 @@ const Layout = () => {
                 </div>
 
                 {/* Admin Management Section (renders AFTER community) */}
-                {!isVendor && managementLinks.length > 0 && (
+                {!isHost && managementLinks.length > 0 && (
                     <div>
                         <button
                             onClick={() => setManagementOpen(!managementOpen)}
@@ -436,10 +508,20 @@ const Layout = () => {
                 ))}
             </nav>
             <div className="w-full p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
-                <div className="mb-4 px-2">
+                {/* Theme Toggle (left) + Notifications (right) */}
+                <div className="flex items-center justify-between mb-4 px-2">
+                    <button
+                        onClick={toggleTheme}
+                        className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors p-2 hover:bg-gray-50 rounded-lg"
+                        title={isDark ? t('lightMode') : t('darkMode')}
+                    >
+                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                        <span className="text-sm font-medium">{isDark ? t('lightMode') : t('darkMode')}</span>
+                    </button>
                     <button
                         onClick={() => setShowNotifs(!showNotifs)}
-                        className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors w-full p-2 hover:bg-gray-50 rounded-lg relative"
+                        className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors p-2 hover:bg-gray-50 rounded-lg relative"
+                        title={t('notifications')}
                     >
                         <div className="relative">
                             <Bell size={20} />
@@ -449,21 +531,10 @@ const Layout = () => {
                         </div>
                         <span className="text-sm font-medium">{t('notifications')}</span>
                         {unreadCount > 0 && (
-                            <span className="ml-auto text-xs font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
                                 {unreadCount}
                             </span>
                         )}
-                    </button>
-                </div>
-
-                {/* Dark Mode Toggle */}
-                <div className="mb-2 px-2">
-                    <button
-                        onClick={toggleTheme}
-                        className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors w-full p-2 hover:bg-gray-50 rounded-lg"
-                    >
-                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                        <span className="text-sm font-medium">{isDark ? t('lightMode') : t('darkMode')}</span>
                     </button>
                 </div>
 
@@ -484,7 +555,7 @@ const Layout = () => {
                     </div>
                     <div>
                         <p className="text-sm font-semibold">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.role === 'superadmin' ? t('roleSuperAdmin') : user.role === 'admin' ? t('roleAdmin') : user.role === 'vendor' ? t('roleVendor') : t('roleSeller')}</p>
+                        <p className="text-xs text-gray-500">{user.role === 'superadmin' ? t('roleSuperAdmin') : user.role === 'admin' ? t('roleAdmin') : user.role === 'host' ? t('roleHost') : user.role === 'vendor' ? t('roleVendor', 'Vendor') : t('roleSeller')}</p>
                     </div>
                 </div>
                 <button
@@ -564,6 +635,13 @@ const Layout = () => {
                                             {t('notif.markAllRead')}
                                         </button>
                                     )}
+                                    <button
+                                        onClick={() => { setShowNotifs(false); navigate(`${basePath}/notification-settings`); }}
+                                        className="w-9 h-9 rounded-xl hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all"
+                                        title="알림 설정"
+                                    >
+                                        <Settings size={18} />
+                                    </button>
                                     <button
                                         onClick={() => setShowNotifs(false)}
                                         className="w-9 h-9 rounded-xl hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all"
@@ -771,7 +849,7 @@ const Layout = () => {
                     {/* FAB Button */}
                     <button
                         onClick={() => setShowChatPopup(!showChatPopup)}
-                        className={`fixed bottom-20 right-4 lg:bottom-10 lg:right-10 w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center transition-all duration-300 z-[9999] ${showChatPopup
+                        className={`fixed bottom-6 right-6 lg:bottom-10 lg:right-10 w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center transition-all duration-300 z-[9999] ${showChatPopup
                             ? 'bg-gray-800 hover:bg-gray-900 text-white shadow-xl shadow-gray-500/30 scale-90 rotate-90'
                             : 'bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 hover:from-indigo-400 hover:via-violet-400 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110'
                             }`}
@@ -794,7 +872,7 @@ const Layout = () => {
                             <div
                                 className="fixed z-[9998] flex flex-col overflow-hidden
                                     bottom-4 right-4 left-4 top-20
-                                    sm:left-auto sm:top-auto sm:bottom-36 sm:right-4 sm:w-[620px] sm:h-[580px]
+                                    sm:left-auto sm:top-auto sm:bottom-24 sm:right-6 sm:w-[620px] sm:h-[580px]
                                     lg:bottom-28 lg:right-10 lg:w-[680px] lg:h-[640px]
                                     bg-white rounded-2xl shadow-2xl shadow-black/20 border border-gray-100"
                                 style={{ animation: 'chatPopupSlide 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}

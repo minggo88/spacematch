@@ -58,7 +58,7 @@
     "sortByNewest": "Newest",
     "sortByPopular": "Most Popular",
     "viewOnMap": "View on Map",
-    "contactVendor": "Contact",
+    "contactHost": "Contact",
     "applyNow": "Apply Now",
     "free": "Free",
     "locationTBD": "Location TBD",
@@ -95,6 +95,18 @@
         "over300k": "Over ₩300K",
         "noResults": "No spaces match your criteria",
         "tryDifferent": "Try different filters or search terms!",
+        "countryFilter": "Filter by Country",
+        "allCountries": "All",
+        "category": "Category",
+        "sortLatest": "Latest",
+        "sortPriceAsc": "Price: Low to High",
+        "sortPriceDesc": "Price: High to Low",
+        "sortPopular": "Most Popular",
+        "mapView": "Map View",
+        "mapHint": "Click a marker to view the space",
+        "venueCount": "Spaces",
+        "avgPrice": "Avg. Price",
+        "activeRecruit": "Recruiting",
         "regions": {
             "seoul": "Seoul",
             "gyeonggi": "Gyeonggi",
@@ -108,7 +120,7 @@
             "gangwon": "Gangwon"
         }
     },
-    "vendorProfile": {
+    "hostProfile": {
         "title": "Space Provider Profile",
         "openSpaces": "Open Spaces",
         "about": "About",

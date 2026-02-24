@@ -16,7 +16,7 @@ const TYPE_OPTIONS = [
 const TARGET_OPTIONS = [
     { value: 'all', labelKey: 'popupsPage.targetAll' },
     { value: 'seller', labelKey: 'popupsPage.targetSeller' },
-    { value: 'vendor', labelKey: 'popupsPage.targetVendor' },
+    { value: 'host', labelKey: 'popupsPage.targetVendor' },
 ];
 
 const COUNTRY_OPTIONS = [

@@ -61,7 +61,7 @@ $communityType = $post['community_type'] ?? $type;
 
 $communityNames = [
     'seller' => 'Seller Community',
-    'vendor' => 'Vendor Community',
+    'host' => 'Host Community',
     'general' => 'Community'
 ];
 $communityName = $communityNames[$communityType] ?? 'Community';

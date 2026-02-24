@@ -1,384 +1,344 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Store, MapPin, BarChart3, Clock, CheckCircle, XCircle, Users, TrendingUp, Eye, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { Package, ShoppingBag, Users, TrendingUp, CheckCircle, AlertCircle, ArrowRight, UserCircle, Building, BarChart3, Send, Truck, Wallet, Clock, DollarSign } from 'lucide-react';
 
 const API_BASE = '/api';
 
 const VendorDashboard = () => {
     const { user } = useAuth();
+    const { t } = useTranslation('common');
     const navigate = useNavigate();
-    const { t } = useTranslation('vendor');
-    const [venues, setVenues] = useState([]);
-    const [applications, setApplications] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ totalSellers: 0, pendingProposals: 0, activeDeals: 0, totalShipments: 0, totalSettlements: 0, pendingSettlementAmount: 0 });
+    const [profileComplete, setProfileComplete] = useState(0);
+    const [recentProposals, setRecentProposals] = useState([]);
+    const [recentShipments, setRecentShipments] = useState([]);
 
-    const fetchMyVenues = () => {
-        fetch(`${API_BASE}/venues/get_my_venues.php`, { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => { if (Array.isArray(data)) setVenues(data); })
-            .catch(err => console.error(err));
-    };
-
-    const fetchApplications = () => {
-        fetch(`${API_BASE}/applications/get_applications.php`, { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => { if (Array.isArray(data)) setApplications(data); })
-            .catch(err => console.error(err));
-    };
-
+    // Calculate profile completion
     useEffect(() => {
-        Promise.all([
-            fetch(`${API_BASE}/venues/get_my_venues.php`, { credentials: 'include' }).then(r => r.json()),
-            fetch(`${API_BASE}/applications/get_applications.php`, { credentials: 'include' }).then(r => r.json()),
-        ]).then(([venuesData, appsData]) => {
-            if (Array.isArray(venuesData)) setVenues(venuesData);
-            if (Array.isArray(appsData)) setApplications(appsData);
-        }).catch(err => console.error(err))
-            .finally(() => setLoading(false));
+        if (!user) return;
+        let filled = 0;
+        let total = 6;
+        if (user.name) filled++;
+        if (user.email) filled++;
+        if (user.phone) filled++;
+        if (user.business_no) filled++;
+        if (user.description) filled++;
+        if (user.profile_image) filled++;
+        setProfileComplete(Math.round((filled / total) * 100));
+    }, [user]);
+
+    // Fetch all stats
+    useEffect(() => {
+        // Seller count
+        fetch(`${API_BASE}/users/list.php?role=seller`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) setStats(prev => ({ ...prev, totalSellers: d.users?.length || 0 }));
+            })
+            .catch(() => { });
+
+        // Proposals
+        fetch(`${API_BASE}/proposals/proposals.php`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success && Array.isArray(d.proposals)) {
+                    const pending = d.proposals.filter(p => p.status === 'pending').length;
+                    const active = d.proposals.filter(p => p.status === 'accepted').length;
+                    setStats(prev => ({ ...prev, pendingProposals: pending, activeDeals: active }));
+                    setRecentProposals(d.proposals.slice(0, 3));
+                }
+            })
+            .catch(() => { });
+
+        // Shipments
+        fetch(`${API_BASE}/shipments/shipments.php`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success && Array.isArray(d.shipments)) {
+                    setStats(prev => ({ ...prev, totalShipments: d.shipments.length }));
+                    setRecentShipments(d.shipments.slice(0, 3));
+                }
+            })
+            .catch(() => { });
+
+        // Settlements
+        fetch(`${API_BASE}/settlements/settlements.php`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    setStats(prev => ({
+                        ...prev,
+                        totalSettlements: d.settlements?.length || 0,
+                        pendingSettlementAmount: Number(d.stats?.pending_amount || 0)
+                    }));
+                }
+            })
+            .catch(() => { });
     }, []);
 
-    // Stats
-    const totalVenues = venues.length;
-    const activeVenues = venues.filter(v => v.status === 'approved').length;
-    const pendingVenues = venues.filter(v => v.status === 'pending').length;
-    const rejectedVenues = venues.filter(v => v.status === 'rejected').length;
-    const pendingApps = applications.filter(a => a.status === 'pending').length;
-    const approvedApps = applications.filter(a => a.status === 'approved').length;
-    const rejectedApps = applications.filter(a => a.status === 'rejected').length;
-    const totalApps = applications.length;
-    const approvalRate = totalApps > 0 ? Math.round((approvedApps / totalApps) * 100) : 0;
+    if (!user) return null;
 
-    // Per-venue stats
-    const venueStats = venues.map(v => {
-        const venueApps = applications.filter(a => String(a.venue_id) === String(v.id));
-        return {
-            id: v.id,
-            name: v.name,
-            status: v.status,
-            location: v.location,
-            total: venueApps.length,
-            approved: venueApps.filter(a => a.status === 'approved').length,
-            pending: venueApps.filter(a => a.status === 'pending').length,
-            rejected: venueApps.filter(a => a.status === 'rejected').length,
-            maxSellers: parseInt(v.max_sellers) || 0,
-            deadline: v.recruitment_deadline,
-            image: v.images?.[0] || null,
-        };
-    });
+    const formatCurrency = (n) => Number(n || 0).toLocaleString('ko-KR') + '원';
 
-    // Recent applications (last 5)
-    const recentApps = [...applications]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 5);
+    const quickActions = [
+        {
+            icon: ShoppingBag,
+            title: t('vendorDashboard.exploreSellers', '셀러 탐색'),
+            desc: t('vendorDashboard.exploreSellersDesc', '카테고리와 지역으로 셀러를 검색하세요'),
+            color: 'from-indigo-500 to-violet-600',
+            bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+            action: () => navigate('/vendor/sellers'),
+        },
+        {
+            icon: Send,
+            title: t('vendorDashboard.proposals', '유통 제안'),
+            desc: t('vendorDashboard.proposalsDesc', '셀러에게 유통 제안을 보내세요'),
+            color: 'from-violet-500 to-purple-600',
+            bg: 'bg-violet-50 dark:bg-violet-900/20',
+            action: () => navigate('/vendor/proposals'),
+        },
+        {
+            icon: Truck,
+            title: t('vendorDashboard.shipments', '배송 관리'),
+            desc: t('vendorDashboard.shipmentsDesc', '발주 및 배송 상태를 관리하세요'),
+            color: 'from-cyan-500 to-blue-600',
+            bg: 'bg-cyan-50 dark:bg-cyan-900/20',
+            action: () => navigate('/vendor/shipments'),
+        },
+        {
+            icon: Wallet,
+            title: t('vendorDashboard.settlements', '정산 관리'),
+            desc: t('vendorDashboard.settlementsDesc', '거래 정산을 확인하고 관리하세요'),
+            color: 'from-emerald-500 to-teal-600',
+            bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+            action: () => navigate('/vendor/settlements'),
+        },
+    ];
 
-    const getPricingUnitLabel = (unit) => {
-        switch (unit) { case 'weekly': return t('pricingUnit.weekly', { ns: 'seller' }); case 'monthly': return t('pricingUnit.monthly', { ns: 'seller' }); default: return t('pricingUnit.daily', { ns: 'seller' }); }
+    const statCards = [
+        {
+            icon: Users,
+            label: t('vendorDashboard.activeSellers', '활동 셀러'),
+            value: stats.totalSellers,
+            color: 'text-indigo-600 dark:text-indigo-400',
+            bg: 'bg-indigo-50 dark:bg-indigo-900/30',
+        },
+        {
+            icon: Send,
+            label: t('vendorDashboard.pendingProposals', '대기 중 제안'),
+            value: stats.pendingProposals,
+            color: 'text-amber-600 dark:text-amber-400',
+            bg: 'bg-amber-50 dark:bg-amber-900/30',
+        },
+        {
+            icon: TrendingUp,
+            label: t('vendorDashboard.activeDeals', '진행 중 거래'),
+            value: stats.activeDeals,
+            color: 'text-emerald-600 dark:text-emerald-400',
+            bg: 'bg-emerald-50 dark:bg-emerald-900/30',
+        },
+        {
+            icon: Truck,
+            label: t('vendorDashboard.totalShipments', '총 배송'),
+            value: stats.totalShipments,
+            color: 'text-blue-600 dark:text-blue-400',
+            bg: 'bg-blue-50 dark:bg-blue-900/30',
+        },
+        {
+            icon: Wallet,
+            label: t('vendorDashboard.totalSettlements', '총 정산'),
+            value: stats.totalSettlements,
+            color: 'text-teal-600 dark:text-teal-400',
+            bg: 'bg-teal-50 dark:bg-teal-900/30',
+        },
+        {
+            icon: Clock,
+            label: t('vendorDashboard.pendingAmount', '미정산 금액'),
+            value: formatCurrency(stats.pendingSettlementAmount),
+            isText: true,
+            color: 'text-red-600 dark:text-red-400',
+            bg: 'bg-red-50 dark:bg-red-900/30',
+        },
+    ];
+
+    const PROPOSAL_STATUS = {
+        pending: { label: '대기', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+        accepted: { label: '수락', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+        rejected: { label: '거절', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+        cancelled: { label: '취소', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' },
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
+    const SHIPMENT_STATUS = {
+        ordered: { label: '발주', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+        confirmed: { label: '확인', cls: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' },
+        shipping: { label: '배송중', cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' },
+        delivered: { label: '배송완료', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
+        completed: { label: '완료', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+        cancelled: { label: '취소', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+    };
 
     return (
-        <div className="space-y-8 pb-20">
-            {/* Hero Header */}
-            <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/3 blur-2xl"></div>
-                <div className="relative z-10">
-                    <h1 className="text-2xl md:text-3xl font-extrabold mb-2">
-                        {t('heroGreeting', { name: user.name })}
-                    </h1>
-                    <p className="text-indigo-200 font-medium text-lg">
-                        {t('heroSubtitle')}
-                    </p>
-                </div>
-            </div>
-
-            {/* Main KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                            <Store size={20} className="text-indigo-600" />
-                        </div>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('allSpaces')}</span>
-                    </div>
-                    <p className="text-3xl font-extrabold text-gray-900">{totalVenues}</p>
-                    <div className="mt-2 flex items-center gap-2 text-xs font-medium">
-                        <span className="text-emerald-600">{t('operating')} {activeVenues}</span>
-                        <span className="text-gray-300">·</span>
-                        <span className="text-amber-500">{t('reviewing')} {pendingVenues}</span>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
-                            <Clock size={20} className="text-amber-500" />
-                        </div>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('applicationRequests')}</span>
-                    </div>
-                    <p className="text-3xl font-extrabold text-amber-600">{pendingApps}</p>
-                    <button
-                        onClick={() => navigate('/vendor/applications')}
-                        className="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                    >
-                        {t('goTo')} <ChevronRight size={14} />
-                    </button>
-                </div>
-
-                <div className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-                            <Users size={20} className="text-emerald-600" />
-                        </div>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('applicationStatus')}</span>
-                    </div>
-                    <p className="text-3xl font-extrabold text-emerald-600">{approvedApps}</p>
-                    <p className="mt-2 text-xs font-medium text-gray-400">{t('totalApplied', { count: totalApps })}</p>
-                </div>
-
-                <div className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                            <BarChart3 size={20} className="text-blue-600" />
-                        </div>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('approvalRateLabel')}</span>
-                    </div>
-                    <p className="text-3xl font-extrabold text-blue-600">{approvalRate}%</p>
-                    <div className="mt-3 w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-700"
-                            style={{ width: `${approvalRate}%` }}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Two-Column Layout */}
-            <div className="grid lg:grid-cols-5 gap-6">
-                {/* Per-Venue Breakdown (3/5) */}
-                <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                            <BarChart3 size={18} className="text-indigo-600" />
-                            {t('venueBreakdown')}
-                        </h3>
-                        <button
-                            onClick={() => navigate('/vendor/venues')}
-                            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                        >
-                            {t('manageVenues')} <ChevronRight size={14} />
-                        </button>
-                    </div>
-                    <div className="divide-y divide-gray-50">
-                        {venueStats.length === 0 ? (
-                            <div className="p-12 text-center text-gray-400">
-                                <Store size={40} className="mx-auto mb-3 opacity-40" />
-                                <p className="font-medium">{t('noVenuesYet')}</p>
-                                <button
-                                    onClick={() => navigate('/vendor/venues')}
-                                    className="mt-3 text-sm font-bold text-indigo-600 hover:text-indigo-700"
-                                >
-                                    {t('registerNewVenue')} </button>
-                            </div>
+        <div className="max-w-6xl mx-auto p-4 md:p-6">
+            {/* Welcome Header */}
+            <div className="mb-8">
+                <div className="flex items-center gap-4 mb-2">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                        {user.profile_image ? (
+                            <img src={user.profile_image} alt={user.name} className="w-full h-full rounded-2xl object-cover" />
                         ) : (
-                            venueStats.map((vs) => {
-                                const occupancy = vs.maxSellers > 0
-                                    ? Math.min(100, Math.round((vs.approved / vs.maxSellers) * 100))
-                                    : null;
-                                const isFull = vs.maxSellers > 0 && vs.approved >= vs.maxSellers;
-
-                                return (
-                                    <div key={vs.id} className="p-4 md:p-5 hover:bg-gray-50/50 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            {/* Venue Image */}
-                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
-                                                {vs.image ? (
-                                                    <img src={vs.image} alt={vs.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                                        <Store size={20} />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-bold text-gray-900 truncate">{vs.name}</h4>
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${vs.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                                                        vs.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                                                            'bg-red-100 text-red-600'
-                                                        }`}>
-                                                        {vs.status === 'approved' ? t('statusActive') : vs.status === 'pending' ? t('statusPending') : t('statusRejected')}
-                                                    </span>
-                                                </div>
-
-                                                {/* Occupancy Bar */}
-                                                {vs.maxSellers > 0 ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full rounded-full transition-all duration-500 ${isFull ? 'bg-red-400' : occupancy >= 80 ? 'bg-orange-400' : 'bg-emerald-400'
-                                                                    }`}
-                                                                style={{ width: `${occupancy}%` }}
-                                                            />
-                                                        </div>
-                                                        <span className={`text-xs font-bold flex-shrink-0 ${isFull ? 'text-red-500' : 'text-gray-500'}`}>
-                                                            {vs.approved}/{vs.maxSellers} {isFull && <span className="ml-1 text-[10px] bg-red-100 px-1.5 py-0.5 rounded-full text-red-500">{t('closed')}</span>}
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-xs text-gray-400">{t('tenants')} {vs.approved} · {t('applied')} {vs.total}</p>
-                                                )}
-                                            </div>
-
-                                            {/* Quick Stats */}
-                                            <div className="hidden md:flex gap-1.5 flex-shrink-0">
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-lg">
-                                                    <CheckCircle size={11} /> {vs.approved}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-lg">
-                                                    <Clock size={11} /> {vs.pending}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-500 text-xs font-bold rounded-lg">
-                                                    <XCircle size={11} /> {vs.rejected}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Deadline */}
-                                        {vs.deadline && (() => {
-                                            const diff = Math.ceil((new Date(vs.deadline) - new Date()) / (1000 * 60 * 60 * 24));
-                                            return (
-                                                <div className="mt-2 ml-[72px]">
-                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${diff < 0 ? 'bg-gray-100 text-gray-400' :
-                                                        diff <= 3 ? 'bg-red-100 text-red-500' :
-                                                            diff <= 7 ? 'bg-orange-100 text-orange-500' :
-                                                                'bg-blue-100 text-blue-500'
-                                                        }`}>
-                                                        {diff < 0 ? t('closed') : diff === 0 ? 'D-DAY' : `D-${diff}`} {t('recruitment')}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                );
-                            })
+                            <Package className="text-white" size={28} />
                         )}
                     </div>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                            {t('vendorDashboard.welcome', '안녕하세요')}, {user.name}
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">
+                            {t('vendorDashboard.subtitle', '벤더 대시보드에 오신 것을 환영합니다')}
+                        </p>
+                    </div>
                 </div>
+            </div>
 
-                {/* Recent Applications (2/5) */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                            <TrendingUp size={18} className="text-emerald-600" />
-                            {t('recentApplications')}
-                        </h3>
+            {/* Profile Completion Alert */}
+            {profileComplete < 100 && (
+                <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="text-amber-600 dark:text-amber-400" size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                            {t('vendorDashboard.completeProfile', '프로필을 완성해 주세요')}
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                            {t('vendorDashboard.profileProgress', '프로필 완성도')}: {profileComplete}%
+                        </p>
+                        <div className="w-full bg-amber-200/50 dark:bg-amber-800/30 rounded-full h-2 mt-2">
+                            <div
+                                className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${profileComplete}%` }}
+                            />
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => navigate('/vendor/profile')}
+                        className="flex-shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold transition-colors"
+                    >
+                        {t('vendorDashboard.goComplete', '완성하기')}
+                    </button>
+                </div>
+            )}
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+                {statCards.map((card, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
+                                <card.icon size={16} className={card.color} />
+                            </div>
+                        </div>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">{card.label}</p>
+                        <p className={`text-lg font-bold text-gray-900 dark:text-gray-100 ${card.isText ? 'text-sm' : ''}`}>
+                            {card.isText ? card.value : card.value.toLocaleString()}
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="mb-8">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+                    {t('vendorDashboard.quickActions', '빠른 작업')}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {quickActions.map((action, i) => (
                         <button
-                            onClick={() => navigate('/vendor/applications')}
-                            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                            key={i}
+                            onClick={action.action}
+                            className={`${action.bg} rounded-2xl p-6 text-left border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all group`}
                         >
-                            {t('viewAll')} <ChevronRight size={14} />
+                            <div className="flex items-center gap-4">
+                                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                                    <action.icon className="text-white" size={24} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{action.title}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{action.desc}</p>
+                                </div>
+                                <ArrowRight size={20} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Recent Proposals */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <Send size={16} className="text-violet-500" /> 최근 유통 제안
+                        </h3>
+                        <button onClick={() => navigate('/vendor/proposals')} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                            전체보기 <ArrowRight size={12} />
                         </button>
                     </div>
-
-                    {recentApps.length === 0 ? (
-                        <div className="p-12 text-center text-gray-400">
-                            <Users size={32} className="mx-auto mb-2 opacity-40" />
-                            <p className="text-sm font-medium">{t('noRecentApps')}</p>
-                        </div>
+                    {recentProposals.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400 text-sm">아직 유통 제안이 없습니다</div>
                     ) : (
-                        <div className="divide-y divide-gray-50">
-                            {recentApps.map(app => {
-                                const now = new Date();
-                                const created = new Date(app.created_at);
-                                const diffMs = now - created;
-                                const diffMin = Math.floor(diffMs / 60000);
-                                const diffHr = Math.floor(diffMin / 60);
-                                const diffDay = Math.floor(diffHr / 24);
-                                let timeLabel = t('justNow');
-                                if (diffDay > 0) timeLabel = t('daysAgo', { count: diffDay });
-                                else if (diffHr > 0) timeLabel = t('hoursAgo', { count: diffHr });
-                                else if (diffMin > 0) timeLabel = t('minutesAgo', { count: diffMin });
-
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {recentProposals.map(p => {
+                                const cfg = PROPOSAL_STATUS[p.status] || PROPOSAL_STATUS.pending;
                                 return (
-                                    <div key={app.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${app.status === 'pending' ? 'bg-amber-400' :
-                                                    app.status === 'approved' ? 'bg-emerald-400' : 'bg-red-400'
-                                                    }`} />
-                                                <span className="font-bold text-gray-800 text-sm truncate">
-                                                    {app.applicant_name || t('applicant')}
-                                                </span>
+                                    <div key={p.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{p.title}</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">{p.seller_name || '셀러'} · {new Date(p.created_at).toLocaleDateString('ko-KR')}</p>
                                             </div>
-                                            <span className="text-[11px] text-gray-400 flex-shrink-0 ml-2">{timeLabel}</span>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap ${cfg.cls}`}>{cfg.label}</span>
                                         </div>
-                                        <p className="text-xs text-gray-500 pl-4">
-                                            <span className="font-medium text-gray-600">{app.venue_name}</span>{t('appliedTo')}
-                                        </p>
-                                        {app.applicant_category && (
-                                            <span className="ml-4 mt-1 inline-block px-2 py-0.5 bg-gray-100 rounded text-[10px] text-gray-500 font-bold uppercase">
-                                                {app.applicant_category}
-                                            </span>
-                                        )}
                                     </div>
                                 );
                             })}
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* Application Status Overview */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-                <h3 className="text-lg font-extrabold text-gray-900 mb-5 flex items-center gap-2">
-                    <Eye size={18} className="text-gray-400" />
-                    {t('applicationSummary')}
-                </h3>
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                        <Clock size={24} className="mx-auto mb-2 text-amber-500" />
-                        <p className="text-2xl font-extrabold text-amber-600">{pendingApps}</p>
-                        <p className="text-xs font-bold text-amber-400 mt-1">{t('waiting')}</p>
+                {/* Recent Shipments */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <Truck size={16} className="text-blue-500" /> 최근 배송
+                        </h3>
+                        <button onClick={() => navigate('/vendor/shipments')} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                            전체보기 <ArrowRight size={12} />
+                        </button>
                     </div>
-                    <div className="text-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                        <CheckCircle size={24} className="mx-auto mb-2 text-emerald-500" />
-                        <p className="text-2xl font-extrabold text-emerald-600">{approvedApps}</p>
-                        <p className="text-xs font-bold text-emerald-400 mt-1">{t('approved')}</p>
-                    </div>
-                    <div className="text-center p-4 bg-red-50 rounded-2xl border border-red-100">
-                        <XCircle size={24} className="mx-auto mb-2 text-red-400" />
-                        <p className="text-2xl font-extrabold text-red-500">{rejectedApps}</p>
-                        <p className="text-xs font-bold text-red-400 mt-1">{t('rejected')}</p>
-                    </div>
-                </div>
-
-                {/* Approval Rate Bar */}
-                <div className="mt-5 bg-gray-50 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-bold text-gray-700">{t('overallRate')}</span>
-                        <span className="text-sm font-extrabold text-indigo-600">{approvalRate}%</span>
-                    </div>
-                    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-700"
-                            style={{ width: `${approvalRate}%` }}
-                        />
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-gray-400 font-medium">
-                        <span>{t('approved')} {approvedApps} · {t('waiting')} {pendingApps} · {t('rejected')} {rejectedApps}</span>
-                        <span>{t('total')} {totalApps}</span>
-                    </div>
+                    {recentShipments.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400 text-sm">아직 배송 내역이 없습니다</div>
+                    ) : (
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {recentShipments.map(s => {
+                                const cfg = SHIPMENT_STATUS[s.status] || SHIPMENT_STATUS.ordered;
+                                return (
+                                    <div key={s.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{s.order_title || `배송 #${s.id}`}</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">{s.seller_name || '셀러'} · {Number(s.total_amount || 0).toLocaleString()}원</p>
+                                            </div>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap ${cfg.cls}`}>{cfg.label}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

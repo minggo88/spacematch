@@ -3,7 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 include_once '../db_connect.php';
 session_start();
 
-// Any logged-in user can browse sellers (vendors primarily)
+// Any logged-in user can browse sellers (hosts primarily)
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo json_encode(["error" => "로그인이 필요합니다."]);
@@ -119,7 +119,7 @@ try {
 
     // Mask contact info for vendor users
     $requester_role = $_SESSION['user_role'] ?? '';
-    if ($requester_role === 'vendor') {
+    if ($requester_role === 'host') {
         foreach ($sellers as &$s) {
             $s['email'] = '';
             $s['phone'] = '';

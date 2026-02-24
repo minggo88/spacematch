@@ -5,7 +5,7 @@ import PublicNav from '../components/PublicNav';
 import PublicFooter from '../components/PublicFooter';
 import SmartText from '../components/SmartText';
 import {
-    MessageCircle, Phone, Mail, MapPin, Clock,
+    MessageCircle, Mail, MapPin, Clock,
     ArrowRight, ExternalLink, Send
 } from 'lucide-react';
 
@@ -45,39 +45,39 @@ const ContactPage = () => {
                             href="http://pf.kakao.com/_xjGxoRX/chat"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group bg-white rounded-2xl p-7 md:p-8 border border-gray-100 hover:border-yellow-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                            className="group bg-white rounded-2xl p-7 md:p-8 border border-gray-100 hover:border-violet-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="flex items-start justify-between mb-6">
-                                <div className="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center">
+                                <div className="w-14 h-14 bg-violet-50 rounded-xl flex items-center justify-center">
                                     <span className="text-2xl">💬</span>
                                 </div>
-                                <ExternalLink size={18} className="text-gray-300 group-hover:text-yellow-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                                <ExternalLink size={18} className="text-gray-300 group-hover:text-violet-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 mb-2">{t('contactPage.kakaoTitle')}</h3>
                             <p className="text-gray-400 text-sm leading-relaxed mb-4">
                                 <SmartText mobileMax={16} pcMax={24}>{t('contactPage.kakaoDesc')}</SmartText>
                             </p>
-                            <span className="inline-flex items-center gap-1.5 text-yellow-600 font-semibold text-sm">
+                            <span className="inline-flex items-center gap-1.5 text-violet-600 font-semibold text-sm">
                                 {t('contactPage.kakaoAction')} <ArrowRight size={14} />
                             </span>
                         </a>
 
-                        {/* Phone */}
+                        {/* Email */}
                         <a
-                            href="tel:050407775410"
+                            href="mailto:spacedotmatch@gmail.com?subject=[SpaceMatch] 문의사항"
                             className="group bg-white rounded-2xl p-7 md:p-8 border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="flex items-start justify-between mb-6">
                                 <div className="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center">
-                                    <Phone size={24} className="text-indigo-600" />
+                                    <Mail size={24} className="text-indigo-600" />
                                 </div>
                                 <ExternalLink size={18} className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">{t('contactPage.phoneTitle')}</h3>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">{t('contactPage.emailTitle', '이메일 문의')}</h3>
                             <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                                <SmartText mobileMax={16} pcMax={24}>{t('contactPage.phoneDesc')}</SmartText>
+                                <SmartText mobileMax={16} pcMax={24}>{t('contactPage.emailDesc', '이메일로 문의사항을 보내주시면 빠르게 답변 드립니다.')}</SmartText>
                             </p>
-                            <span className="text-2xl font-bold text-indigo-600">0504-0777-5410</span>
+                            <span className="text-lg font-bold text-indigo-600">spacedotmatch@gmail.com</span>
                         </a>
                     </div>
 
@@ -112,6 +112,7 @@ const ContactPage = () => {
                                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t('contactPage.quickResponse')}</p>
                                     <p className="text-sm text-gray-700">{t('contactPage.quickResponseValue')}</p>
                                     <p className="text-xs text-gray-400">{t('contactPage.quickResponseNote')}</p>
+                                    <a href="mailto:spacedotmatch@gmail.com" className="text-xs text-indigo-600 hover:underline mt-1 inline-block">spacedotmatch@gmail.com</a>
                                 </div>
                             </div>
                         </div>

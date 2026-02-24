@@ -15,6 +15,21 @@ import { MapPin, Filter, ChevronDown, X } from 'lucide-react';
  *   className  - Additional CSS classes
  */
 
+// ─── Country center coordinates ───
+const COUNTRY_CENTERS = {
+    'ko': { lat: 37.5665, lng: 126.9780, zoom: 11 },
+    'en': { lat: 40.7128, lng: -74.0060, zoom: 10 },
+    'en-GB': { lat: 51.5074, lng: -0.1278, zoom: 10 },
+    'en-CA': { lat: 43.6532, lng: -79.3832, zoom: 10 },
+    'fr-CA': { lat: 45.5017, lng: -73.5673, zoom: 10 },
+    'ja': { lat: 35.6762, lng: 139.6503, zoom: 10 },
+    'vi': { lat: 10.8231, lng: 106.6297, zoom: 10 },
+    'th': { lat: 13.7563, lng: 100.5018, zoom: 10 },
+    'km': { lat: 11.5564, lng: 104.9282, zoom: 11 },
+    'ru': { lat: 55.7558, lng: 37.6173, zoom: 10 },
+    'uk': { lat: 50.4501, lng: 30.5234, zoom: 10 },
+};
+
 // ─── Sub-districts for each region ───
 const REGION_DISTRICTS = {
     '서울 전체': {
@@ -269,25 +284,151 @@ const REGION_DISTRICTS = {
     },
 };
 
-// ─── Major regions with center coordinates ───
-const REGIONS = {
-    '서울 전체': { lat: 37.5665, lng: 126.9780, zoom: 11, keywords: ['서울', '서울특별시'] },
-    '경기도': { lat: 37.2750, lng: 127.0090, zoom: 9, keywords: ['경기', '경기도'] },
-    '인천': { lat: 37.4563, lng: 126.7052, zoom: 11, keywords: ['인천', '인천광역시'] },
-    '부산': { lat: 35.1796, lng: 129.0756, zoom: 11, keywords: ['부산', '부산광역시'] },
-    '대구': { lat: 35.8714, lng: 128.6014, zoom: 11, keywords: ['대구', '대구광역시'] },
-    '대전': { lat: 36.3504, lng: 127.3845, zoom: 11, keywords: ['대전', '대전광역시'] },
-    '광주': { lat: 35.1595, lng: 126.8526, zoom: 11, keywords: ['광주', '광주광역시'] },
-    '울산': { lat: 35.5384, lng: 129.3114, zoom: 11, keywords: ['울산', '울산광역시'] },
-    '세종': { lat: 36.4800, lng: 127.0000, zoom: 11, keywords: ['세종', '세종특별자치시'] },
-    '제주': { lat: 33.4996, lng: 126.5312, zoom: 10, keywords: ['제주', '제주특별자치도'] },
-    '강원': { lat: 37.8228, lng: 128.1555, zoom: 9, keywords: ['강원', '강원도', '강원특별자치도'] },
-    '충북': { lat: 36.6357, lng: 127.4913, zoom: 9, keywords: ['충북', '충청북도'] },
-    '충남': { lat: 36.5184, lng: 126.8000, zoom: 9, keywords: ['충남', '충청남도'] },
-    '전북': { lat: 35.8200, lng: 127.1089, zoom: 9, keywords: ['전북', '전라북도', '전북특별자치도'] },
-    '전남': { lat: 34.8161, lng: 126.4629, zoom: 9, keywords: ['전남', '전라남도'] },
-    '경북': { lat: 36.4919, lng: 128.8889, zoom: 9, keywords: ['경북', '경상북도'] },
-    '경남': { lat: 35.4606, lng: 128.2132, zoom: 9, keywords: ['경남', '경상남도'] },
+// ─── Major regions with center coordinates (by country) ───
+const REGIONS_BY_COUNTRY = {
+    'ko': {
+        '서울 전체': { lat: 37.5665, lng: 126.9780, zoom: 11, keywords: ['서울', '서울특별시'] },
+        '경기도': { lat: 37.2750, lng: 127.0090, zoom: 9, keywords: ['경기', '경기도'] },
+        '인천': { lat: 37.4563, lng: 126.7052, zoom: 11, keywords: ['인천', '인천광역시'] },
+        '부산': { lat: 35.1796, lng: 129.0756, zoom: 11, keywords: ['부산', '부산광역시'] },
+        '대구': { lat: 35.8714, lng: 128.6014, zoom: 11, keywords: ['대구', '대구광역시'] },
+        '대전': { lat: 36.3504, lng: 127.3845, zoom: 11, keywords: ['대전', '대전광역시'] },
+        '광주': { lat: 35.1595, lng: 126.8526, zoom: 11, keywords: ['광주', '광주광역시'] },
+        '울산': { lat: 35.5384, lng: 129.3114, zoom: 11, keywords: ['울산', '울산광역시'] },
+        '세종': { lat: 36.4800, lng: 127.0000, zoom: 11, keywords: ['세종', '세종특별자치시'] },
+        '제주': { lat: 33.4996, lng: 126.5312, zoom: 10, keywords: ['제주', '제주특별자치도'] },
+        '강원': { lat: 37.8228, lng: 128.1555, zoom: 9, keywords: ['강원', '강원도', '강원특별자치도'] },
+        '충북': { lat: 36.6357, lng: 127.4913, zoom: 9, keywords: ['충북', '충청북도'] },
+        '충남': { lat: 36.5184, lng: 126.8000, zoom: 9, keywords: ['충남', '충청남도'] },
+        '전북': { lat: 35.8200, lng: 127.1089, zoom: 9, keywords: ['전북', '전라북도', '전북특별자치도'] },
+        '전남': { lat: 34.8161, lng: 126.4629, zoom: 9, keywords: ['전남', '전라남도'] },
+        '경북': { lat: 36.4919, lng: 128.8889, zoom: 9, keywords: ['경북', '경상북도'] },
+        '경남': { lat: 35.4606, lng: 128.2132, zoom: 9, keywords: ['경남', '경상남도'] },
+    },
+    'en': {
+        'New York': { lat: 40.7128, lng: -74.0060, zoom: 10, keywords: ['new york', 'ny'] },
+        'California': { lat: 36.7783, lng: -119.4179, zoom: 6, keywords: ['california', 'ca'] },
+        'Texas': { lat: 31.9686, lng: -99.9018, zoom: 6, keywords: ['texas', 'tx'] },
+        'Florida': { lat: 27.6648, lng: -81.5158, zoom: 7, keywords: ['florida', 'fl'] },
+        'Illinois': { lat: 40.6331, lng: -89.3985, zoom: 7, keywords: ['illinois', 'il', 'chicago'] },
+        'Washington': { lat: 47.7511, lng: -120.7401, zoom: 7, keywords: ['washington', 'wa', 'seattle'] },
+        'Georgia': { lat: 32.1656, lng: -82.9001, zoom: 7, keywords: ['georgia', 'ga', 'atlanta'] },
+        'Massachusetts': { lat: 42.4072, lng: -71.3824, zoom: 8, keywords: ['massachusetts', 'ma', 'boston'] },
+        'Pennsylvania': { lat: 41.2033, lng: -77.1945, zoom: 7, keywords: ['pennsylvania', 'pa'] },
+        'New Jersey': { lat: 40.0583, lng: -74.4057, zoom: 8, keywords: ['new jersey', 'nj'] },
+        'Hawaii': { lat: 19.8968, lng: -155.5828, zoom: 7, keywords: ['hawaii', 'hi'] },
+        'Nevada': { lat: 38.8026, lng: -116.4194, zoom: 7, keywords: ['nevada', 'nv', 'las vegas'] },
+    },
+    'en-GB': {
+        'London': { lat: 51.5074, lng: -0.1278, zoom: 10, keywords: ['london'] },
+        'Manchester': { lat: 53.4808, lng: -2.2426, zoom: 11, keywords: ['manchester'] },
+        'Birmingham': { lat: 52.4862, lng: -1.8904, zoom: 11, keywords: ['birmingham'] },
+        'Edinburgh': { lat: 55.9533, lng: -3.1883, zoom: 11, keywords: ['edinburgh'] },
+        'Glasgow': { lat: 55.8642, lng: -4.2518, zoom: 11, keywords: ['glasgow'] },
+        'Liverpool': { lat: 53.4084, lng: -2.9916, zoom: 11, keywords: ['liverpool'] },
+        'Bristol': { lat: 51.4545, lng: -2.5879, zoom: 11, keywords: ['bristol'] },
+        'Cardiff': { lat: 51.4816, lng: -3.1791, zoom: 11, keywords: ['cardiff'] },
+        'Belfast': { lat: 54.5973, lng: -5.9301, zoom: 11, keywords: ['belfast'] },
+        'Leeds': { lat: 53.8008, lng: -1.5491, zoom: 11, keywords: ['leeds'] },
+    },
+    'en-CA': {
+        'Ontario': { lat: 51.2538, lng: -85.3232, zoom: 5, keywords: ['ontario', 'toronto'] },
+        'British Columbia': { lat: 53.7267, lng: -127.6476, zoom: 5, keywords: ['british columbia', 'bc', 'vancouver'] },
+        'Quebec': { lat: 46.8139, lng: -71.2080, zoom: 6, keywords: ['quebec', 'montreal'] },
+        'Alberta': { lat: 53.9333, lng: -116.5765, zoom: 5, keywords: ['alberta', 'calgary', 'edmonton'] },
+        'Manitoba': { lat: 53.7609, lng: -98.8139, zoom: 5, keywords: ['manitoba', 'winnipeg'] },
+        'Saskatchewan': { lat: 52.9399, lng: -106.4509, zoom: 5, keywords: ['saskatchewan'] },
+        'Nova Scotia': { lat: 44.6820, lng: -63.7443, zoom: 7, keywords: ['nova scotia', 'halifax'] },
+        'New Brunswick': { lat: 46.5653, lng: -66.4619, zoom: 7, keywords: ['new brunswick'] },
+    },
+    'fr-CA': {
+        'Ontario': { lat: 51.2538, lng: -85.3232, zoom: 5, keywords: ['ontario', 'toronto'] },
+        'Colombie-Britannique': { lat: 53.7267, lng: -127.6476, zoom: 5, keywords: ['colombie-britannique', 'bc', 'vancouver'] },
+        'Québec': { lat: 46.8139, lng: -71.2080, zoom: 6, keywords: ['québec', 'montréal'] },
+        'Alberta': { lat: 53.9333, lng: -116.5765, zoom: 5, keywords: ['alberta', 'calgary'] },
+        'Manitoba': { lat: 53.7609, lng: -98.8139, zoom: 5, keywords: ['manitoba', 'winnipeg'] },
+        'Saskatchewan': { lat: 52.9399, lng: -106.4509, zoom: 5, keywords: ['saskatchewan'] },
+        'Nouvelle-Écosse': { lat: 44.6820, lng: -63.7443, zoom: 7, keywords: ['nouvelle-écosse', 'halifax'] },
+        'Nouveau-Brunswick': { lat: 46.5653, lng: -66.4619, zoom: 7, keywords: ['nouveau-brunswick'] },
+    },
+    'ja': {
+        '東京都': { lat: 35.6762, lng: 139.6503, zoom: 10, keywords: ['東京', 'tokyo'] },
+        '大阪府': { lat: 34.6937, lng: 135.5023, zoom: 10, keywords: ['大阪', 'osaka'] },
+        '京都府': { lat: 35.0116, lng: 135.7681, zoom: 10, keywords: ['京都', 'kyoto'] },
+        '北海道': { lat: 43.0642, lng: 141.3469, zoom: 7, keywords: ['北海道', 'hokkaido', '札幌'] },
+        '愛知県': { lat: 35.1802, lng: 136.9066, zoom: 10, keywords: ['愛知', '名古屋', 'nagoya'] },
+        '福岡県': { lat: 33.5904, lng: 130.4017, zoom: 10, keywords: ['福岡', 'fukuoka'] },
+        '神奈川県': { lat: 35.4478, lng: 139.6425, zoom: 10, keywords: ['神奈川', '横浜', 'yokohama'] },
+        '兵庫県': { lat: 34.6913, lng: 135.1830, zoom: 9, keywords: ['兵庫', '神戸', 'kobe'] },
+        '広島県': { lat: 34.3966, lng: 132.4596, zoom: 9, keywords: ['広島', 'hiroshima'] },
+        '沖縄県': { lat: 26.3344, lng: 127.8056, zoom: 9, keywords: ['沖縄', 'okinawa'] },
+        '宮城県': { lat: 38.2688, lng: 140.8721, zoom: 9, keywords: ['宮城', '仙台', 'sendai'] },
+        '千葉県': { lat: 35.6073, lng: 140.1063, zoom: 9, keywords: ['千葉', 'chiba'] },
+    },
+    'vi': {
+        'Hà Nội': { lat: 21.0285, lng: 105.8542, zoom: 11, keywords: ['hà nội', 'ha noi', 'hanoi'] },
+        'TP. Hồ Chí Minh': { lat: 10.8231, lng: 106.6297, zoom: 11, keywords: ['hồ chí minh', 'ho chi minh', 'saigon'] },
+        'Đà Nẵng': { lat: 16.0544, lng: 108.2022, zoom: 11, keywords: ['đà nẵng', 'da nang'] },
+        'Hải Phòng': { lat: 20.8449, lng: 106.6881, zoom: 11, keywords: ['hải phòng', 'hai phong'] },
+        'Cần Thơ': { lat: 10.0452, lng: 105.7469, zoom: 11, keywords: ['cần thơ', 'can tho'] },
+        'Nha Trang': { lat: 12.2388, lng: 109.1967, zoom: 11, keywords: ['nha trang', 'khánh hòa'] },
+        'Huế': { lat: 16.4637, lng: 107.5909, zoom: 11, keywords: ['huế', 'hue'] },
+        'Đà Lạt': { lat: 11.9404, lng: 108.4583, zoom: 11, keywords: ['đà lạt', 'da lat', 'lâm đồng'] },
+        'Vũng Tàu': { lat: 10.4114, lng: 107.1362, zoom: 11, keywords: ['vũng tàu', 'vung tau'] },
+        'Quảng Ninh': { lat: 21.0064, lng: 107.2925, zoom: 9, keywords: ['quảng ninh', 'hạ long'] },
+    },
+    'th': {
+        'กรุงเทพมหานคร': { lat: 13.7563, lng: 100.5018, zoom: 11, keywords: ['กรุงเทพ', 'bangkok'] },
+        'เชียงใหม่': { lat: 18.7883, lng: 98.9853, zoom: 10, keywords: ['เชียงใหม่', 'chiang mai'] },
+        'ภูเก็ต': { lat: 7.8804, lng: 98.3923, zoom: 10, keywords: ['ภูเก็ต', 'phuket'] },
+        'พัทยา': { lat: 12.9236, lng: 100.8825, zoom: 11, keywords: ['พัทยา', 'pattaya', 'ชลบุรี'] },
+        'เชียงราย': { lat: 19.9105, lng: 99.8406, zoom: 10, keywords: ['เชียงราย', 'chiang rai'] },
+        'ขอนแก่น': { lat: 16.4322, lng: 102.8236, zoom: 10, keywords: ['ขอนแก่น', 'khon kaen'] },
+        'สุราษฎร์ธานี': { lat: 9.1382, lng: 99.3217, zoom: 9, keywords: ['สุราษฎร์ธานี', 'surat thani', 'เกาะสมุย'] },
+        'นครราชสีมา': { lat: 14.9799, lng: 102.0978, zoom: 10, keywords: ['นครราชสีมา', 'nakhon ratchasima', 'โคราช'] },
+        'สงขลา': { lat: 7.1896, lng: 100.5945, zoom: 10, keywords: ['สงขลา', 'หาดใหญ่', 'songkhla'] },
+    },
+    'km': {
+        'ភ្នំពេញ': { lat: 11.5564, lng: 104.9282, zoom: 12, keywords: ['ភ្នំពេញ', 'phnom penh'] },
+        'សៀមរាប': { lat: 13.3633, lng: 103.8600, zoom: 11, keywords: ['សៀមរាប', 'siem reap'] },
+        'បាត់ដំបង': { lat: 13.1023, lng: 103.1986, zoom: 11, keywords: ['បាត់ដំបង', 'battambang'] },
+        'ព្រះសីហនុ': { lat: 10.6093, lng: 103.5228, zoom: 11, keywords: ['ព្រះសីហនុ', 'sihanoukville'] },
+        'កំពង់ចាម': { lat: 11.9925, lng: 105.4533, zoom: 10, keywords: ['កំពង់ចាម', 'kampong cham'] },
+        'កំពត': { lat: 10.6104, lng: 104.1722, zoom: 10, keywords: ['កំពត', 'kampot'] },
+    },
+    'ru': {
+        'Москва': { lat: 55.7558, lng: 37.6173, zoom: 10, keywords: ['москва', 'moscow'] },
+        'Санкт-Петербург': { lat: 59.9343, lng: 30.3351, zoom: 10, keywords: ['санкт-петербург', 'saint petersburg'] },
+        'Новосибирск': { lat: 55.0084, lng: 82.9357, zoom: 10, keywords: ['новосибирск', 'novosibirsk'] },
+        'Екатеринбург': { lat: 56.8389, lng: 60.6057, zoom: 10, keywords: ['екатеринбург', 'yekaterinburg'] },
+        'Казань': { lat: 55.7887, lng: 49.1221, zoom: 10, keywords: ['казань', 'kazan'] },
+        'Нижний Новгород': { lat: 56.2965, lng: 43.9361, zoom: 10, keywords: ['нижний новгород'] },
+        'Красноярск': { lat: 56.0153, lng: 92.8932, zoom: 10, keywords: ['красноярск'] },
+        'Владивосток': { lat: 43.1156, lng: 131.8855, zoom: 10, keywords: ['владивосток', 'vladivostok'] },
+        'Сочи': { lat: 43.6028, lng: 39.7342, zoom: 11, keywords: ['сочи', 'sochi'] },
+    },
+    'uk': {
+        'Київ': { lat: 50.4501, lng: 30.5234, zoom: 10, keywords: ['київ', 'kyiv'] },
+        'Харків': { lat: 49.9935, lng: 36.2304, zoom: 10, keywords: ['харків', 'kharkiv'] },
+        'Одеса': { lat: 46.4825, lng: 30.7233, zoom: 10, keywords: ['одеса', 'odesa'] },
+        'Дніпро': { lat: 48.4647, lng: 35.0462, zoom: 10, keywords: ['дніпро', 'dnipro'] },
+        'Львів': { lat: 49.8397, lng: 24.0297, zoom: 11, keywords: ['львів', 'lviv'] },
+        'Запоріжжя': { lat: 47.8388, lng: 35.1396, zoom: 10, keywords: ['запоріжжя'] },
+        'Вінниця': { lat: 49.2331, lng: 28.4682, zoom: 10, keywords: ['вінниця', 'vinnytsia'] },
+        'Полтава': { lat: 49.5883, lng: 34.5514, zoom: 10, keywords: ['полтава'] },
+    },
+};
+
+// Helper to get REGIONS for current country
+const getRegionsForCountry = (code) => {
+    if (!code || code === 'all') return REGIONS_BY_COUNTRY['ko'];
+    return REGIONS_BY_COUNTRY[code] || REGIONS_BY_COUNTRY['ko'];
+};
+
+// Helper to get default region for country
+const getDefaultRegion = (code) => {
+    const regions = getRegionsForCountry(code);
+    return Object.keys(regions)[0] || '서울 전체';
 };
 
 const KakaoMap = ({
@@ -297,6 +438,7 @@ const KakaoMap = ({
     height = '400px',
     singleMode = false,
     onMarkerClick = null,
+    countryCode = 'all',
     className = ''
 }) => {
     const mapRef = useRef(null);
@@ -306,7 +448,7 @@ const KakaoMap = ({
     const [mapLoaded, setMapLoaded] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [activeTab, setActiveTab] = useState('region'); // 'region' | 'district'
-    const [selectedRegion, setSelectedRegion] = useState('서울 전체');
+    const [selectedRegion, setSelectedRegion] = useState(getDefaultRegion(countryCode));
     const filterRef = useRef(null);
 
     // Filter venues that have valid coordinates
@@ -393,6 +535,19 @@ const KakaoMap = ({
             updateMarkers();
         }
     }, [venues, mapLoaded]);
+
+    // Re-center map and reset region filter when countryCode changes
+    useEffect(() => {
+        if (!mapInstanceRef.current || !mapLoaded) return;
+        // Reset selected region to default for the new country
+        setSelectedRegion(getDefaultRegion(countryCode));
+        setActiveTab('region');
+        if (!countryCode || countryCode === 'all' || countryCode === 'ko') return;
+        const cc = COUNTRY_CENTERS[countryCode];
+        if (cc) {
+            mapInstanceRef.current.flyTo([cc.lat, cc.lng], cc.zoom, { duration: 1.2 });
+        }
+    }, [countryCode, mapLoaded]);
 
     const initMap = () => {
         const L = window.L;
@@ -582,15 +737,17 @@ const KakaoMap = ({
                                 >
                                     {t('mapComponent.metropolitanTab')}
                                 </button>
-                                <button
-                                    onClick={() => setActiveTab('district')}
-                                    className={`flex-1 py-2.5 text-xs font-bold transition-all ${activeTab === 'district'
-                                        ? 'text-indigo-600 border-b-2 border-indigo-500 bg-indigo-50/50'
-                                        : 'text-gray-400 hover:text-gray-600'
-                                        }`}
-                                >
-                                    {t('mapComponent.districtDetailTab', { region: selectedRegion.replace(' 전체', '') })}
-                                </button>
+                                {(!countryCode || countryCode === 'all' || countryCode === 'ko') && (
+                                    <button
+                                        onClick={() => setActiveTab('district')}
+                                        className={`flex-1 py-2.5 text-xs font-bold transition-all ${activeTab === 'district'
+                                            ? 'text-indigo-600 border-b-2 border-indigo-500 bg-indigo-50/50'
+                                            : 'text-gray-400 hover:text-gray-600'
+                                            }`}
+                                    >
+                                        {t('mapComponent.districtDetailTab', { region: selectedRegion.replace(' 전체', '') })}
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setActiveTab('venue')}
                                     className={`flex-1 py-2.5 text-xs font-bold transition-all ${activeTab === 'venue'
@@ -606,7 +763,7 @@ const KakaoMap = ({
                             <div className="max-h-56 overflow-y-auto custom-scrollbar p-2">
                                 {activeTab === 'region' && (
                                     <div className="grid grid-cols-2 gap-1">
-                                        {Object.entries(REGIONS).map(([name, coords]) => {
+                                        {Object.entries(getRegionsForCountry(countryCode)).map(([name, coords]) => {
                                             // Count venues matching any keyword for this region
                                             const count = validVenues.filter(v => {
                                                 const loc = (v.location || '').toLowerCase();

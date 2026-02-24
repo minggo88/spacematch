@@ -1,5 +1,7 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_push.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 // Check authentication
@@ -108,6 +110,40 @@ if (isset($data->id) && isset($data->status)) {
                     $notifStmt->bindValue(':msg', $notifMsg);
                     $notifStmt->bindValue(':link', $notifLink);
                     $notifStmt->execute();
+
+                    // [WEB PUSH] Seller에게 푸시 알림 발송
+                    try {
+                        $pushTitle = ($status === 'approved') ? '✅ 입점 승인' : '❌ 입점 반려';
+                        sendPushToUser($conn, $appData['user_id'], $pushTitle, $notifMsg, $notifLink);
+                    } catch (Exception $pushErr) {
+                        error_log("Push notification error (update_status): " . $pushErr->getMessage());
+                    }
+
+                    // [EMAIL] Seller에게 이메일 알림 발송 (다국어)
+                    try {
+                        $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        $_vn = $appData['venue_name'];
+                        $_rr = $rejection_reason ?? '';
+                        $_st = $status;
+                        sendEmailToUser(
+                            $conn,
+                            $appData['user_id'],
+                            '',
+                            '',
+                            'cat_application',
+                            function ($lang) use ($_vn, $_rr, $_st, $siteUrl) {
+                                if ($_st === 'approved') {
+                                    $subj = _t(['ko' => "✅ 입점 승인: {$_vn}", 'en' => "✅ Approved: {$_vn}", 'ja' => "✅ 承認: {$_vn}", 'vi' => "✅ Đã duyệt: {$_vn}", 'th' => "✅ อนุมัติ: {$_vn}"], $lang);
+                                    return ['subject' => $subj, 'html' => emailTemplateApplicationApproved($_vn, $siteUrl, $lang)];
+                                } else {
+                                    $subj = _t(['ko' => "❌ 입점 반려: {$_vn}", 'en' => "❌ Rejected: {$_vn}", 'ja' => "❌ 却下: {$_vn}", 'vi' => "❌ Từ chối: {$_vn}", 'th' => "❌ ปฏิเสธ: {$_vn}"], $lang);
+                                    return ['subject' => $subj, 'html' => emailTemplateApplicationRejected($_vn, $_rr, $siteUrl, $lang)];
+                                }
+                            }
+                        );
+                    } catch (Exception $emailErr) {
+                        error_log("Email notification error (update_status): " . $emailErr->getMessage());
+                    }
                 }
             } catch (Exception $e) {
                 error_log("SpaceMatch Notification Error (update_status): " . $e->getMessage());

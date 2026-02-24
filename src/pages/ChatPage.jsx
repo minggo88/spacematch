@@ -6,7 +6,7 @@ import {
     MessageCircle, Send, Paperclip, Image, FileText, X, ArrowLeft,
     Search, Check, CheckCheck, Clock, Download, Play, Globe, Eye,
     Smile, MoreVertical, Phone, Video, ChevronDown, Headset,
-    UserPlus, ArrowUpDown, Languages
+    UserPlus, ArrowUpDown, Languages, Trash2, AlertTriangle
 } from 'lucide-react';
 import { COUNTRY_FLAGS } from '../components/CountryBadge';
 
@@ -52,15 +52,21 @@ const ChatPage = ({ isPopup = false }) => {
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [searchingUsers, setSearchingUsers] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'message'|'conversation', id: N }
+    const [deleting, setDeleting] = useState(false);
+    const [showChatMenu, setShowChatMenu] = useState(false);
+    const chatMenuRef = useRef(null);
 
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
     const isSuperAdmin = user?.role === 'superadmin';
 
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const fileInputRef = useRef(null);
     const lastMsgIdRef = useRef(0);
     const pollRef = useRef(null);
     const inputRef = useRef(null);
+    const isNearBottomRef = useRef(true);
 
     // ─── Fetch conversations (admin gets CS only) ───
     const fetchConversations = useCallback(async () => {
@@ -97,6 +103,18 @@ const ChatPage = ({ isPopup = false }) => {
                 lastMsgIdRef.current = maxId;
             } else if (!isPolling) {
                 setMessages([]);
+            }
+
+            // Apply translation updates for previously fetched messages
+            // (translations are processed async in the background after message is sent)
+            if (isPolling && data.updated_translations?.length > 0) {
+                setMessages(prev => prev.map(msg => {
+                    const update = data.updated_translations.find(u => String(u.id) === String(msg.id));
+                    if (update && (!msg.translated_texts || Object.keys(msg.translated_texts).length === 0)) {
+                        return { ...msg, translated_texts: update.translated_texts };
+                    }
+                    return msg;
+                }));
             }
         } catch (e) {
             console.error('Failed to fetch messages:', e);
@@ -237,9 +255,19 @@ const ChatPage = ({ isPopup = false }) => {
         return () => clearInterval(pollRef.current);
     }, [activeConv, fetchMessages, fetchConversations]);
 
-    // ─── Auto-scroll ───
+    // ─── Check if user is near bottom of messages container ───
+    const handleMessagesScroll = useCallback(() => {
+        const el = messagesContainerRef.current;
+        if (!el) return;
+        const threshold = 100;
+        isNearBottomRef.current = (el.scrollHeight - el.scrollTop - el.clientHeight) < threshold;
+    }, []);
+
+    // ─── Auto-scroll (only when near bottom) ───
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (isNearBottomRef.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [messages]);
 
     // ─── Send message ───
@@ -258,6 +286,7 @@ const ChatPage = ({ isPopup = false }) => {
             });
             const data = await res.json();
             if (data.success) {
+                isNearBottomRef.current = true; // force scroll to bottom on own send
                 setMessages(prev => [...prev, data.message]);
                 lastMsgIdRef.current = parseInt(data.message.id);
                 fetchConversations();
@@ -287,6 +316,7 @@ const ChatPage = ({ isPopup = false }) => {
             });
             const data = await res.json();
             if (data.success) {
+                isNearBottomRef.current = true; // force scroll to bottom on own upload
                 setMessages(prev => [...prev, data.message]);
                 lastMsgIdRef.current = parseInt(data.message.id);
                 fetchConversations();
@@ -315,24 +345,93 @@ const ChatPage = ({ isPopup = false }) => {
         }
     };
 
+    // ─── Delete message (admin unsend) ───
+    const handleDeleteMessage = async (messageId) => {
+        setDeleting(true);
+        try {
+            const res = await fetch(`${API_BASE}/chat/messages.php`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message_id: messageId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMessages(prev => prev.filter(m => String(m.id) !== String(messageId)));
+            } else {
+                alert(data.message || '삭제에 실패했습니다.');
+            }
+        } catch (e) {
+            console.error('Failed to delete message:', e);
+            alert('삭제 중 오류가 발생했습니다.');
+        } finally {
+            setDeleting(false);
+            setDeleteConfirm(null);
+        }
+    };
+
+    // ─── Delete conversation (admin only) ───
+    const handleDeleteConversation = async (convId) => {
+        setDeleting(true);
+        try {
+            const res = await fetch(`${API_BASE}/chat/conversations.php`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversation_id: convId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setActiveConv(null);
+                setMessages([]);
+                setMobileShowMessages(false);
+                fetchConversations();
+            } else {
+                alert(data.message || '삭제에 실패했습니다.');
+            }
+        } catch (e) {
+            console.error('Failed to delete conversation:', e);
+            alert('삭제 중 오류가 발생했습니다.');
+        } finally {
+            setDeleting(false);
+            setDeleteConfirm(null);
+            setShowChatMenu(false);
+        }
+    };
+
+    // ─── Close chat menu on outside click ───
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (chatMenuRef.current && !chatMenuRef.current.contains(e.target)) {
+                setShowChatMenu(false);
+            }
+        };
+        if (showChatMenu) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showChatMenu]);
+
     // ─── Get display text for message ───
+    // Must match backend normalizeCountryToLang() exactly
+    const countryToLang = { jp: 'ja', kr: 'ko', vn: 'vi', cn: 'zh-CN', kh: 'km', ua: 'uk', gb: 'en', us: 'en', ca: 'en' };
     const getDisplayText = (msg) => {
         if (!showTranslation || !msg.translated_texts || Object.keys(msg.translated_texts).length === 0) {
             return msg.original_text;
         }
         // Admin can pick any language via dropdown
-        const viewerLang = isAdmin ? adminViewLang : (user?.country || i18n.language || 'ko');
+        let viewerLang = isAdmin ? adminViewLang : (user?.country || i18n.language || 'ko');
+        // Normalize country codes to language codes (e.g. 'jp' → 'ja')
+        viewerLang = countryToLang[viewerLang?.toLowerCase()] || viewerLang?.toLowerCase();
 
-        // For admin: always show in the selected language (even their own messages)
         // For non-admin: show own messages as original
         if (!isAdmin && String(msg.sender_id) === String(user.id)) {
             return msg.original_text;
         }
 
-        // Try exact match first, then base language fallback (en-GB → en, fr-CA → fr)
+        // Try exact match first
         if (msg.translated_texts[viewerLang]) {
             return msg.translated_texts[viewerLang];
         }
+        // Then try base language (en-GB → en, zh-CN → zh)
         const baseLang = viewerLang.split('-')[0];
         if (baseLang !== viewerLang && msg.translated_texts[baseLang]) {
             return msg.translated_texts[baseLang];
@@ -467,8 +566,9 @@ const ChatPage = ({ isPopup = false }) => {
     const renderMessage = (msg, idx) => {
         const isMine = String(msg.sender_id) === String(user.id);
         const displayText = getDisplayText(msg);
-        const isTranslated = showTranslation && msg.translated_texts && Object.keys(msg.translated_texts).length > 0 && !isMine;
+        const isTranslated = showTranslation && !isMine && displayText !== msg.original_text;
         const isFile = ['image', 'video', 'file'].includes(msg.message_type);
+        const canDeleteMsg = isAdmin && isMine; // 관리자가 자기 메시지만 삭제 가능
 
         return (
             <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} mb-3 group`}>
@@ -533,8 +633,18 @@ const ChatPage = ({ isPopup = false }) => {
                         )}
                     </div>
 
-                    {/* Time + read status */}
+                    {/* Time + read status + delete button */}
                     <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'mr-1 justify-end' : 'ml-1'}`}>
+                        {/* Admin delete button (unsend) */}
+                        {canDeleteMsg && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'message', id: msg.id }); }}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200"
+                                title={t('deleteMessage', '메시지 삭제')}
+                            >
+                                <Trash2 size={11} className="text-red-400 hover:text-red-500" />
+                            </button>
+                        )}
                         <span className="text-[10px] text-gray-400 dark:text-gray-500">{formatTime(msg.created_at)}</span>
                         {isMine && (
                             msg.is_read == 1 ?
@@ -707,7 +817,7 @@ const ChatPage = ({ isPopup = false }) => {
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold text-gray-900 truncate">{u.name}</p>
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${u.role === 'vendor' ? 'bg-emerald-100 text-emerald-600' : u.role === 'seller' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${u.role === 'host' ? 'bg-emerald-100 text-emerald-600' : u.role === 'seller' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
                                                             {u.role}
                                                         </span>
                                                         <span className="text-[10px] text-gray-400 truncate">{u.email}</span>
@@ -750,8 +860,8 @@ const ChatPage = ({ isPopup = false }) => {
                                 <div className="flex-1 min-w-0">
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{activeConv.other_name}</h3>
                                     <div className="flex items-center gap-1.5">
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeConv.other_role === 'vendor' ? 'bg-emerald-100 text-emerald-600' : activeConv.other_role === 'admin' || activeConv.other_role === 'superadmin' ? 'bg-teal-100 text-teal-600' : 'bg-indigo-100 text-indigo-600'}`}>
-                                            {activeConv.other_role === 'vendor' ? t('vendor') : activeConv.other_role === 'admin' || activeConv.other_role === 'superadmin' ? 'CS' : t('seller')}
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeConv.other_role === 'host' ? 'bg-emerald-100 text-emerald-600' : activeConv.other_role === 'admin' || activeConv.other_role === 'superadmin' ? 'bg-teal-100 text-teal-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                                            {activeConv.other_role === 'host' ? t('host') : activeConv.other_role === 'admin' || activeConv.other_role === 'superadmin' ? 'CS' : t('seller')}
                                         </span>
                                         {COUNTRY_FLAGS[activeConv.other_country] && (
                                             <span className="text-xs">{COUNTRY_FLAGS[activeConv.other_country].flag}</span>
@@ -771,10 +881,32 @@ const ChatPage = ({ isPopup = false }) => {
                                         ))}
                                     </select>
                                 )}
+                                {/* Admin: Chat menu (delete conversation) */}
+                                {isAdmin && (
+                                    <div className="relative" ref={chatMenuRef}>
+                                        <button
+                                            onClick={() => setShowChatMenu(!showChatMenu)}
+                                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-500 dark:text-gray-400 transition-colors"
+                                        >
+                                            <MoreVertical size={16} />
+                                        </button>
+                                        {showChatMenu && (
+                                            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 z-50">
+                                                <button
+                                                    onClick={() => { setDeleteConfirm({ type: 'conversation', id: activeConv.id }); setShowChatMenu(false); }}
+                                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                >
+                                                    <Trash2 size={15} />
+                                                    <span className="font-medium">{t('deleteConversation', '대화 삭제')}</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Messages */}
-                            <div className={`flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-850 ${dragOver ? 'ring-2 ring-indigo-300 ring-inset bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}>
+                            <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className={`flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-850 ${dragOver ? 'ring-2 ring-indigo-300 ring-inset bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}>
                                 {messages.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-full text-center">
                                         <div className="w-16 h-16 bg-indigo-50 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-3">
@@ -870,6 +1002,59 @@ const ChatPage = ({ isPopup = false }) => {
                     )}
                 </div>
             </div>
+
+            {/* ─── Delete Confirmation Modal ─── */}
+            {deleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10001] flex items-center justify-center p-4" onClick={() => !deleting && setDeleteConfirm(null)}>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()} style={{ animation: 'modalSlideUp 0.25s ease-out' }}>
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-14 h-14 bg-red-50 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mb-4">
+                                <AlertTriangle size={28} className="text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                {deleteConfirm.type === 'message' ? t('deleteMessage', '메시지 삭제') : t('deleteConversation', '대화 삭제')}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6" style={{ wordBreak: 'keep-all' }}>
+                                {deleteConfirm.type === 'message'
+                                    ? t('deleteMessageConfirm', '이 메시지를 삭제하시겠습니까? 삭제된 메시지는 복구할 수 없습니다.')
+                                    : t('deleteConversationConfirm', '전체 대화 기록이 삭제됩니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?')}
+                            </p>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => setDeleteConfirm(null)}
+                                    disabled={deleting}
+                                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                                >
+                                    {t('cancel', '취소')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (deleteConfirm.type === 'message') handleDeleteMessage(deleteConfirm.id);
+                                        else handleDeleteConversation(deleteConfirm.id);
+                                    }}
+                                    disabled={deleting}
+                                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl text-sm font-bold hover:from-red-600 hover:to-rose-600 transition-all shadow-lg shadow-red-200/50 dark:shadow-none disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {deleting ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Trash2 size={14} />
+                                            {t('deleteMessage', '삭제')}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <style>{`
+                        @keyframes modalSlideUp {
+                            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+                            to { opacity: 1; transform: translateY(0) scale(1); }
+                        }
+                    `}</style>
+                </div>
+            )}
         </div>
     );
 };

@@ -18,7 +18,7 @@
   "dropFile": "ទម្លាក់ឯកសារនៅទីនេះ",
   "uploading": "កំពុងផ្ទុកឡើង...",
   "seller": "អ្នកលក់",
-  "vendor": "អ្នកផ្គត់ផ្គង់",
+  "host": "អ្នកផ្គត់ផ្គង់",
   "justNow": "ទើបតែ",
   "minutesAgo": "{{count}} នាទីមុន",
   "daysAgo": "{{count}} ថ្ងៃមុន",
@@ -34,5 +34,11 @@
   "csConnectDesc": "ជជែកផ្ទាល់ជាមួយអ្នកគ្រប់គ្រង",
   "csConnectFailed": "ការតភ្ជាប់ CS បរាជ័យ។",
   "csCreateFailed": "មិនអាចបង្កើតការសន្ទនា CS បានទេ។",
-  "csConnectError": "មានកំហុសកើតឡើងពេលតភ្ជាប់ CS។"
+  "csConnectError": "មានកំហុសកើតឡើងពេលតភ្ជាប់ CS។",
+  "deleteMessage": "លុបសារ",
+  "deleteMessageConfirm": "តើអ្នកប្រាកដថាចង់លុបសារនេះមែនទេ? សារដែលបានលុបមិនអាចស្តារឡើងវិញបានទេ។",
+  "deleteConversation": "លុបការសន្ទនា",
+  "deleteConversationConfirm": "ប្រវត្តិការសន្ទនាទាំងអស់នឹងត្រូវបានលុប។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។ បន្ត?",
+  "deleted": "បានលុប",
+  "cancel": "បោះបង់"
 }
