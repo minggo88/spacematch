@@ -509,30 +509,23 @@ const Layout = () => {
             </nav>
             <div className="w-full p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
                 {/* Theme Toggle (left) + Notifications (right) */}
-                <div className="flex items-center justify-between mb-4 px-2">
+                <div className="flex items-center gap-2 mb-4 px-2">
                     <button
                         onClick={toggleTheme}
-                        className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors p-2 hover:bg-gray-50 rounded-lg"
+                        className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl flex-shrink-0"
                         title={isDark ? t('lightMode') : t('darkMode')}
                     >
                         {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                        <span className="text-sm font-medium">{isDark ? t('lightMode') : t('darkMode')}</span>
                     </button>
                     <button
                         onClick={() => setShowNotifs(!showNotifs)}
-                        className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors p-2 hover:bg-gray-50 rounded-lg relative"
+                        className="relative w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl flex-shrink-0"
                         title={t('notifications')}
                     >
-                        <div className="relative">
-                            <Bell size={20} />
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                            )}
-                        </div>
-                        <span className="text-sm font-medium">{t('notifications')}</span>
+                        <Bell size={20} />
                         {unreadCount > 0 && (
-                            <span className="text-xs font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
-                                {unreadCount}
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-900 px-1 leading-none">
+                                {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                         )}
                     </button>
