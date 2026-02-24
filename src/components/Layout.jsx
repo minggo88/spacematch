@@ -507,57 +507,69 @@ const Layout = () => {
                     </NavLink>
                 ))}
             </nav>
-            <div className="w-full p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
-                {/* Theme Toggle (left) + Notifications (right) */}
-                <div className="flex items-center gap-2 mb-4 px-2">
-                    <button
-                        onClick={toggleTheme}
-                        className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl flex-shrink-0"
-                        title={isDark ? t('lightMode') : t('darkMode')}
-                    >
-                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                    </button>
-                    <button
-                        onClick={() => setShowNotifs(!showNotifs)}
-                        className="relative w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl flex-shrink-0"
-                        title={t('notifications')}
-                    >
-                        <Bell size={20} />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-900 px-1 leading-none">
-                                {unreadCount > 99 ? '99+' : unreadCount}
-                            </span>
-                        )}
-                    </button>
+            <div className="w-full border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
+                {/* User Profile Card */}
+                <div className="px-4 pt-4 pb-3">
+                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0 shadow-md">
+                            {user.profile_image ? (
+                                <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                                user.name[0]
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{user.role === 'superadmin' ? t('roleSuperAdmin') : user.role === 'admin' ? t('roleAdmin') : user.role === 'host' ? t('roleHost') : user.role === 'vendor' ? t('roleVendor', 'Vendor') : t('roleSeller')}</p>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Language / Currency Selector */}
-                <div className="mb-2 px-2">
-                    <div className="flex items-center gap-2 p-2">
+                {/* Utility Row: Theme + Notifications + Language */}
+                <div className="px-4 pb-3">
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onClick={toggleTheme}
+                            className="flex-1 h-9 flex items-center justify-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-all"
+                            title={isDark ? t('lightMode') : t('darkMode')}
+                        >
+                            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+                            <span className="text-[11px] font-semibold">{isDark ? t('lightMode') : t('darkMode')}</span>
+                        </button>
+                        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+                        <button
+                            onClick={() => setShowNotifs(!showNotifs)}
+                            className="relative flex-1 h-9 flex items-center justify-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-all"
+                            title={t('notifications')}
+                        >
+                            <Bell size={16} />
+                            <span className="text-[11px] font-semibold">{t('notifications')}</span>
+                            {unreadCount > 0 && (
+                                <span className="min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Language Selector */}
+                <div className="px-4 pb-3">
+                    <div className="flex items-center">
                         <LanguageSelector />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 px-2 py-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden flex-shrink-0">
-                        {user.profile_image ? (
-                            <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                            user.name[0]
-                        )}
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.role === 'superadmin' ? t('roleSuperAdmin') : user.role === 'admin' ? t('roleAdmin') : user.role === 'host' ? t('roleHost') : user.role === 'vendor' ? t('roleVendor', 'Vendor') : t('roleSeller')}</p>
-                    </div>
+                {/* Logout */}
+                <div className="px-4 pb-4">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center justify-center gap-2 w-full h-9 text-[12px] font-semibold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+                    >
+                        <LogOut size={15} />
+                        {t('logout')}
+                    </button>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                >
-                    <LogOut size={18} />
-                    {t('logout')}
-                </button>
             </div>
         </div>
     );
