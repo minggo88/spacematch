@@ -1295,7 +1295,7 @@ const AdminUsers = () => {
                                 </h4>
 
                                 <div className="space-y-3">
-                                    {selectedUser.status === 'pending' && selectedUser.role === 'host' && (
+                                    {selectedUser.status === 'pending' && (selectedUser.role === 'host' || selectedUser.role === 'vendor') && (
                                         <button
                                             onClick={() => handleStatusAction('approve')}
                                             disabled={actionLoading}

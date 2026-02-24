@@ -56,9 +56,9 @@ try {
     */
 
     if ($action === 'approve') {
-        // Approve pending vendor
-        if ($user['role'] !== 'host') {
-            echo json_encode(array("success" => false, "message" => "호스트만 승인할 수 있습니다."));
+        // Approve pending host or vendor
+        if ($user['role'] !== 'host' && $user['role'] !== 'vendor') {
+            echo json_encode(array("success" => false, "message" => "호스트 또는 벤더만 승인할 수 있습니다."));
             exit;
         }
         $updateStmt = $conn->prepare("UPDATE users SET status = 'active' WHERE id = ? AND status = 'pending'");
@@ -89,7 +89,7 @@ try {
             } catch (Exception $e) {
                 error_log("Notification error (approve): " . $e->getMessage());
             }
-            echo json_encode(array("success" => true, "message" => "호스트가 승인되었습니다."));
+            echo json_encode(array("success" => true, "message" => "승인이 완료되었습니다."));
         } else {
             echo json_encode(array("success" => false, "message" => "이미 승인되었거나 대기 상태가 아닙니다."));
         }
