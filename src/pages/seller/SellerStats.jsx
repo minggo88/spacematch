@@ -2103,7 +2103,7 @@ ${productSection}
     return (
         <div className="max-w-6xl mx-auto pb-20">
             {/* ── Compact Header ── */}
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-2.5">
                 <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm">
                         <TrendingUp className="text-white" size={18} />
@@ -2502,7 +2502,7 @@ ${productSection}
                                             </div>
 
                                             {showGoalForm && (
-                                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-4 space-y-3">
+                                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-2.5 space-y-3">
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('statsPage.goalPeriod', '기간')}</label>
                                                         <div className="flex gap-2">
@@ -2582,7 +2582,7 @@ ${productSection}
 
                     {/* ════ PERIOD TABS (daily/monthly/annual) ════ */}
                     {activeTab !== 'dashboard' && (
-                        <div className="space-y-5">
+                        <div className="space-y-3">
                             {/* Period KPI */}
                             {periodKPI && (
                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -2606,8 +2606,8 @@ ${productSection}
 
                             {/* Revenue Chart */}
                             {chartData.length > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                    <div className="flex items-center justify-between mb-4">
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                    <div className="flex items-center justify-between mb-2.5">
                                         <div className="flex items-center gap-2">
                                             <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
                                             <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
@@ -2616,7 +2616,7 @@ ${productSection}
 
                                     {/* Period Filter (daily / monthly / annual) */}
                                     {['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && (
-                                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                                        <div className="flex items-center gap-2 mb-2.5 flex-wrap">
                                             <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
                                                 {((activeTab === 'daily' || activeTab === 'customers')
                                                     ? [{ val: 7, label: '7일' }, { val: 14, label: '14일' }, { val: 30, label: '1개월' }, { val: 90, label: '3개월' }]
@@ -2702,13 +2702,13 @@ ${productSection}
 
                             {/* Show chart placeholder when no data at all */}
                             {chartData.length === 0 && filteredStats.length > 0 && activeTab === 'daily' && (
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                    <div className="flex items-center gap-2 mb-4">
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                    <div className="flex items-center gap-2 mb-2.5">
                                         <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
                                         <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
                                     </div>
                                     {/* Period Filter */}
-                                    <div className="flex items-center gap-2 mb-4 flex-wrap">
+                                    <div className="flex items-center gap-2 mb-2.5 flex-wrap">
                                         <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
                                             {[{ days: 7, label: '7일' }, { days: 14, label: '14일' }, { days: 30, label: '1개월' }, { days: 90, label: '3개월' }].map(opt => (
                                                 <button key={opt.days}
@@ -2775,7 +2775,7 @@ ${productSection}
 
                     {/* ════ UPLOAD TAB ════ */}
                     {activeTab === 'upload' && (
-                        <div className="space-y-5">
+                        <div className="space-y-3">
                             {/* Step: File Select */}
                             {uploadStep === 'select' && (
                                 <>
@@ -2793,7 +2793,7 @@ ${productSection}
                                     >
                                         <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
                                             onChange={(e) => { if (e.target.files[0]) handleFileParse(e.target.files[0]); }} />
-                                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-2.5 flex items-center justify-center">
                                             <FolderUp className="text-white" size={28} />
                                         </div>
                                         <h3 className="font-extrabold text-gray-900 text-lg mb-2">
@@ -2805,8 +2805,8 @@ ${productSection}
                                     </div>
 
                                     {/* ERP Template Selector */}
-                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                        <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-4">
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                        <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
                                             <Download size={16} className="text-emerald-600" />
                                             {t('statsPage.uploadErpTitle', 'ERP / 마켓플레이스 템플릿')}
                                         </h3>
@@ -2831,8 +2831,8 @@ ${productSection}
 
                                     {/* Import History */}
                                     {importHistory.length > 0 && (
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-4">
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
                                                 <Clock size={16} className="text-emerald-600" />
                                                 {t('statsPage.uploadHistoryTitle', '임포트 이력')}
                                             </h3>
@@ -2871,8 +2871,8 @@ ${productSection}
                             {/* Step: Column Mapping */}
                             {uploadStep === 'mapping' && (
                                 <div className="space-y-4">
-                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                        <div className="flex items-center justify-between mb-4">
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                        <div className="flex items-center justify-between mb-2.5">
                                             <h3 className="font-extrabold text-gray-900 flex items-center gap-2">
                                                 <FileText size={16} className="text-emerald-600" />
                                                 {t('statsPage.uploadMappingTitle', '컬럼 매핑')}
@@ -2881,12 +2881,12 @@ ${productSection}
                                                 <X size={12} /> {t('statsPage.cancel')}
                                             </button>
                                         </div>
-                                        <p className="text-xs text-gray-500 mb-4">
+                                        <p className="text-xs text-gray-500 mb-2.5">
                                             {t('statsPage.uploadMappingDesc', '파일: ')}{uploadFile?.name} — {parsedRows.length}{t('statsPage.uploadRows', '행 감지')}
                                         </p>
 
                                         {/* Upload settings */}
-                                        <div className="grid grid-cols-3 gap-3 mb-4">
+                                        <div className="grid grid-cols-3 gap-3 mb-2.5">
                                             <div>
                                                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
                                                     {t('statsPage.uploadRecordType', '기록 유형')}
@@ -2958,11 +2958,11 @@ ${productSection}
                                     </div>
 
                                     {/* Preview & Actions */}
-                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                                         <h3 className="font-extrabold text-gray-900 text-sm mb-3">
                                             {t('statsPage.uploadPreview', '미리보기')} ({Math.min(parsedRows.length, 5)}/{parsedRows.length}{t('statsPage.uploadRows', '행')})
                                         </h3>
-                                        <div className="overflow-x-auto mb-4">
+                                        <div className="overflow-x-auto mb-2.5">
                                             <table className="w-full text-[11px]">
                                                 <thead>
                                                     <tr className="bg-gray-50">
@@ -3006,7 +3006,7 @@ ${productSection}
                             {/* Step: Importing */}
                             {uploadStep === 'importing' && (
                                 <div className="flex flex-col items-center justify-center py-16">
-                                    <Loader2 size={48} className="text-emerald-500 animate-spin mb-4" />
+                                    <Loader2 size={48} className="text-emerald-500 animate-spin mb-2.5" />
                                     <p className="font-bold text-gray-900">{t('statsPage.uploadImporting', '임포트 중...')}</p>
                                     <p className="text-sm text-gray-500 mt-1">{parsedRows.length}{t('statsPage.uploadImportingRows', '행 처리 중')}</p>
                                 </div>
@@ -3015,7 +3015,7 @@ ${productSection}
                             {/* Step: Done */}
                             {uploadStep === 'done' && importResult && (
                                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                                    <div className="w-16 h-16 bg-emerald-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                                    <div className="w-16 h-16 bg-emerald-100 rounded-2xl mx-auto mb-2.5 flex items-center justify-center">
                                         <CheckCircle size={32} className="text-emerald-600" />
                                     </div>
                                     <h3 className="font-extrabold text-gray-900 text-lg mb-2">
@@ -3036,7 +3036,7 @@ ${productSection}
                                         </div>
                                     </div>
                                     {importResult.errors?.length > 0 && (
-                                        <div className="bg-red-50 rounded-xl p-3 mb-4 text-left max-w-sm mx-auto">
+                                        <div className="bg-red-50 rounded-xl p-3 mb-2.5 text-left max-w-sm mx-auto">
                                             <p className="text-xs font-bold text-red-600 mb-1">
                                                 <AlertCircle size={12} className="inline mr-1" />
                                                 {t('statsPage.uploadErrors', '에러')}
@@ -3057,7 +3057,7 @@ ${productSection}
 
                     {/* ════ EXPENSE TAB ════ */}
                     {activeTab === 'expense' && (
-                        <div className="space-y-5">
+                        <div className="space-y-3">
                             {/* Year Selector */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -3115,8 +3115,8 @@ ${productSection}
 
                                     {/* Category Breakdown */}
                                     {expenseSummary?.categoryBreakdown?.length > 0 && (
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-4">
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
                                                 <PieChart size={16} className="text-violet-600" />
                                                 {t('statsPage.expByCategory', '카테고리별 지출')}
                                             </h3>
@@ -3150,8 +3150,8 @@ ${productSection}
 
                                     {/* Monthly Trend */}
                                     {expenseSummary?.monthlyTotals?.length > 0 && (
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-4">
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
                                                 <BarChart3 size={16} className="text-violet-600" />
                                                 {t('statsPage.expMonthlyTrend', '월별 지출 추이')}
                                             </h3>
@@ -3184,7 +3184,7 @@ ${productSection}
                                     {/* Expense List */}
                                     {expenses.length === 0 ? (
                                         <div className="text-center py-16">
-                                            <Wallet className="mx-auto text-gray-300 mb-4" size={48} />
+                                            <Wallet className="mx-auto text-gray-300 mb-2.5" size={48} />
                                             <h3 className="text-lg font-bold text-gray-400">{t('statsPage.expNoData', '아직 지출 기록이 없습니다.')}</h3>
                                             <p className="text-sm text-gray-400 mt-1">{t('statsPage.expAddFirst', '첫 지출을 기록해보세요!')}</p>
                                         </div>
@@ -3228,7 +3228,7 @@ ${productSection}
                             {showExpenseForm && (
                                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={() => setShowExpenseForm(false)}>
                                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                                        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                                        <div className="flex items-center justify-between p-4 border-b border-gray-100">
                                             <h3 className="font-extrabold text-gray-900">{editingExpense ? t('statsPage.expEdit', '지출 수정') : t('statsPage.expAdd', '지출 추가')}</h3>
                                             <button onClick={() => setShowExpenseForm(false)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
                                         </div>
@@ -3250,7 +3250,7 @@ ${productSection}
 
                     {/* ════ TAX TAB ════ */}
                     {activeTab === 'tax' && (
-                        <div className="space-y-5">
+                        <div className="space-y-3">
                             {/* Country Selector */}
                             <div className="flex gap-2 flex-wrap">
                                 {AVAILABLE_TAX_COUNTRIES.map(c => (
@@ -3290,7 +3290,7 @@ ${productSection}
 
                                     {/* VAT Section */}
                                     {taxResult.calculation.vat && (
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                                             <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-3">
                                                 <DollarSign size={16} className="text-violet-600" />
                                                 {t(`statsPage.taxVatName${taxResult.country}`, taxResult.calculation.vat.name)}
@@ -3326,12 +3326,12 @@ ${productSection}
 
                                     {/* Income Tax Section */}
                                     {taxResult.calculation.income_tax && (
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                                             <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-3">
                                                 <Target size={16} className="text-violet-600" />
                                                 {t(`statsPage.taxIncomeName${taxResult.country}`, taxResult.calculation.income_tax.name)}
                                             </h3>
-                                            <div className="grid grid-cols-3 gap-3 mb-4">
+                                            <div className="grid grid-cols-3 gap-3 mb-2.5">
                                                 <div className="bg-orange-50 rounded-xl p-3">
                                                     <p className="text-[10px] text-orange-600 font-bold">{t('statsPage.taxTaxable', '과세 소득')}</p>
                                                     <p className="text-sm font-extrabold text-orange-700">
@@ -3379,7 +3379,7 @@ ${productSection}
                                     )}
 
                                     {/* After-tax Income */}
-                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white">
+                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 text-white">
                                         <p className="text-sm font-bold opacity-80">
                                             {t('statsPage.taxAfterTax', '세후 예상 소득')}
                                         </p>
@@ -3415,7 +3415,7 @@ ${productSection}
                                         </button>
 
                                         {taxEditMode && (
-                                            <div className="border-t border-gray-100 p-5 space-y-4">
+                                            <div className="border-t border-gray-100 p-4 space-y-4">
                                                 {taxSettingsLoading ? (
                                                     <div className="flex items-center justify-center py-8">
                                                         <Loader2 size={24} className="text-violet-500 animate-spin" />
@@ -3550,7 +3550,7 @@ ${productSection}
 
                     {/* ════ TAX TIPS & COUNTRY INFO (shown when tax tab active) ════ */}
                     {activeTab === 'tax' && (
-                        <div className="space-y-5 mt-5">
+                        <div className="space-y-3 mt-5">
 
                             {/* ── Tax Saving Tips ── */}
                             {(() => {
@@ -3635,12 +3635,12 @@ ${productSection}
                                 if (tips.length === 0) return null;
 
                                 return (
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5">
                                             <Zap size={16} className="text-amber-500" />
                                             {t('statsPage.taxTipsTitle', '💡 절세 팁')}
                                         </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('statsPage.taxTipsSubtitle', '세금을 줄이는 실용적인 방법')}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5">{t('statsPage.taxTipsSubtitle', '세금을 줄이는 실용적인 방법')}</p>
                                         <div className="space-y-2">
                                             {tips.map((tip, i) => (
                                                 <details key={i} className="group bg-gray-50 dark:bg-gray-700/50 rounded-xl overflow-hidden">
@@ -3804,13 +3804,13 @@ ${productSection}
                                 };
 
                                 return (
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5">
                                             <MapPin size={16} className="text-emerald-600 dark:text-emerald-400" />
                                             {t('statsPage.taxCountryInfoTitle', '🌍 국가별 세무 정보')}
                                             <span className="text-sm">{country?.flag} {country?.name}</span>
                                         </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('statsPage.taxCountryInfoSubtitle', '각 국가의 세무 환경 안내')}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5">{t('statsPage.taxCountryInfoSubtitle', '각 국가의 세무 환경 안내')}</p>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {['overview', 'registration', 'deductions', 'deadlines'].map(section => {
@@ -3862,7 +3862,7 @@ ${productSection}
 
                     {/* ════ ANALYTICS TAB ════ */}
                     {activeTab === 'analytics' && (
-                        <div className="space-y-5">
+                        <div className="space-y-3">
                             {analyticsData ? (
                                 <>
                                     {/* Enhanced KPI Cards */}
@@ -4100,7 +4100,7 @@ ${productSection}
                                     {/* Channel & Category Breakdown */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Top Channels */}
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
                                             <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3">
                                                 {t('statsPage.analyticsChannels', '채널별 매출')}
                                             </h3>
@@ -4125,7 +4125,7 @@ ${productSection}
                                         </div>
 
                                         {/* Top Categories */}
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
                                             <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3">
                                                 {t('statsPage.analyticsCategories', '카테고리별 매출')}
                                             </h3>
@@ -4153,7 +4153,7 @@ ${productSection}
                                     {/* ═══ Sales Forecast ═══ */}
                                     {analyticsData.forecastMonths?.length > 0 && (
                                         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                                            <div className="bg-gradient-to-r from-teal-500 to-cyan-600 p-5 text-white">
+                                            <div className="bg-gradient-to-r from-teal-500 to-cyan-600 p-4 text-white">
                                                 <h3 className="font-extrabold text-sm flex items-center gap-2">
                                                     <Target size={16} />
                                                     {t('statsPage.forecastTitle', '🔮 매출 예측')}
@@ -4234,7 +4234,7 @@ ${productSection}
 
                                     {/* Detailed P&L Statement */}
                                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-5 text-white">
+                                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 text-white">
                                             <h3 className="font-extrabold text-sm flex items-center gap-2">
                                                 <FileText size={16} />
                                                 {t('statsPage.plStatement', '📋 손익계산서')}
@@ -4300,8 +4300,8 @@ ${productSection}
 
                                     {/* ═══ Year-over-Year Comparison ═══ */}
                                     {analyticsData.yearOverYear?.some(y => y.thisYear > 0 || y.lastYear > 0) && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5 text-sm">
                                                 <Calendar size={16} className="text-indigo-600" />
                                                 {t('statsPage.analyticsYoY', '📅 전년 대비 비교')}
                                             </h3>
@@ -4330,8 +4330,8 @@ ${productSection}
 
                                     {/* ═══ Region Analysis ═══ */}
                                     {analyticsData.topRegions?.length > 0 && analyticsData.topRegions[0].name !== 'N/A' && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5 text-sm">
                                                 <MapPin size={16} className="text-rose-500" />
                                                 {t('statsPage.analyticsRegions', '📍 지역별 매출')}
                                             </h3>
@@ -4362,8 +4362,8 @@ ${productSection}
 
                                     {/* ═══ Day of Week Pattern ═══ */}
                                     {analyticsData.dayOfWeekAnalysis?.some(d => d.avg > 0) && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5 text-sm">
                                                 <Clock size={16} className="text-amber-500" />
                                                 {t('statsPage.analyticsDayPattern', '📊 요일별 매출 패턴')}
                                             </h3>
@@ -4394,8 +4394,8 @@ ${productSection}
 
                                     {/* ═══ Top Products ═══ */}
                                     {analyticsData.topProducts?.length > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5 text-sm">
                                                 <ShoppingCart size={16} className="text-purple-500" />
                                                 {t('statsPage.analyticsTopProducts', '🏆 상위 상품')}
                                             </h3>
@@ -4421,8 +4421,8 @@ ${productSection}
 
                                     {/* ═══ Monthly Performance Heatmap ═══ */}
                                     {analyticsData.monthlyTrend?.length > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5 text-sm">
                                                 <Calendar size={16} className="text-teal-600" />
                                                 {t('statsPage.monthlyHeatmap', '📊 월별 성과 히트맵')}
                                             </h3>
@@ -4462,8 +4462,8 @@ ${productSection}
                                     )}
 
                                     {/* ═══ Key Performance Insights ═══ */}
-                                    <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30 p-5">
-                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                    <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30 p-4">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-2.5 text-sm">
                                             <Zap size={16} className="text-indigo-600" />
                                             {t('statsPage.keyInsights', '💡 핵심 성과 인사이트')}
                                         </h3>
@@ -4544,12 +4544,12 @@ ${productSection}
                                     </p>
 
                                     {/* Export Buttons */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
                                         <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
                                             <Download size={16} className="text-indigo-600 dark:text-indigo-400" />
                                             {t('statsPage.exportTitle', '📤 리포트 내보내기')}
                                         </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('statsPage.exportDesc', '매출 데이터와 손익계산서를 파일로 다운로드하세요')}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5">{t('statsPage.exportDesc', '매출 데이터와 손익계산서를 파일로 다운로드하세요')}</p>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             <button onClick={exportToExcel}
                                                 className="flex flex-col items-center gap-2 py-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-700/50 rounded-xl hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-all">
@@ -4720,7 +4720,7 @@ ${productSection}
                                     {/* ═══ RFM Customer Segmentation ═══ */}
                                     {rfmData && rfmData.segments && Object.keys(rfmData.segments).length > 0 && (
                                         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                                            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 text-white">
+                                            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 text-white">
                                                 <h3 className="font-extrabold text-sm flex items-center gap-2">
                                                     <Users size={16} />
                                                     {t('statsPage.rfmTitle', '🎯 고객 세분화 (RFM 분석)')}
@@ -4873,7 +4873,7 @@ ${productSection}
             {showForm && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowForm(false); resetForm(); }}>
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-5 text-white flex items-center justify-between">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-4 text-white flex items-center justify-between">
                             <h2 className="font-extrabold text-lg flex items-center gap-2">
                                 <TrendingUp size={20} />
                                 {editingRecord ? t('statsPage.editData') : t('statsPage.addData')}
@@ -5181,7 +5181,7 @@ const RecordCard = ({ record, formatRevenue, formatDateLabel, translateDbValue, 
     const satisfaction = parseInt(record.satisfaction) || 0;
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/40 rounded-xl flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50">
