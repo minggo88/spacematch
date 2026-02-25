@@ -2251,25 +2251,25 @@ ${productSection}
                             )}
 
                             {/* Revenue Chart */}
-                            {chartData.length > 1 && (
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            {chartData.length > 0 && (
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <BarChart3 size={18} className="text-emerald-600" />
-                                        <h3 className="font-extrabold text-gray-900">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
+                                        <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
+                                        <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
                                     </div>
                                     <div className="flex items-end gap-2 h-36">
                                         {chartData.map((d, idx) => {
                                             const pct = (d.revenue / maxChartVal) * 100;
                                             return (
                                                 <div key={idx} className="flex flex-col items-center flex-1 min-w-0 group">
-                                                    <span className="text-[9px] font-bold text-gray-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                                         {formatRevenue(d.revenue)}
                                                     </span>
                                                     <div
                                                         className="w-full max-w-[36px] rounded-t-lg transition-all duration-500 hover:opacity-80 bg-gradient-to-t from-emerald-500 to-teal-400"
                                                         style={{ height: `${Math.max(pct, 3)}%` }}
                                                     />
-                                                    <span className="text-[9px] text-gray-400 mt-1 truncate w-full text-center font-medium">
+                                                    <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 truncate w-full text-center font-medium">
                                                         {activeTab === 'daily' ? d.label.slice(5) : activeTab === 'annual' ? d.label : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
                                                     </span>
                                                 </div>
@@ -3490,32 +3490,32 @@ ${productSection}
                                     )}
 
                                     {/* Revenue Trend Chart */}
-                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                        <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-4">
-                                            <BarChart3 size={16} className="text-emerald-600" />
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
+                                            <BarChart3 size={16} className="text-emerald-600 dark:text-emerald-400" />
                                             {t('statsPage.analyticsTrend', '매출 트렌드')}
                                         </h3>
                                         <div className="flex items-end gap-2 h-40">
                                             {analyticsData.monthlyTrend.map((m, i) => (
                                                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                                                    <span className="text-[10px] font-bold text-gray-900">
+                                                    <span className="text-[10px] font-bold text-gray-900 dark:text-gray-100">
                                                         {(m.revenue / 10000).toFixed(0)}
                                                     </span>
-                                                    <div className="w-full bg-emerald-100 rounded-t-lg relative" style={{ height: `${Math.max(4, (m.revenue / analyticsData.maxMonthly) * 120)}px` }}>
+                                                    <div className="w-full bg-emerald-100 dark:bg-emerald-900/30 rounded-t-lg relative" style={{ height: `${Math.max(4, (m.revenue / analyticsData.maxMonthly) * 120)}px` }}>
                                                         <div className="absolute inset-0 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg" />
                                                     </div>
-                                                    <span className="text-[9px] text-gray-400 font-medium">{m.month.slice(5)}월</span>
+                                                    <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">{m.month.slice(5)}월</span>
                                                 </div>
                                             ))}
                                         </div>
-                                        <p className="text-[10px] text-gray-400 text-right mt-1">{currency === 'KRW' ? t('statsPage.analyticsUnit', '단위: 만원') : `${t('statsPage.analyticsUnitGeneric', '단위')}: ${currency}`}</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 text-right mt-1">{currency === 'KRW' ? t('statsPage.analyticsUnit', '단위: 만원') : `${t('statsPage.analyticsUnitGeneric', '단위')}: ${currency}`}</p>
                                     </div>
 
                                     {/* Channel & Category Breakdown */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Top Channels */}
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 text-sm mb-3">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3">
                                                 {t('statsPage.analyticsChannels', '채널별 매출')}
                                             </h3>
                                             <div className="space-y-2">
@@ -3525,10 +3525,10 @@ ${productSection}
                                                     return (
                                                         <div key={i}>
                                                             <div className="flex justify-between text-[11px] mb-1">
-                                                                <span className="font-bold text-gray-700">{name}</span>
-                                                                <span className="text-gray-400">{pct}%</span>
+                                                                <span className="font-bold text-gray-700 dark:text-gray-300">{name}</span>
+                                                                <span className="text-gray-400 dark:text-gray-500">{pct}%</span>
                                                             </div>
-                                                            <div className="w-full bg-gray-100 rounded-full h-2">
+                                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                                                                 <div className={`${barColors[i % 5]} h-2 rounded-full transition-all`}
                                                                     style={{ width: `${pct}%` }} />
                                                             </div>
@@ -3539,8 +3539,8 @@ ${productSection}
                                         </div>
 
                                         {/* Top Categories */}
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <h3 className="font-extrabold text-gray-900 text-sm mb-3">
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3">
                                                 {t('statsPage.analyticsCategories', '카테고리별 매출')}
                                             </h3>
                                             <div className="space-y-2">
@@ -3550,10 +3550,10 @@ ${productSection}
                                                     return (
                                                         <div key={i}>
                                                             <div className="flex justify-between text-[11px] mb-1">
-                                                                <span className="font-bold text-gray-700">{name}</span>
-                                                                <span className="text-gray-400">{pct}%</span>
+                                                                <span className="font-bold text-gray-700 dark:text-gray-300">{name}</span>
+                                                                <span className="text-gray-400 dark:text-gray-500">{pct}%</span>
                                                             </div>
-                                                            <div className="w-full bg-gray-100 rounded-full h-2">
+                                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                                                                 <div className={`${barColors[i % 5]} h-2 rounded-full transition-all`}
                                                                     style={{ width: `${pct}%` }} />
                                                             </div>
