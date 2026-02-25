@@ -1753,10 +1753,56 @@ ${productSection}
         if (activeTab === 'analytics') { buildAnalytics(); fetchRfm(); fetchAlerts(); }
     }, [activeTab, calculateTax, buildAnalytics, fetchRfm, fetchAlerts]);
 
-    // ── Filtered stats by period ──
+    // ── Filtered stats by period (with aggregation) ──
     const filteredStats = useMemo(() => {
         if (activeTab === 'dashboard') return allStats;
-        return allStats.filter(s => s.record_type === activeTab);
+        if (activeTab === 'daily') return allStats.filter(s => s.record_type === 'daily');
+
+        // For monthly/annual: aggregate ALL records (daily, monthly, annual) by period
+        const groupKey = activeTab === 'monthly'
+            ? (date) => date?.slice(0, 7)    // YYYY-MM
+            : (date) => date?.slice(0, 4);   // YYYY
+
+        const groups = {};
+        allStats.forEach(s => {
+            const key = groupKey(s.record_date);
+            if (!key) return;
+            if (!groups[key]) {
+                groups[key] = {
+                    record_date: activeTab === 'monthly' ? `${key}-01` : `${key}-01-01`,
+                    record_type: activeTab,
+                    country_code: s.country_code || 'KR',
+                    monthly_revenue: 0,
+                    customer_count: 0,
+                    transaction_count: 0,
+                    avg_unit_price: 0,
+                    best_selling_item: '',
+                    memo: '',
+                    _sources: 0,
+                    _bestItems: {},
+                };
+            }
+            const g = groups[key];
+            g.monthly_revenue += parseInt(s.monthly_revenue) || 0;
+            g.customer_count += parseInt(s.customer_count) || 0;
+            g.transaction_count += parseInt(s.transaction_count) || 0;
+            g._sources += 1;
+            // Track best selling items by frequency
+            if (s.best_selling_item) {
+                g._bestItems[s.best_selling_item] = (g._bestItems[s.best_selling_item] || 0) + 1;
+            }
+        });
+
+        return Object.values(groups).map(g => {
+            // Pick the most frequent best selling item
+            const bestItem = Object.entries(g._bestItems).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+            return {
+                ...g,
+                avg_unit_price: g.transaction_count > 0 ? Math.round(g.monthly_revenue / g.transaction_count) : 0,
+                best_selling_item: bestItem,
+                memo: `${g._sources}건의 데이터 집계`,
+            };
+        }).sort((a, b) => a.record_date.localeCompare(b.record_date));
     }, [allStats, activeTab]);
 
     const resetForm = () => { setForm(emptyForm); setEditingRecord(null); };
@@ -1877,19 +1923,14 @@ ${productSection}
         return type;
     };
 
-    // ── Dashboard KPIs (all data) ──
+    // ── Dashboard KPIs (from actual records — no double counting) ──
     const dashKPI = useMemo(() => {
-        const daily = summary['daily'] || { count: 0, total_revenue: 0, avg_revenue: 0, total_customers: 0, total_transactions: 0, avg_unit_price: 0 };
-        const monthly = summary['monthly'] || { count: 0, total_revenue: 0, avg_revenue: 0, total_customers: 0, total_transactions: 0, avg_unit_price: 0 };
-        const annual = summary['annual'] || { count: 0, total_revenue: 0, avg_revenue: 0, total_customers: 0, total_transactions: 0, avg_unit_price: 0 };
-
-        const totalRevenue = parseInt(daily.total_revenue || 0) + parseInt(monthly.total_revenue || 0) + parseInt(annual.total_revenue || 0);
-        const totalCustomers = parseInt(daily.total_customers || 0) + parseInt(monthly.total_customers || 0) + parseInt(annual.total_customers || 0);
-        const totalTransactions = parseInt(daily.total_transactions || 0) + parseInt(monthly.total_transactions || 0) + parseInt(annual.total_transactions || 0);
-        const totalCount = parseInt(daily.count || 0) + parseInt(monthly.count || 0) + parseInt(annual.count || 0);
-
-        return { totalRevenue, totalCustomers, totalTransactions, totalCount, daily, monthly, annual };
-    }, [summary]);
+        const totalRevenue = allStats.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
+        const totalCustomers = allStats.reduce((sum, s) => sum + (parseInt(s.customer_count) || 0), 0);
+        const totalTransactions = allStats.reduce((sum, s) => sum + (parseInt(s.transaction_count) || 0), 0);
+        const totalCount = allStats.length;
+        return { totalRevenue, totalCustomers, totalTransactions, totalCount };
+    }, [allStats]);
 
     // ── Chart Data for filtered view (with period filter) ──
     const chartData = useMemo(() => {
@@ -2102,8 +2143,10 @@ ${productSection}
                                     { key: 'monthly', label: t('statsPage.monthlyData'), icon: <CalendarDays size={15} />, color: 'from-emerald-500 to-teal-600', bgColor: 'bg-emerald-50 dark:bg-emerald-900/30', textColor: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800' },
                                     { key: 'annual', label: t('statsPage.annualData'), icon: <CalendarRange size={15} />, color: 'from-amber-500 to-orange-600', bgColor: 'bg-amber-50 dark:bg-amber-900/30', textColor: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800' },
                                 ].map(period => {
-                                    const s = dashKPI[period.key];
-                                    const count = parseInt(s.count || 0);
+                                    const periodRecords = allStats.filter(s => s.record_type === period.key);
+                                    const count = periodRecords.length;
+                                    const totalRev = periodRecords.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
+                                    const avgRev = count > 0 ? Math.round(totalRev / count) : 0;
                                     return (
                                         <button
                                             key={period.key}
@@ -2125,13 +2168,13 @@ ${productSection}
                                                 <div className={`${period.bgColor} rounded-lg p-2`}>
                                                     <p className={`text-[9px] font-bold ${period.textColor} mb-0.5`}>{t('statsPage.totalSales')}</p>
                                                     <p className="text-xs font-extrabold text-gray-900 dark:text-gray-100">
-                                                        {parseInt(s.total_revenue || 0) > 0 ? formatRevenue(s.total_revenue) : '-'}
+                                                        {totalRev > 0 ? formatRevenue(totalRev) : '-'}
                                                     </p>
                                                 </div>
                                                 <div className={`${period.bgColor} rounded-lg p-2`}>
                                                     <p className={`text-[9px] font-bold ${period.textColor} mb-0.5`}>{t('statsPage.avgSales')}</p>
                                                     <p className="text-xs font-extrabold text-gray-900 dark:text-gray-100">
-                                                        {parseInt(s.avg_revenue || 0) > 0 ? formatRevenue(Math.round(s.avg_revenue)) : '-'}
+                                                        {avgRev > 0 ? formatRevenue(avgRev) : '-'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -2166,8 +2209,8 @@ ${productSection}
                                 {/* Sales Goal Widget (Right) */}
                                 {(() => {
                                     const goalPeriodKey = salesGoal?.period || 'monthly';
-                                    const goalSummary = summary[goalPeriodKey === 'monthly' ? 'monthly' : goalPeriodKey === 'annual' ? 'annual' : 'daily'] || {};
-                                    const currentRevenue = parseInt(goalSummary.total_revenue || 0);
+                                    const goalRecords = allStats.filter(s => s.record_type === goalPeriodKey);
+                                    const currentRevenue = goalRecords.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
                                     const goalAmt = salesGoal?.amount || 0;
                                     const progress = goalAmt > 0 ? Math.min((currentRevenue / goalAmt) * 100, 100) : 0;
                                     const remaining = goalAmt - currentRevenue;
@@ -2777,8 +2820,8 @@ ${productSection}
                                             </div>
                                             {/* Net Profit */}
                                             {(() => {
-                                                const yearSummary = summary['annual'] || {};
-                                                const totalRevenue = parseInt(yearSummary.total_revenue || 0);
+                                                const yearRecords = allStats.filter(s => s.record_type === 'annual');
+                                                const totalRevenue = yearRecords.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
                                                 const totalExpense = parseInt(expenseSummary.totals.total_expense || 0);
                                                 const netProfit = totalRevenue - totalExpense;
                                                 const profitRate = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
