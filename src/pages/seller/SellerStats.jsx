@@ -1983,6 +1983,21 @@ ${productSection}
                 revenue: parseInt(s.monthly_revenue) || 0,
             }));
         }
+        if (activeTab === 'customers') {
+            // Apply date range filter for customers tab (days, like daily)
+            const today = new Date();
+            const offsetDays = chartOffset * chartRange;
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() - offsetDays);
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - chartRange + 1);
+            const startStr = startDate.toISOString().slice(0, 10);
+            const endStr = endDate.toISOString().slice(0, 10);
+            return sorted.filter(s => s.record_date >= startStr && s.record_date <= endStr).map(s => ({
+                label: s.record_date,
+                revenue: parseInt(s.monthly_revenue) || 0,
+            }));
+        }
         // dashboard: show all
         return sorted.slice(-12).map(s => ({
             label: s.record_date,
@@ -2046,7 +2061,7 @@ ${productSection}
                             onClick={() => {
                                 setActiveTab(tab.key);
                                 setChartOffset(0);
-                                if (tab.key === 'daily') setChartRange(14);
+                                if (tab.key === 'daily' || tab.key === 'customers') setChartRange(14);
                                 else if (tab.key === 'monthly') setChartRange(6);
                                 else if (tab.key === 'annual') setChartRange(5);
                             }}
@@ -2385,10 +2400,10 @@ ${productSection}
                                     </div>
 
                                     {/* Period Filter (daily / monthly / annual) */}
-                                    {['daily', 'monthly', 'annual'].includes(activeTab) && (
+                                    {['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && (
                                         <div className="flex items-center gap-2 mb-4 flex-wrap">
                                             <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
-                                                {(activeTab === 'daily'
+                                                {((activeTab === 'daily' || activeTab === 'customers')
                                                     ? [{ val: 7, label: '7일' }, { val: 14, label: '14일' }, { val: 30, label: '1개월' }, { val: 90, label: '3개월' }]
                                                     : activeTab === 'monthly'
                                                         ? [{ val: 3, label: '3개월' }, { val: 6, label: '6개월' }, { val: 12, label: '12개월' }, { val: 24, label: '24개월' }]
@@ -2429,9 +2444,9 @@ ${productSection}
                                     )}
 
                                     {/* Chart Date Range Label */}
-                                    {['daily', 'monthly', 'annual'].includes(activeTab) && chartData.length > 0 && (
+                                    {['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && chartData.length > 0 && (
                                         <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 font-medium">
-                                            {activeTab === 'daily' && `${chartData[0]?.label} ~ ${chartData[chartData.length - 1]?.label}`}
+                                            {(activeTab === 'daily' || activeTab === 'customers') && `${chartData[0]?.label} ~ ${chartData[chartData.length - 1]?.label}`}
                                             {activeTab === 'monthly' && `${chartData[0]?.label?.slice(0, 7)} ~ ${chartData[chartData.length - 1]?.label?.slice(0, 7)}`}
                                             {activeTab === 'annual' && `${chartData[0]?.label?.slice(0, 4)}년 ~ ${chartData[chartData.length - 1]?.label?.slice(0, 4)}년`}
                                             {chartOffset > 0 && <span className="ml-1 text-amber-500">(과거 데이터)</span>}
@@ -2452,7 +2467,7 @@ ${productSection}
                                                         style={{ height: `${barH}px` }}
                                                     />
                                                     <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 truncate w-full text-center font-medium">
-                                                        {activeTab === 'daily' ? d.label.slice(5) : activeTab === 'annual' ? d.label?.slice(0, 4) : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
+                                                        {(activeTab === 'daily' || activeTab === 'customers') ? d.label.slice(5) : activeTab === 'annual' ? d.label?.slice(0, 4) : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
                                                     </span>
                                                 </div>
                                             );
@@ -2460,7 +2475,7 @@ ${productSection}
                                     </div>
 
                                     {/* Empty state for filtered range */}
-                                    {chartData.length === 0 && ['daily', 'monthly', 'annual'].includes(activeTab) && (
+                                    {chartData.length === 0 && ['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && (
                                         <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
                                             <BarChart3 size={32} className="mb-2 opacity-30" />
                                             <p className="text-xs font-medium">이 기간에 데이터가 없습니다</p>
