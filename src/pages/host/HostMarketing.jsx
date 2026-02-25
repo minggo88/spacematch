@@ -8,6 +8,7 @@ import {
     Layers, Sparkles, MapPin, FileText, X, Plus, RefreshCw,
     Check, AlertCircle, Trash2, Pause, Play,
 } from 'lucide-react';
+import NumberInput from '../../components/NumberInput';
 
 // ── 마케팅 모듈 import ──
 import { calculateProfileCompleteness } from '../../../marketing/host/branding/brand-profile';
@@ -375,11 +376,11 @@ function AdvertisingTab({ roi, roas }) {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">총 예산 (₩) *</label>
-                                    <input type="number" value={form.budget_total} onChange={e => setForm(f => ({ ...f, budget_total: e.target.value }))} placeholder="500000" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                                    <NumberInput value={form.budget_total} onChange={val => setForm(f => ({ ...f, budget_total: val }))} placeholder="500,000" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">일 예산 (₩)</label>
-                                    <input type="number" value={form.budget_daily} onChange={e => setForm(f => ({ ...f, budget_daily: e.target.value }))} placeholder="자동 배분" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                                    <NumberInput value={form.budget_daily} onChange={val => setForm(f => ({ ...f, budget_daily: val }))} placeholder="자동 배분" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                                 </div>
                             </div>
                             <div>

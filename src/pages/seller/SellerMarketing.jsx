@@ -8,6 +8,7 @@ import {
     Calendar, Filter, PieChart, Activity, X, Plus, Clock,
     Trash2, Copy, Check, AlertCircle,
 } from 'lucide-react';
+import NumberInput from '../../components/NumberInput';
 
 // ── 마케팅 모듈 import ──
 import { computeSummaryStats, analyzeCountryPerformance, calculateGrowthRate, analyzeMonthlyTrend } from '../../../marketing/seller/analytics/sales-insights';
@@ -382,8 +383,8 @@ function PromotionsTab() {
                                 </button>
                                 <button onClick={() => handleToggleCouponStatus(coupon.id)}
                                     className={`text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer transition-colors ${coupon.status === 'active' ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400' :
-                                            coupon.status === 'paused' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400' :
-                                                'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                        coupon.status === 'paused' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400' :
+                                            'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'}`}>
                                     {coupon.status === 'active' ? '✅ 활성' : coupon.status === 'paused' ? '⏸ 일시정지' : '📅 예약'}
                                 </button>
                             </div>
@@ -456,17 +457,17 @@ function PromotionsTab() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">할인 값 *</label>
-                                    <input type="number" value={couponForm.value} onChange={e => setCouponForm(f => ({ ...f, value: e.target.value }))} placeholder={couponForm.type === 'percentage' ? '15' : '10000'} className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-emerald-500" />
+                                    <NumberInput value={couponForm.value} onChange={val => setCouponForm(f => ({ ...f, value: val }))} placeholder={couponForm.type === 'percentage' ? '15' : '10,000'} className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-emerald-500" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">최대 사용 횟수</label>
-                                    <input type="number" value={couponForm.max_usage} onChange={e => setCouponForm(f => ({ ...f, max_usage: e.target.value }))} placeholder="100" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                                    <NumberInput value={couponForm.max_usage} onChange={val => setCouponForm(f => ({ ...f, max_usage: val }))} placeholder="100" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">최소 주문 금액</label>
-                                    <input type="number" value={couponForm.min_order_amount} onChange={e => setCouponForm(f => ({ ...f, min_order_amount: e.target.value }))} placeholder="50000" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                                    <NumberInput value={couponForm.min_order_amount} onChange={val => setCouponForm(f => ({ ...f, min_order_amount: val }))} placeholder="50,000" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -597,8 +598,8 @@ function TargetingTab() {
                         <button key={preset.id}
                             onClick={() => { setSelectedPreset(selectedPreset === preset.id ? null : preset.id); setCustomFilters({ country: '전체', minRevenue: '', maxRevenue: '', segment: '' }); }}
                             className={`flex items-center gap-3 p-4 rounded-lg transition-all text-left border-2 ${selectedPreset === preset.id
-                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-md'
-                                    : 'border-transparent bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-md'
+                                : 'border-transparent bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}>
                             <span className="text-2xl">{preset.icon}</span>
                             <div className="flex-1">
@@ -627,12 +628,12 @@ function TargetingTab() {
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">최소 매출</label>
-                        <input type="number" value={customFilters.minRevenue} onChange={e => { setCustomFilters(f => ({ ...f, minRevenue: e.target.value })); setSelectedPreset(null); }}
+                        <NumberInput value={customFilters.minRevenue} onChange={val => { setCustomFilters(f => ({ ...f, minRevenue: val })); setSelectedPreset(null); }}
                             placeholder="₩0" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">최대 매출</label>
-                        <input type="number" value={customFilters.maxRevenue} onChange={e => { setCustomFilters(f => ({ ...f, maxRevenue: e.target.value })); setSelectedPreset(null); }}
+                        <NumberInput value={customFilters.maxRevenue} onChange={val => { setCustomFilters(f => ({ ...f, maxRevenue: val })); setSelectedPreset(null); }}
                             placeholder="무제한" className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     </div>
                     <div>

@@ -15,6 +15,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useTranslation } from 'react-i18next';
 import CustomerTab from './CustomerTab';
 import ConfirmModal from '../../components/ConfirmModal';
+import NumberInput from '../../components/NumberInput';
 
 const API_BASE = '/api/users';
 
@@ -4856,21 +4857,19 @@ ${productSection}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('statsPage.revenueLabel', '매출액')} ({countryCurrencySymbol})</label>
-                                    <input type="number" min="0" value={form.monthly_revenue}
-                                        onChange={e => {
-                                            const rev = e.target.value;
+                                    <NumberInput value={form.monthly_revenue}
+                                        onChange={rev => {
                                             const tx = parseInt(form.transaction_count) || 0;
                                             const unitPrice = rev && tx > 0 ? Math.round(parseInt(rev) / tx) : '';
                                             setForm({ ...form, monthly_revenue: rev, avg_unit_price: unitPrice.toString() });
                                         }}
-                                        placeholder="5000000"
+                                        placeholder="5,000,000"
                                         className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 focus:border-emerald-500 outline-none text-sm font-medium" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('statsPage.transactionCount')}</label>
-                                    <input type="number" min="0" value={form.transaction_count}
-                                        onChange={e => {
-                                            const tx = e.target.value;
+                                    <NumberInput value={form.transaction_count}
+                                        onChange={tx => {
                                             const rev = parseInt(form.monthly_revenue) || 0;
                                             const unitPrice = rev > 0 && tx && parseInt(tx) > 0 ? Math.round(rev / parseInt(tx)) : '';
                                             setForm({ ...form, transaction_count: tx, avg_unit_price: unitPrice.toString() });
@@ -4884,8 +4883,8 @@ ${productSection}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('statsPage.customerCount')}</label>
-                                    <input type="number" min="0" value={form.customer_count}
-                                        onChange={e => setForm({ ...form, customer_count: e.target.value })}
+                                    <NumberInput value={form.customer_count}
+                                        onChange={val => setForm({ ...form, customer_count: val })}
                                         placeholder="200"
                                         className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 focus:border-emerald-500 outline-none text-sm font-medium" />
                                 </div>
@@ -5176,8 +5175,8 @@ const ExpenseFormInner = ({ initial, onSave, onCancel, categories, paymentMethod
             {/* Amount */}
             <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">{t('statsPage.expAmount', '금액')}</label>
-                <input type="number" value={formData.amount} placeholder="0"
-                    onChange={e => setFormData(f => ({ ...f, amount: e.target.value }))}
+                <NumberInput value={formData.amount} placeholder="0"
+                    onChange={val => setFormData(f => ({ ...f, amount: val }))}
                     className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm font-bold text-right" />
             </div>
             {/* Category */}

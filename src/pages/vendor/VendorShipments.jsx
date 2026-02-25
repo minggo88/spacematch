@@ -3,6 +3,7 @@ import { Truck, Clock, CheckCircle, XCircle, Ban, Plus, X, ChevronDown, FileText
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Toast from '../../components/Toast';
+import NumberInput from '../../components/NumberInput';
 
 const API_BASE = '/api';
 
@@ -442,18 +443,19 @@ const VendorShipments = () => {
                                                     onChange={e => updateItem(idx, 'name', e.target.value)}
                                                     className="flex-1 px-3 py-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-transparent focus:border-teal-500 outline-none text-sm dark:text-gray-100 dark:placeholder-gray-500"
                                                 />
-                                                <input
-                                                    type="number" min="1" placeholder="수량"
+                                                <NumberInput
+                                                    placeholder="수량"
                                                     value={item.quantity}
-                                                    onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)}
+                                                    onChange={val => updateItem(idx, 'quantity', parseInt(val) || 0)}
                                                     className="w-20 px-3 py-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-transparent focus:border-teal-500 outline-none text-sm dark:text-gray-100 text-center"
                                                 />
-                                                <input
-                                                    type="number" min="0" placeholder="단가"
+                                                <NumberInput
+                                                    placeholder="단가"
                                                     value={item.unit_price}
-                                                    onChange={e => updateItem(idx, 'unit_price', parseInt(e.target.value) || 0)}
+                                                    onChange={val => updateItem(idx, 'unit_price', parseInt(val) || 0)}
                                                     className="w-28 px-3 py-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-transparent focus:border-teal-500 outline-none text-sm dark:text-gray-100 text-right"
                                                 />
+
                                                 {newOrder.items.length > 1 && (
                                                     <button onClick={() => removeItem(idx)} className="p-2 text-gray-400 hover:text-red-500"><Minus size={16} /></button>
                                                 )}

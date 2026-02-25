@@ -7,6 +7,7 @@ import {
     Trash2, GripVertical, Package, List, Star, ArrowUp, ArrowDown,
     Tag, Layers, ShoppingBag, Zap, Crown, Globe, Languages, RefreshCw
 } from 'lucide-react';
+import NumberInput from '../../components/NumberInput';
 
 const API_BASE = '/api/payments';
 
@@ -770,8 +771,7 @@ const AdminPayments = () => {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">{t('paymentsPage.amountLabel')} <span className="text-red-500">*</span></label>
-                                    <input type="number" value={planForm.amount} onChange={e => setPlanForm(f => ({ ...f, amount: parseInt(e.target.value) || 0 }))}
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+                                    <NumberInput value={planForm.amount} onChange={val => setPlanForm(f => ({ ...f, amount: parseInt(val) || 0 }))} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">{t('paymentsPage.paymentCycle')}</label>
@@ -920,8 +920,7 @@ const AdminPayments = () => {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">{t('paymentsPage.sortOrder')}</label>
-                                <input type="number" value={planForm.sort_order} onChange={e => setPlanForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+                                <NumberInput value={planForm.sort_order} onChange={val => setPlanForm(f => ({ ...f, sort_order: parseInt(val) || 0 }))} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" />
                             </div>
                         </div>
 

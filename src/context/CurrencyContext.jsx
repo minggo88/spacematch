@@ -84,10 +84,17 @@ export const CurrencyProvider = ({ children }) => {
         }
     };
 
+    // Pure number formatting with commas (no currency symbol)
+    const formatNumber = (value) => {
+        const num = Number(String(value).replace(/[^0-9.-]/g, ''));
+        if (isNaN(num)) return '0';
+        return num.toLocaleString('en-US');
+    };
+
     return (
         <CurrencyContext.Provider value={{
             currency, setCurrency, convert, formatCurrency, formatCurrencyCompact,
-            rates, setCurrencyFromLanguage, currencies: CURRENCY_CONFIG,
+            rates, setCurrencyFromLanguage, currencies: CURRENCY_CONFIG, formatNumber,
         }}>
             {children}
         </CurrencyContext.Provider>
