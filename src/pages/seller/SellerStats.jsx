@@ -2836,12 +2836,6 @@ ${productSection}
                                         <ChevronDown size={14} className="-rotate-90" />
                                     </button>
                                 </div>
-                                <button
-                                    onClick={() => { setEditingExpense(null); setShowExpenseForm(true); }}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-xs font-bold hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg shadow-violet-200"
-                                >
-                                    <Plus size={14} /> {t('statsPage.expAdd', '지출 추가')}
-                                </button>
                             </div>
 
                             {expenseLoading ? (
@@ -2953,14 +2947,6 @@ ${productSection}
                                         </div>
                                     )}
 
-                                    {/* Add Button */}
-                                    <button
-                                        onClick={() => { setEditingExpense(null); setShowExpenseForm(true); }}
-                                        className="w-full py-3 bg-violet-50 border-2 border-dashed border-violet-200 rounded-2xl text-sm font-bold text-violet-600 hover:bg-violet-100 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Plus size={16} />
-                                        {t('statsPage.expAdd', '지출 추가')}
-                                    </button>
 
                                     {/* Expense List */}
                                     {expenses.length === 0 ? (
