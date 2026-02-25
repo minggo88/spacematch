@@ -211,6 +211,9 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const [summary, setSummary] = useState({});
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
+    // ── Chart Period Filter ──
+    const [chartRange, setChartRange] = useState(14); // 7, 14, 30, 90
+    const [chartOffset, setChartOffset] = useState(0); // 0 = latest, 1 = previous period, etc.
     const [showForm, setShowForm] = useState(false);
     const [editingRecord, setEditingRecord] = useState(null);
     const [confirmModal, setConfirmModal] = useState(null);
@@ -1867,14 +1870,32 @@ ${productSection}
         return { totalRevenue, totalCustomers, totalTransactions, totalCount, daily, monthly, annual };
     }, [summary]);
 
-    // ── Chart Data for filtered view ──
+    // ── Chart Data for filtered view (with period filter) ──
     const chartData = useMemo(() => {
-        return [...filteredStats].reverse().slice(-12).map(s => ({
+        const sorted = [...filteredStats].sort((a, b) => a.record_date.localeCompare(b.record_date));
+        if (activeTab === 'daily') {
+            // Apply date range filter for daily tab
+            const today = new Date();
+            const offsetDays = chartOffset * chartRange;
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() - offsetDays);
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - chartRange + 1);
+            const startStr = startDate.toISOString().slice(0, 10);
+            const endStr = endDate.toISOString().slice(0, 10);
+            return sorted.filter(s => s.record_date >= startStr && s.record_date <= endStr).map(s => ({
+                label: s.record_date,
+                revenue: parseInt(s.monthly_revenue) || 0,
+            }));
+        }
+        // For monthly/annual: show last 12 entries
+        return sorted.slice(-12).map(s => ({
             label: s.record_date,
             revenue: parseInt(s.monthly_revenue) || 0,
         }));
-    }, [filteredStats]);
+    }, [filteredStats, activeTab, chartRange, chartOffset]);
     const maxChartVal = Math.max(...chartData.map(d => d.revenue), 1);
+    const CHART_HEIGHT_PX = 140; // chart area height in pixels
 
     // ── Period KPI ──
     const periodKPI = useMemo(() => {
@@ -2253,21 +2274,72 @@ ${productSection}
                             {/* Revenue Chart */}
                             {chartData.length > 0 && (
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
-                                        <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
+                                            <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
+                                        </div>
                                     </div>
-                                    <div className="flex items-end gap-2 h-36">
+
+                                    {/* Period Filter (daily tab only) */}
+                                    {activeTab === 'daily' && (
+                                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                                            <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
+                                                {[{ days: 7, label: '7일' }, { days: 14, label: '14일' }, { days: 30, label: '1개월' }, { days: 90, label: '3개월' }].map(opt => (
+                                                    <button key={opt.days}
+                                                        onClick={() => { setChartRange(opt.days); setChartOffset(0); }}
+                                                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.days
+                                                                ? 'bg-emerald-500 text-white shadow-sm'
+                                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                                            }`}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center gap-1 ml-auto">
+                                                <button
+                                                    onClick={() => setChartOffset(p => p + 1)}
+                                                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all"
+                                                    title="이전 기간"
+                                                >◀</button>
+                                                {chartOffset > 0 && (
+                                                    <button
+                                                        onClick={() => setChartOffset(p => Math.max(0, p - 1))}
+                                                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all"
+                                                        title="다음 기간"
+                                                    >▶</button>
+                                                )}
+                                                {chartOffset > 0 && (
+                                                    <button
+                                                        onClick={() => setChartOffset(0)}
+                                                        className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all"
+                                                    >최근</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Chart Date Range Label */}
+                                    {activeTab === 'daily' && chartData.length > 0 && (
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 font-medium">
+                                            {chartData[0]?.label} ~ {chartData[chartData.length - 1]?.label}
+                                            {chartOffset > 0 && <span className="ml-1 text-amber-500">(과거 데이터)</span>}
+                                        </p>
+                                    )}
+
+                                    <div className="flex items-end gap-2" style={{ height: `${CHART_HEIGHT_PX}px` }}>
                                         {chartData.map((d, idx) => {
-                                            const pct = (d.revenue / maxChartVal) * 100;
+                                            const pct = maxChartVal > 0 ? (d.revenue / maxChartVal) : 0;
+                                            const barH = Math.max(pct * (CHART_HEIGHT_PX - 30), 3); // 30px reserved for label
                                             return (
-                                                <div key={idx} className="flex flex-col items-center flex-1 min-w-0 group">
+                                                <div key={idx} className="flex flex-col items-center flex-1 min-w-0 group" style={{ height: '100%', justifyContent: 'flex-end' }}>
                                                     <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                                         {formatRevenue(d.revenue)}
                                                     </span>
                                                     <div
                                                         className="w-full max-w-[36px] rounded-t-lg transition-all duration-500 hover:opacity-80 bg-gradient-to-t from-emerald-500 to-teal-400"
-                                                        style={{ height: `${Math.max(pct, 3)}%` }}
+                                                        style={{ height: `${barH}px` }}
                                                     />
                                                     <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 truncate w-full text-center font-medium">
                                                         {activeTab === 'daily' ? d.label.slice(5) : activeTab === 'annual' ? d.label : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
@@ -2275,6 +2347,56 @@ ${productSection}
                                                 </div>
                                             );
                                         })}
+                                    </div>
+
+                                    {/* Empty state for filtered range */}
+                                    {chartData.length === 0 && activeTab === 'daily' && (
+                                        <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                                            <BarChart3 size={32} className="mb-2 opacity-30" />
+                                            <p className="text-xs font-medium">이 기간에 데이터가 없습니다</p>
+                                            <button onClick={() => setChartOffset(0)} className="mt-2 text-[11px] font-bold text-emerald-500 hover:text-emerald-600">최근으로 이동 →</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Show chart placeholder when no data at all */}
+                            {chartData.length === 0 && filteredStats.length > 0 && activeTab === 'daily' && (
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
+                                        <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
+                                    </div>
+                                    {/* Period Filter */}
+                                    <div className="flex items-center gap-2 mb-4 flex-wrap">
+                                        <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
+                                            {[{ days: 7, label: '7일' }, { days: 14, label: '14일' }, { days: 30, label: '1개월' }, { days: 90, label: '3개월' }].map(opt => (
+                                                <button key={opt.days}
+                                                    onClick={() => { setChartRange(opt.days); setChartOffset(0); }}
+                                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.days
+                                                            ? 'bg-emerald-500 text-white shadow-sm'
+                                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                                        }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-1 ml-auto">
+                                            <button onClick={() => setChartOffset(p => p + 1)}
+                                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all"
+                                            >◀</button>
+                                            {chartOffset > 0 && (
+                                                <button onClick={() => setChartOffset(0)}
+                                                    className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold"
+                                                >최근</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                                        <BarChart3 size={32} className="mb-2 opacity-30" />
+                                        <p className="text-xs font-medium">이 기간에 데이터가 없습니다</p>
+                                        <button onClick={() => setChartOffset(0)} className="mt-2 text-[11px] font-bold text-emerald-500 hover:text-emerald-600">최근으로 이동 →</button>
                                     </div>
                                 </div>
                             )}
