@@ -4132,8 +4132,8 @@ ${productSection}
                                         </div>
                                         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {[
-                                                { key: 'gsheets', name: 'Google Sheets', icon: '📊', desc: '매출 데이터 자동 동기화', features: ['자동 백업', '실시간 동기화'], color: 'from-green-500 to-emerald-600', action: copyForGoogleSheets, actionLabel: '데이터 복사' },
-                                                { key: 'email', name: '이메일 자동화', icon: '📧', desc: '자동 뉴스레터/보고서 발송', features: ['보고서 발송', '환영 메일'], color: 'from-purple-500 to-violet-600', action: sendEmailReport, actionLabel: '보고서 전송' },
+                                                { key: 'gsheets', name: 'Google Sheets', icon: '📊', desc: '매출 데이터를 복사하여 시트에 붙여넣기', features: ['클립보드 복사', 'Ctrl+V 붙여넣기'], color: 'from-green-500 to-emerald-600', action: copyForGoogleSheets, actionLabel: '데이터 복사' },
+                                                { key: 'email', name: '이메일 보고서', icon: '📧', desc: '매출 요약 보고서 초안 자동 작성', features: ['보고서 초안', '메일 앱 연결'], color: 'from-purple-500 to-violet-600', action: sendEmailReport, actionLabel: '보고서 전송' },
                                             ].map(item => (
                                                 <div key={item.key} className={`rounded-xl border p-4 transition-all ${integrations[item.key] ? 'border-sky-200 dark:border-sky-700 bg-sky-50/50 dark:bg-sky-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
                                                     <div className="flex items-start justify-between mb-3">
