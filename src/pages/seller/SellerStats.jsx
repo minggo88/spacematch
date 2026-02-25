@@ -201,13 +201,13 @@ const SellerStats = ({ userRole = 'seller' }) => {
 
     const PERIOD_TABS = [
         { key: 'dashboard', label: t('statsPage.tabDashboard'), icon: BarChart3 },
+        { key: 'analytics', label: t('statsPage.tabAnalytics', '📊 분석'), icon: TrendingUp },
         { key: 'daily', label: t('statsPage.tabDaily'), icon: Clock },
         { key: 'monthly', label: t('statsPage.tabMonthly'), icon: CalendarDays },
         { key: 'annual', label: t('statsPage.tabAnnual'), icon: CalendarRange },
         { key: 'upload', label: t('statsPage.tabUpload', '📁 업로드'), icon: Upload },
         { key: 'expense', label: t('statsPage.tabExpense', '💸 지출'), icon: Wallet },
         { key: 'tax', label: t('statsPage.tabTax', '💰 세무'), icon: DollarSign },
-        { key: 'analytics', label: t('statsPage.tabAnalytics', '📊 분석'), icon: TrendingUp },
         { key: 'customers', label: t('statsPage.tabCustomers', '👤 고객'), icon: Users },
     ];
     const [allStats, setAllStats] = useState([]);
