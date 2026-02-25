@@ -2242,37 +2242,75 @@ ${productSection}
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 relative z-10">
-                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
-                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalRecords')}</p>
-                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalCount}{t('statsPage.units')}</p>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/20 transition-colors">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <div className="w-5 h-5 bg-white/15 rounded flex items-center justify-center"><FileText size={11} /></div>
+                                                <p className="text-[10px] text-emerald-200/80 font-medium">{t('statsPage.totalRecords')}</p>
+                                            </div>
+                                            <p className="text-xl font-extrabold leading-tight">{dashKPI.totalCount}<span className="text-xs ml-0.5 opacity-70">{t('statsPage.units')}</span></p>
+                                            <div className="flex gap-1 mt-1.5">
+                                                {['daily', 'monthly', 'annual'].map(type => {
+                                                    const cnt = allStats.filter(s => s.record_type === type).length;
+                                                    return cnt > 0 ? <span key={type} className="text-[8px] bg-white/10 px-1.5 py-0.5 rounded font-medium">{type === 'daily' ? '일' : type === 'monthly' ? '월' : '연'} {cnt}</span> : null;
+                                                })}
+                                            </div>
                                         </div>
-                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
-                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalRevenue')}</p>
-                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalRevenue > 0 ? formatRevenue(dashKPI.totalRevenue) : '-'}</p>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/20 transition-colors">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <div className="w-5 h-5 bg-white/15 rounded flex items-center justify-center"><DollarSign size={11} /></div>
+                                                <p className="text-[10px] text-emerald-200/80 font-medium">{t('statsPage.totalRevenue')}</p>
+                                            </div>
+                                            <p className="text-xl font-extrabold leading-tight">{dashKPI.totalRevenue > 0 ? formatRevenue(dashKPI.totalRevenue) : '-'}</p>
                                             {dashKPI.momGrowth !== null && (
-                                                <p className={`text-[9px] mt-0.5 font-bold ${dashKPI.momGrowth >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                                                    {dashKPI.momGrowth >= 0 ? '▲' : '▼'} {Math.abs(dashKPI.momGrowth)}% MoM
-                                                </p>
+                                                <div className={`inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${dashKPI.momGrowth >= 0 ? 'bg-emerald-400/20 text-emerald-200' : 'bg-red-400/20 text-red-200'}`}>
+                                                    {dashKPI.momGrowth >= 0 ? '▲' : '▼'} {Math.abs(dashKPI.momGrowth)}%
+                                                </div>
                                             )}
                                             {dashKPI.dailyAvg > 0 && <p className="text-[9px] text-emerald-200/60 mt-0.5">{t('statsPage.dailyAvg', '일평균')}: {formatRevenue(dashKPI.dailyAvg)}</p>}
                                         </div>
-                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
-                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalCustomers')}</p>
-                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalCustomers.toLocaleString()}{t('statsPage.people')}</p>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/20 transition-colors">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <div className="w-5 h-5 bg-white/15 rounded flex items-center justify-center"><Users size={11} /></div>
+                                                <p className="text-[10px] text-emerald-200/80 font-medium">{t('statsPage.totalCustomers')}</p>
+                                            </div>
+                                            <p className="text-xl font-extrabold leading-tight">{dashKPI.totalCustomers.toLocaleString()}<span className="text-xs ml-0.5 opacity-70">{t('statsPage.people')}</span></p>
+                                            {dashKPI.totalTransactions > 0 && dashKPI.totalCustomers > 0 && (
+                                                <p className="text-[9px] text-emerald-200/60 mt-1">{t('statsPage.avgPerCustomer', '객단가')}: {formatRevenue(Math.round(dashKPI.totalRevenue / dashKPI.totalCustomers))}</p>
+                                            )}
                                         </div>
-                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
-                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalTransactions')}</p>
-                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalTransactions.toLocaleString()}{t('statsPage.units')}</p>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/20 transition-colors">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <div className="w-5 h-5 bg-white/15 rounded flex items-center justify-center"><ShoppingCart size={11} /></div>
+                                                <p className="text-[10px] text-emerald-200/80 font-medium">{t('statsPage.totalTransactions')}</p>
+                                            </div>
+                                            <p className="text-xl font-extrabold leading-tight">{dashKPI.totalTransactions.toLocaleString()}<span className="text-xs ml-0.5 opacity-70">{t('statsPage.units')}</span></p>
+                                            {dashKPI.totalTransactions > 0 && (
+                                                <p className="text-[9px] text-emerald-200/60 mt-1">{t('statsPage.avgOrderValue', '평균 주문')}: {formatRevenue(Math.round(dashKPI.totalRevenue / dashKPI.totalTransactions))}</p>
+                                            )}
                                         </div>
                                     </div>
-                                    {/* Sparkline - Recent 7 entries */}
-                                    {dashKPI.sparkline.length > 1 && (
-                                        <div className="mt-3 flex items-end gap-1 h-8 relative z-10">
-                                            {dashKPI.sparkline.map((v, i) => {
-                                                const mx = Math.max(...dashKPI.sparkline, 1);
-                                                return <div key={i} className="flex-1 bg-white/20 rounded-t-sm hover:bg-white/40 transition-all" style={{ height: `${Math.max(4, (v / mx) * 100)}%` }} title={formatRevenue(v)} />;
-                                            })}
-                                            <span className="absolute -bottom-3.5 right-0 text-[8px] text-emerald-200/50">{t('statsPage.recent7', '최근 7건')}</span>
+                                    {/* Mini Monthly Trend Bar Chart */}
+                                    {dashKPI.last12Months?.length > 0 && (
+                                        <div className="mt-2.5 relative z-10">
+                                            <div className="flex items-end gap-[3px] h-7">
+                                                {dashKPI.last12Months.slice(-6).map((m, i, arr) => {
+                                                    const mx = Math.max(...arr.map(x => x.revenue), 1);
+                                                    const pct = m.revenue / mx;
+                                                    const isLast = i === arr.length - 1;
+                                                    return (
+                                                        <div key={i} className="flex-1 flex flex-col items-center" style={{ height: '100%', justifyContent: 'flex-end' }}>
+                                                            <div className={`w-full rounded-t-sm transition-all ${isLast ? 'bg-white/50' : m.revenue > 0 ? 'bg-white/25' : 'bg-white/10'}`}
+                                                                style={{ height: `${Math.max(3, pct * 100)}%` }}
+                                                                title={`${m.month}: ${formatRevenue(m.revenue)}`} />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="flex gap-[3px] mt-0.5">
+                                                {dashKPI.last12Months.slice(-6).map((m, i) => (
+                                                    <span key={i} className="flex-1 text-[7px] text-emerald-200/50 text-center font-medium">{m.month.slice(5)}월</span>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -2379,27 +2417,83 @@ ${productSection}
                             <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">💡 {t('statsPage.quickInsightsSection', '핵심 인사이트')}</p>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
-                                    <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-white mb-2"><Trophy size={14} /></div>
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.bestMonth', '최고 매출월')}</p>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-white"><Trophy size={14} /></div>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.bestMonth', '최고 매출월')}</p>
+                                    </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.bestMonth ? dashKPI.bestMonth.month.slice(0, 7) : '-'}</p>
-                                    {dashKPI.bestMonth && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.bestMonth.revenue)}</p>}
+                                    {dashKPI.bestMonth && (
+                                        <>
+                                            <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.bestMonth.revenue)}</p>
+                                            {dashKPI.totalRevenue > 0 && (
+                                                <div className="mt-1.5">
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
+                                                        <div className="bg-amber-400 h-1 rounded-full" style={{ width: `${Math.min(100, (dashKPI.bestMonth.revenue / dashKPI.totalRevenue * 100))}%` }} />
+                                                    </div>
+                                                    <p className="text-[8px] text-gray-400 mt-0.5">{t('statsPage.shareOfTotal', '전체 대비')} {(dashKPI.bestMonth.revenue / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
-                                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white mb-2"><ShoppingCart size={14} /></div>
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white"><ShoppingCart size={14} /></div>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
+                                    </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.totalTransactions > 0 ? formatRevenue(Math.round(dashKPI.totalRevenue / dashKPI.totalTransactions)) : '-'}</p>
+                                    {dashKPI.totalTransactions > 0 && (
+                                        <div className="mt-1.5 grid grid-cols-2 gap-1">
+                                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded px-1.5 py-0.5">
+                                                <p className="text-[8px] text-blue-500 font-bold">{t('statsPage.totalSales', '총매출')}</p>
+                                                <p className="text-[9px] font-extrabold text-gray-700 dark:text-gray-300">{formatRevenue(dashKPI.totalRevenue)}</p>
+                                            </div>
+                                            <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded px-1.5 py-0.5">
+                                                <p className="text-[8px] text-indigo-500 font-bold">{t('statsPage.orderCount', '주문수')}</p>
+                                                <p className="text-[9px] font-extrabold text-gray-700 dark:text-gray-300">{dashKPI.totalTransactions.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
-                                    <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white mb-2"><TrendingUp size={14} /></div>
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.topChannel', '주요 채널')}</p>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white"><TrendingUp size={14} /></div>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.topChannel', '주요 채널')}</p>
+                                    </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topChannel ? dashKPI.topChannel[0] : '-'}</p>
-                                    {dashKPI.topChannel && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topChannel[1])}</p>}
+                                    {dashKPI.topChannel && (
+                                        <>
+                                            <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topChannel[1])}</p>
+                                            {dashKPI.totalRevenue > 0 && (
+                                                <div className="mt-1.5">
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
+                                                        <div className="bg-emerald-500 h-1 rounded-full" style={{ width: `${Math.min(100, (dashKPI.topChannel[1] / dashKPI.totalRevenue * 100))}%` }} />
+                                                    </div>
+                                                    <p className="text-[8px] text-gray-400 mt-0.5">{t('statsPage.revenueShare', '매출 비중')} {(dashKPI.topChannel[1] / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
-                                    <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-2"><Star size={14} /></div>
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.topCategory', '인기 상품')}</p>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white"><Star size={14} /></div>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.topCategory', '인기 상품')}</p>
+                                    </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topCategory ? dashKPI.topCategory[0] : '-'}</p>
-                                    {dashKPI.topCategory && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topCategory[1])}</p>}
+                                    {dashKPI.topCategory && (
+                                        <>
+                                            <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topCategory[1])}</p>
+                                            {dashKPI.totalRevenue > 0 && (
+                                                <div className="mt-1.5">
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
+                                                        <div className="bg-violet-500 h-1 rounded-full" style={{ width: `${Math.min(100, (dashKPI.topCategory[1] / dashKPI.totalRevenue * 100))}%` }} />
+                                                    </div>
+                                                    <p className="text-[8px] text-gray-400 mt-0.5">{t('statsPage.revenueShare', '매출 비중')} {(dashKPI.topCategory[1] / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
