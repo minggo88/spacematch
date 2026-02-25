@@ -1689,15 +1689,6 @@ ${productSection}
         } catch { return `${currencySymbol}${converted.toLocaleString()}`; }
     };
 
-    // ── Integration Action: KakaoTalk Share ──
-    const shareToKakao = useCallback(() => {
-        if (!analyticsData) return showToast('분석 데이터가 없습니다', 'error');
-        const summary = `📊 매출 요약\n총 매출: ${formatRevenue(analyticsData.totalRevenue)}\n총 거래: ${analyticsData.totalTransactions}건\n평균 주문가: ${formatRevenue(analyticsData.avgOrderValue)}\n\n🎯 고객 수: ${analyticsData.uniqueCustomers || '-'}명`;
-        const shareUrl = `https://sharer.kakao.com/talk/friends/picker/shortcut?text=${encodeURIComponent(summary)}`;
-        window.open(shareUrl, '_blank', 'width=400,height=600');
-        showToast('카카오톡 공유 창이 열렸습니다', 'success');
-    }, [analyticsData, showToast, formatRevenue]);
-
     // ── Integration Action: Copy for Google Sheets ──
     const copyForGoogleSheets = useCallback(() => {
         if (!allStats || allStats.length === 0) return showToast('복사할 데이터가 없습니다', 'error');
@@ -1711,11 +1702,6 @@ ${productSection}
             showToast('Google Sheets에 붙여넣기 가능한 형식으로 복사됨 (Ctrl+V)', 'success');
         }).catch(() => showToast('클립보드 복사 실패', 'error'));
     }, [allStats, showToast]);
-
-    // ── Integration Action: Marketplace Info ──
-    const showMarketplaceInfo = useCallback(() => {
-        showToast('마켓플레이스 연동은 네이버/쿠팡 API 키 등록 후 사용 가능합니다', 'info');
-    }, [showToast]);
 
     // ── Integration Action: Email Report ──
     const sendEmailReport = useCallback(() => {
@@ -2289,8 +2275,8 @@ ${productSection}
                                                     <button key={opt.days}
                                                         onClick={() => { setChartRange(opt.days); setChartOffset(0); }}
                                                         className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.days
-                                                                ? 'bg-emerald-500 text-white shadow-sm'
-                                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                                            ? 'bg-emerald-500 text-white shadow-sm'
+                                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                                                             }`}
                                                     >
                                                         {opt.label}
@@ -2374,8 +2360,8 @@ ${productSection}
                                                 <button key={opt.days}
                                                     onClick={() => { setChartRange(opt.days); setChartOffset(0); }}
                                                     className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.days
-                                                            ? 'bg-emerald-500 text-white shadow-sm'
-                                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                                        ? 'bg-emerald-500 text-white shadow-sm'
+                                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                                                         }`}
                                                 >
                                                     {opt.label}
@@ -4115,9 +4101,7 @@ ${productSection}
                                         </div>
                                         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {[
-                                                { key: 'kakao', name: '카카오톡', icon: '💬', desc: '고객 메시지/알림 전송', features: ['고객 알림', '프로모션 발송'], color: 'from-yellow-400 to-amber-500', action: shareToKakao, actionLabel: '공유하기' },
                                                 { key: 'gsheets', name: 'Google Sheets', icon: '📊', desc: '매출 데이터 자동 동기화', features: ['자동 백업', '실시간 동기화'], color: 'from-green-500 to-emerald-600', action: copyForGoogleSheets, actionLabel: '데이터 복사' },
-                                                { key: 'marketplace', name: '마켓플레이스', icon: '🛒', desc: '네이버/쿠팡 주문 데이터 수집', features: ['주문 수집', '재고 연동'], color: 'from-blue-500 to-indigo-600', action: showMarketplaceInfo, actionLabel: '설정' },
                                                 { key: 'email', name: '이메일 자동화', icon: '📧', desc: '자동 뉴스레터/보고서 발송', features: ['보고서 발송', '환영 메일'], color: 'from-purple-500 to-violet-600', action: sendEmailReport, actionLabel: '보고서 전송' },
                                             ].map(item => (
                                                 <div key={item.key} className={`rounded-xl border p-4 transition-all ${integrations[item.key] ? 'border-sky-200 dark:border-sky-700 bg-sky-50/50 dark:bg-sky-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
