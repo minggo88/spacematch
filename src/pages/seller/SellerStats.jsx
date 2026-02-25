@@ -1451,6 +1451,20 @@ ${productSection}
         const last6 = sortedMonths.slice(-6);
         const maxMonthly = Math.max(...last6.map(m => monthlyMap[m]), 1);
 
+        // Build continuous 12-month range ending at latest data month (fill gaps with 0)
+        const last12Filled = [];
+        if (sortedMonths.length > 0) {
+            const endMonth = sortedMonths[sortedMonths.length - 1];
+            const endDate = new Date(endMonth + '-01');
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(endDate);
+                d.setMonth(d.getMonth() - i);
+                const mKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+                last12Filled.push({ month: mKey, revenue: monthlyMap[mKey] || 0 });
+            }
+        }
+        const maxMonthly12 = Math.max(...last12Filled.map(m => m.revenue), 1);
+
         // Growth: compare last month to previous
         let growth = null;
         if (sortedMonths.length >= 2) {
@@ -1573,8 +1587,8 @@ ${productSection}
         const annualRunRate = monthsWithData > 0 ? Math.round(ytdRevenue / monthsWithData * 12) : null;
 
         setAnalyticsData({
-            monthlyTrend: last6.map(m => ({ month: m, revenue: monthlyMap[m] })),
-            maxMonthly,
+            monthlyTrend: last12Filled,
+            maxMonthly: maxMonthly12,
             totalRevenue, totalCost, totalTx, totalQty, totalCustomers, avgOrderValue,
             profitMargin: totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue * 100).toFixed(1) : 0,
             growth,
@@ -3968,27 +3982,120 @@ ${productSection}
                                         </div>
                                     )}
 
-                                    {/* Revenue Trend Chart */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-                                        <h3 className="font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
-                                            <BarChart3 size={16} className="text-emerald-600 dark:text-emerald-400" />
-                                            {t('statsPage.analyticsTrend', '매출 트렌드')}
-                                        </h3>
-                                        <div className="flex items-end gap-2 h-40">
-                                            {analyticsData.monthlyTrend.map((m, i) => (
-                                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                                                    <span className="text-[10px] font-bold text-gray-900 dark:text-gray-100">
-                                                        {(m.revenue / 10000).toFixed(0)}
-                                                    </span>
-                                                    <div className="w-full bg-emerald-100 dark:bg-emerald-900/30 rounded-t-lg relative" style={{ height: `${Math.max(4, (m.revenue / analyticsData.maxMonthly) * 120)}px` }}>
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg" />
+                                    {/* Revenue Trend Chart — Premium */}
+                                    {(() => {
+                                        const trendData = analyticsData.monthlyTrend;
+                                        const maxVal = analyticsData.maxMonthly;
+                                        const CHART_H = 200;
+                                        const gridSteps = 4;
+                                        const gridValues = Array.from({ length: gridSteps + 1 }, (_, i) => Math.round(maxVal / gridSteps * (gridSteps - i)));
+                                        return (
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                                                {/* Header */}
+                                                <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
+                                                            <BarChart3 size={16} className="text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm">{t('statsPage.analyticsTrend', '매출 트렌드')}</h3>
+                                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">최근 12개월</p>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">{m.month.slice(5)}월</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {/* Summary KPIs */}
+                                                        {trendData.filter(m => m.revenue > 0).length > 0 && (
+                                                            <div className="flex gap-3">
+                                                                <div className="text-right">
+                                                                    <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">최고</p>
+                                                                    <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{formatRevenue(Math.max(...trendData.map(m => m.revenue)))}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">평균</p>
+                                                                    <p className="text-xs font-extrabold text-blue-600 dark:text-blue-400">{formatRevenue(Math.round(trendData.reduce((s, m) => s + m.revenue, 0) / Math.max(1, trendData.filter(m => m.revenue > 0).length)))}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 text-right mt-1">{currency === 'KRW' ? t('statsPage.analyticsUnit', '단위: 만원') : `${t('statsPage.analyticsUnitGeneric', '단위')}: ${currency}`}</p>
-                                    </div>
+                                                {/* Chart Area */}
+                                                <div className="px-5 pb-4">
+                                                    <div className="flex">
+                                                        {/* Y-Axis Labels */}
+                                                        <div className="flex flex-col justify-between pr-2 py-1" style={{ height: `${CHART_H}px` }}>
+                                                            {gridValues.map((v, i) => (
+                                                                <span key={i} className="text-[9px] text-gray-400 dark:text-gray-500 font-medium tabular-nums text-right" style={{ minWidth: '40px' }}>
+                                                                    {currency === 'KRW' ? (v >= 10000 ? `${(v / 10000).toFixed(v >= 100000 ? 0 : 1)}만` : v >= 1000 ? `${(v / 1000).toFixed(0)}천` : v.toLocaleString()) : v.toLocaleString()}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                        {/* Grid + Bars */}
+                                                        <div className="flex-1 relative" style={{ height: `${CHART_H}px` }}>
+                                                            {/* Grid lines */}
+                                                            {gridValues.map((_, i) => (
+                                                                <div key={i}
+                                                                    className="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-700/50"
+                                                                    style={{ top: `${(i / gridSteps) * 100}%` }}
+                                                                />
+                                                            ))}
+                                                            {/* Bars */}
+                                                            <div className="relative flex items-end gap-[3px] h-full px-1">
+                                                                {trendData.map((m, i) => {
+                                                                    const pct = maxVal > 0 ? (m.revenue / maxVal) : 0;
+                                                                    const barH = Math.max(pct > 0 ? 4 : 2, pct * (CHART_H - 8));
+                                                                    const prevRev = i > 0 ? trendData[i - 1].revenue : null;
+                                                                    const growthPct = prevRev && prevRev > 0 ? ((m.revenue - prevRev) / prevRev * 100).toFixed(1) : null;
+                                                                    const isPositive = growthPct !== null && parseFloat(growthPct) >= 0;
+                                                                    return (
+                                                                        <div key={i} className="flex-1 flex flex-col items-center group relative" style={{ height: '100%', justifyContent: 'flex-end', minWidth: 0 }}>
+                                                                            {/* Hover tooltip */}
+                                                                            <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-20" style={{ minWidth: '120px' }}>
+                                                                                <div className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg px-3 py-2 shadow-xl text-center">
+                                                                                    <p className="text-[10px] font-medium text-gray-300 dark:text-gray-600">{m.month.slice(0, 4)}년 {parseInt(m.month.slice(5))}월</p>
+                                                                                    <p className="text-sm font-extrabold">{formatRevenue(m.revenue)}</p>
+                                                                                    {growthPct !== null && parseFloat(growthPct) !== 0 && (
+                                                                                        <p className={`text-[10px] font-bold mt-0.5 ${isPositive ? 'text-emerald-400 dark:text-emerald-600' : 'text-red-400 dark:text-red-600'}`}>
+                                                                                            {isPositive ? '▲' : '▼'} {Math.abs(parseFloat(growthPct))}%
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="mx-auto w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45 -mt-1" />
+                                                                            </div>
+                                                                            {/* Bar */}
+                                                                            <div
+                                                                                className={`w-full rounded-t-md transition-all duration-500 cursor-pointer
+                                                                                    ${m.revenue > 0 ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 group-hover:from-emerald-500 group-hover:via-emerald-400 group-hover:to-teal-300 shadow-sm' : 'bg-gray-200 dark:bg-gray-700'}`}
+                                                                                style={{ height: `${barH}px`, maxWidth: '32px', margin: '0 auto' }}
+                                                                            />
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {/* X-Axis Labels */}
+                                                    <div className="flex gap-[3px] mt-1.5 pl-[48px] pr-1">
+                                                        {trendData.map((m, i) => (
+                                                            <div key={i} className="flex-1 text-center" style={{ minWidth: 0 }}>
+                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium truncate block">
+                                                                    {parseInt(m.month.slice(5))}월
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {/* Footer */}
+                                                <div className="px-5 py-2.5 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                                        {trendData.length > 0 && `${trendData[0].month.slice(0, 4)}.${parseInt(trendData[0].month.slice(5))} ~ ${trendData[trendData.length - 1].month.slice(0, 4)}.${parseInt(trendData[trendData.length - 1].month.slice(5))}`}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                                        {currency === 'KRW' ? t('statsPage.analyticsUnit', '단위: 만원') : `${t('statsPage.analyticsUnitGeneric', '단위')}: ${currency}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Channel & Category Breakdown */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
