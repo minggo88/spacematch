@@ -1936,7 +1936,7 @@ ${productSection}
     const chartData = useMemo(() => {
         const sorted = [...filteredStats].sort((a, b) => a.record_date.localeCompare(b.record_date));
         if (activeTab === 'daily') {
-            // Apply date range filter for daily tab
+            // Apply date range filter for daily tab (days)
             const today = new Date();
             const offsetDays = chartOffset * chartRange;
             const endDate = new Date(today);
@@ -1950,7 +1950,37 @@ ${productSection}
                 revenue: parseInt(s.monthly_revenue) || 0,
             }));
         }
-        // For monthly/annual: show last 12 entries
+        if (activeTab === 'monthly') {
+            // Apply date range filter for monthly tab (months)
+            const today = new Date();
+            const offsetMonths = chartOffset * chartRange;
+            const endDate = new Date(today.getFullYear(), today.getMonth() - offsetMonths, 1);
+            const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - chartRange + 1, 1);
+            const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+            const endStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+            return sorted.filter(s => {
+                const ym = s.record_date?.slice(0, 7);
+                return ym >= startStr && ym <= endStr;
+            }).map(s => ({
+                label: s.record_date,
+                revenue: parseInt(s.monthly_revenue) || 0,
+            }));
+        }
+        if (activeTab === 'annual') {
+            // Apply date range filter for annual tab (years)
+            const thisYear = new Date().getFullYear();
+            const offsetYears = chartOffset * chartRange;
+            const endYear = thisYear - offsetYears;
+            const startYear = endYear - chartRange + 1;
+            return sorted.filter(s => {
+                const y = parseInt(s.record_date?.slice(0, 4));
+                return y >= startYear && y <= endYear;
+            }).map(s => ({
+                label: s.record_date,
+                revenue: parseInt(s.monthly_revenue) || 0,
+            }));
+        }
+        // dashboard: show all
         return sorted.slice(-12).map(s => ({
             label: s.record_date,
             revenue: parseInt(s.monthly_revenue) || 0,
@@ -2010,7 +2040,13 @@ ${productSection}
                     return (
                         <button
                             key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
+                            onClick={() => {
+                                setActiveTab(tab.key);
+                                setChartOffset(0);
+                                if (tab.key === 'daily') setChartRange(14);
+                                else if (tab.key === 'monthly') setChartRange(6);
+                                else if (tab.key === 'annual') setChartRange(5);
+                            }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${isActive
                                 ? 'text-white border-transparent shadow-sm'
                                 : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-800'
@@ -2345,14 +2381,19 @@ ${productSection}
                                         </div>
                                     </div>
 
-                                    {/* Period Filter (daily tab only) */}
-                                    {activeTab === 'daily' && (
+                                    {/* Period Filter (daily / monthly / annual) */}
+                                    {['daily', 'monthly', 'annual'].includes(activeTab) && (
                                         <div className="flex items-center gap-2 mb-4 flex-wrap">
                                             <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
-                                                {[{ days: 7, label: '7일' }, { days: 14, label: '14일' }, { days: 30, label: '1개월' }, { days: 90, label: '3개월' }].map(opt => (
-                                                    <button key={opt.days}
-                                                        onClick={() => { setChartRange(opt.days); setChartOffset(0); }}
-                                                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.days
+                                                {(activeTab === 'daily'
+                                                    ? [{ val: 7, label: '7일' }, { val: 14, label: '14일' }, { val: 30, label: '1개월' }, { val: 90, label: '3개월' }]
+                                                    : activeTab === 'monthly'
+                                                        ? [{ val: 3, label: '3개월' }, { val: 6, label: '6개월' }, { val: 12, label: '12개월' }, { val: 24, label: '24개월' }]
+                                                        : [{ val: 3, label: '3년' }, { val: 5, label: '5년' }, { val: 10, label: '10년' }]
+                                                ).map(opt => (
+                                                    <button key={opt.val}
+                                                        onClick={() => { setChartRange(opt.val); setChartOffset(0); }}
+                                                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.val
                                                             ? 'bg-emerald-500 text-white shadow-sm'
                                                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                                                             }`}
@@ -2385,9 +2426,11 @@ ${productSection}
                                     )}
 
                                     {/* Chart Date Range Label */}
-                                    {activeTab === 'daily' && chartData.length > 0 && (
+                                    {['daily', 'monthly', 'annual'].includes(activeTab) && chartData.length > 0 && (
                                         <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 font-medium">
-                                            {chartData[0]?.label} ~ {chartData[chartData.length - 1]?.label}
+                                            {activeTab === 'daily' && `${chartData[0]?.label} ~ ${chartData[chartData.length - 1]?.label}`}
+                                            {activeTab === 'monthly' && `${chartData[0]?.label?.slice(0, 7)} ~ ${chartData[chartData.length - 1]?.label?.slice(0, 7)}`}
+                                            {activeTab === 'annual' && `${chartData[0]?.label?.slice(0, 4)}년 ~ ${chartData[chartData.length - 1]?.label?.slice(0, 4)}년`}
                                             {chartOffset > 0 && <span className="ml-1 text-amber-500">(과거 데이터)</span>}
                                         </p>
                                     )}
@@ -2406,7 +2449,7 @@ ${productSection}
                                                         style={{ height: `${barH}px` }}
                                                     />
                                                     <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 truncate w-full text-center font-medium">
-                                                        {activeTab === 'daily' ? d.label.slice(5) : activeTab === 'annual' ? d.label : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
+                                                        {activeTab === 'daily' ? d.label.slice(5) : activeTab === 'annual' ? d.label?.slice(0, 4) : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
                                                     </span>
                                                 </div>
                                             );
@@ -2414,7 +2457,7 @@ ${productSection}
                                     </div>
 
                                     {/* Empty state for filtered range */}
-                                    {chartData.length === 0 && activeTab === 'daily' && (
+                                    {chartData.length === 0 && ['daily', 'monthly', 'annual'].includes(activeTab) && (
                                         <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
                                             <BarChart3 size={32} className="mb-2 opacity-30" />
                                             <p className="text-xs font-medium">이 기간에 데이터가 없습니다</p>
