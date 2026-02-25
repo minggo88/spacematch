@@ -253,6 +253,7 @@ const Layout = () => {
     const adminBottomLinks = [
         { to: '/admin/trash', icon: Trash2, label: t('sidebar.trash') },
         { to: '/admin/profile', icon: UserCircle, label: t('sidebar.myProfile') },
+        { to: '/admin/notification-settings', icon: Bell, label: t('sidebar.notificationSettings', '알림 설정') },
         ...(user.role === 'superadmin' ? [{ to: '/admin/database', icon: Database, label: t('sidebar.dbManagement') }] : []),
     ];
 
@@ -276,6 +277,7 @@ const Layout = () => {
     ];
     const sellerBottomLinks = [
         { to: '/seller/profile', icon: UserCircle, label: t('sidebar.myProfile') },
+        { to: '/seller/notification-settings', icon: Bell, label: t('sidebar.notificationSettings', '알림 설정') },
         ...(paymentEnabled ? [{ to: '/seller/payments', icon: CreditCard, label: t('sidebar.servicePayment') }] : []),
     ];
 
@@ -300,6 +302,7 @@ const Layout = () => {
     ];
     const hostBottomLinks = [
         { to: '/host/profile', icon: UserCircle, label: t('sidebar.myProfile') },
+        { to: '/host/notification-settings', icon: Bell, label: t('sidebar.notificationSettings', '알림 설정') },
         ...(paymentEnabled ? [{ to: '/host/payments', icon: CreditCard, label: t('sidebar.servicePayment') }] : []),
     ];
 

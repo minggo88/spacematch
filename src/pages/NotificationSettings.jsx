@@ -189,7 +189,8 @@ const NotificationSettings = () => {
 
     // 역할 기반 뒤로가기 경로
     const basePath = location.pathname.startsWith('/admin') ? '/admin' :
-        location.pathname.startsWith('/host') ? '/host' : '/seller';
+        location.pathname.startsWith('/host') ? '/host' :
+            location.pathname.startsWith('/vendor') ? '/vendor' : '/seller';
 
     const categories = [
         { key: 'cat_application', icon: ClipboardList, label: '입점 신청', desc: '신청 접수, 승인/반려 결과', color: 'from-indigo-500 to-purple-500' },
