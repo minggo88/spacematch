@@ -2668,17 +2668,21 @@ ${productSection}
                                         </p>
                                     )}
 
-                                    <div className="flex items-end gap-2" style={{ height: `${CHART_HEIGHT_PX}px` }}>
+                                    <div className="flex items-end gap-1.5" style={{ height: `${CHART_HEIGHT_PX}px` }}>
                                         {chartData.map((d, idx) => {
                                             const pct = maxChartVal > 0 ? (d.revenue / maxChartVal) : 0;
-                                            const barH = Math.max(pct * (CHART_HEIGHT_PX - 30), 3); // 30px reserved for label
+                                            const hasData = d.revenue > 0;
+                                            const barH = hasData ? Math.max(pct * (CHART_HEIGHT_PX - 30), 6) : 6;
                                             return (
                                                 <div key={idx} className="flex flex-col items-center flex-1 min-w-0 group" style={{ height: '100%', justifyContent: 'flex-end' }}>
                                                     <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                                         {formatRevenue(d.revenue)}
                                                     </span>
                                                     <div
-                                                        className="w-full max-w-[36px] rounded-t-lg transition-all duration-500 hover:opacity-80 bg-gradient-to-t from-emerald-500 to-teal-400"
+                                                        className={`w-full max-w-[32px] rounded-t-md transition-all duration-500 cursor-pointer
+                                                            ${hasData
+                                                                ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-300 shadow-sm'
+                                                                : 'bg-gray-200 dark:bg-gray-700'}`}
                                                         style={{ height: `${barH}px` }}
                                                     />
                                                     <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 truncate w-full text-center font-medium">
