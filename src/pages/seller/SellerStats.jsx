@@ -382,7 +382,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
     };
 
     // ── Tax Tab State ──
-    const [taxCountry, setTaxCountry] = useState(isHostMode ? hostCountry : 'KR');
+    const [taxCountry, setTaxCountry] = useState(isHostMode ? selectedCountry : 'KR');
     const [taxResult, setTaxResult] = useState(null);
     const [taxLoading, setTaxLoading] = useState(false);
     const [taxSummary, setTaxSummary] = useState(null);
