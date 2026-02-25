@@ -6,7 +6,7 @@ import {
     ChevronDown, ChevronRight, ArrowUp, ArrowDown, Target, Zap,
     Upload, FolderUp, CheckCircle, AlertCircle, AlertTriangle, RotateCcw, Download, Loader2,
     Wallet, Receipt, PieChart, CreditCard, Banknote, Truck, Megaphone, Wrench, Coffee, Phone, Tag,
-    Globe
+    Globe, Trophy
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
@@ -1931,8 +1931,71 @@ ${productSection}
         const totalRevenue = allStats.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
         const totalCustomers = allStats.reduce((sum, s) => sum + (parseInt(s.customer_count) || 0), 0);
         const totalTransactions = allStats.reduce((sum, s) => sum + (parseInt(s.transaction_count) || 0), 0);
+        const totalCost = allStats.reduce((sum, s) => sum + (parseInt(s.cost_price) || 0), 0);
         const totalCount = allStats.length;
-        return { totalRevenue, totalCustomers, totalTransactions, totalCount };
+
+        // Sparkline: recent 7-day revenue
+        const sorted = [...allStats].sort((a, b) => (a.record_date || '').localeCompare(b.record_date || ''));
+        const last7 = sorted.slice(-7).map(s => parseInt(s.monthly_revenue) || 0);
+
+        // Monthly aggregation for trend
+        const monthMap = {};
+        sorted.forEach(s => {
+            const m = (s.record_date || '').substring(0, 7);
+            if (m) monthMap[m] = (monthMap[m] || 0) + (parseInt(s.monthly_revenue) || 0);
+        });
+        const monthKeys = Object.keys(monthMap).sort();
+        const last12Months = monthKeys.slice(-12).map(m => ({ month: m, revenue: monthMap[m] }));
+
+        // MoM growth
+        let momGrowth = null;
+        if (monthKeys.length >= 2) {
+            const cur = monthMap[monthKeys[monthKeys.length - 1]] || 0;
+            const prev = monthMap[monthKeys[monthKeys.length - 2]] || 0;
+            momGrowth = prev > 0 ? parseFloat(((cur - prev) / prev * 100).toFixed(1)) : null;
+        }
+
+        // Daily average (from daily records)
+        const dailyRecords = allStats.filter(s => s.record_type === 'daily');
+        const dailyAvg = dailyRecords.length > 0 ? Math.round(dailyRecords.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0) / dailyRecords.length) : 0;
+
+        // Best day & month
+        let bestDay = null;
+        if (sorted.length > 0) {
+            bestDay = sorted.reduce((best, s) => (parseInt(s.monthly_revenue) || 0) > (parseInt(best.monthly_revenue) || 0) ? s : best, sorted[0]);
+        }
+        let bestMonth = null;
+        if (monthKeys.length > 0) {
+            const bestMonthKey = monthKeys.reduce((best, m) => monthMap[m] > monthMap[best] ? m : best, monthKeys[0]);
+            bestMonth = { month: bestMonthKey, revenue: monthMap[bestMonthKey] };
+        }
+
+        // Top channel & category
+        const channelMap = {};
+        const categoryMap = {};
+        allStats.forEach(s => {
+            const rev = parseInt(s.monthly_revenue) || 0;
+            const ch = s.sales_channel || s.source || 'manual';
+            channelMap[ch] = (channelMap[ch] || 0) + rev;
+            const cat = s.best_selling_item || 'N/A';
+            categoryMap[cat] = (categoryMap[cat] || 0) + rev;
+        });
+        const topChannel = Object.entries(channelMap).sort((a, b) => b[1] - a[1])[0] || null;
+        const topCategory = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0] || null;
+
+        // Profit margin
+        const profitMargin = totalRevenue > 0 ? parseFloat(((totalRevenue - totalCost) / totalRevenue * 100).toFixed(1)) : 0;
+
+        // WoW growth (last 7 vs previous 7)
+        const recent7Rev = sorted.slice(-7).reduce((s, r) => s + (parseInt(r.monthly_revenue) || 0), 0);
+        const prev7Rev = sorted.slice(-14, -7).reduce((s, r) => s + (parseInt(r.monthly_revenue) || 0), 0);
+        const wowGrowth = prev7Rev > 0 ? parseFloat(((recent7Rev - prev7Rev) / prev7Rev * 100).toFixed(1)) : null;
+
+        return {
+            totalRevenue, totalCustomers, totalTransactions, totalCount, totalCost,
+            sparkline: last7, last12Months, momGrowth, wowGrowth, dailyAvg,
+            bestDay, bestMonth, topChannel, topCategory, profitMargin,
+        };
     }, [allStats]);
 
     // ── Chart Data for filtered view (with period filter) ──
@@ -2152,7 +2215,7 @@ ${productSection}
                                 </div>
                             )}
 
-                            {/* Hero Summary — Compact with Quick Actions */}
+                            {/* Hero Summary — Enhanced with Growth Indicators */}
                             <div className="rounded-xl overflow-hidden" style={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent}, ${COLORS.dark})` }}>
                                 <div className="relative p-5 text-white">
                                     <div className="absolute -right-6 -top-6 opacity-[0.08]"><TrendingUp size={100} /></div>
@@ -2164,11 +2227,39 @@ ${productSection}
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 relative z-10">
-                                        <DashKPICard label={t('statsPage.totalRecords')} value={`${dashKPI.totalCount}${t('statsPage.units')}`} />
-                                        <DashKPICard label={t('statsPage.totalRevenue')} value={dashKPI.totalRevenue > 0 ? formatRevenue(dashKPI.totalRevenue) : '-'} />
-                                        <DashKPICard label={t('statsPage.totalCustomers')} value={`${dashKPI.totalCustomers.toLocaleString()}${t('statsPage.people')}`} />
-                                        <DashKPICard label={t('statsPage.totalTransactions')} value={`${dashKPI.totalTransactions.toLocaleString()}${t('statsPage.units')}`} />
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
+                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalRecords')}</p>
+                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalCount}{t('statsPage.units')}</p>
+                                        </div>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
+                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalRevenue')}</p>
+                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalRevenue > 0 ? formatRevenue(dashKPI.totalRevenue) : '-'}</p>
+                                            {dashKPI.momGrowth !== null && (
+                                                <p className={`text-[9px] mt-0.5 font-bold ${dashKPI.momGrowth >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                                                    {dashKPI.momGrowth >= 0 ? '▲' : '▼'} {Math.abs(dashKPI.momGrowth)}% MoM
+                                                </p>
+                                            )}
+                                            {dashKPI.dailyAvg > 0 && <p className="text-[9px] text-emerald-200/60 mt-0.5">{t('statsPage.dailyAvg', '일평균')}: {formatRevenue(dashKPI.dailyAvg)}</p>}
+                                        </div>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
+                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalCustomers')}</p>
+                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalCustomers.toLocaleString()}{t('statsPage.people')}</p>
+                                        </div>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/15 transition-colors">
+                                            <p className="text-[10px] text-emerald-200/70 mb-0.5 font-medium">{t('statsPage.totalTransactions')}</p>
+                                            <p className="text-lg font-extrabold leading-tight">{dashKPI.totalTransactions.toLocaleString()}{t('statsPage.units')}</p>
+                                        </div>
                                     </div>
+                                    {/* Sparkline - Recent 7 entries */}
+                                    {dashKPI.sparkline.length > 1 && (
+                                        <div className="mt-3 flex items-end gap-1 h-8 relative z-10">
+                                            {dashKPI.sparkline.map((v, i) => {
+                                                const mx = Math.max(...dashKPI.sparkline, 1);
+                                                return <div key={i} className="flex-1 bg-white/20 rounded-t-sm hover:bg-white/40 transition-all" style={{ height: `${Math.max(4, (v / mx) * 100)}%` }} title={formatRevenue(v)} />;
+                                            })}
+                                            <span className="absolute -bottom-3.5 right-0 text-[8px] text-emerald-200/50">{t('statsPage.recent7', '최근 7건')}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 {/* Quick Action Buttons */}
                                 <div className="bg-black/10 backdrop-blur-sm px-5 py-2.5 flex items-center gap-2 overflow-x-auto">
@@ -2187,6 +2278,111 @@ ${productSection}
                                     <button onClick={() => setActiveTab('analytics')} className="flex items-center gap-1 px-3 py-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 backdrop-blur-sm rounded-lg text-[11px] font-bold text-white transition-all whitespace-nowrap">
                                         <TrendingUp size={12} /> {t('statsPage.tabAnalytics', '분석')}
                                     </button>
+                                </div>
+                            </div>
+
+                            {/* Revenue Trend & Profitability Overview */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                                {/* Monthly Revenue Mini Chart */}
+                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white text-xs flex items-center gap-2">
+                                            <BarChart3 size={14} className="text-emerald-600" />
+                                            {t('statsPage.monthlyRevenueTrend', '월별 매출 추이')}
+                                        </h3>
+                                        {dashKPI.momGrowth !== null && (
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dashKPI.momGrowth >= 0 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                {dashKPI.momGrowth >= 0 ? '▲' : '▼'} {Math.abs(dashKPI.momGrowth)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    {dashKPI.last12Months.length > 0 ? (
+                                        <div className="flex items-end gap-1.5 h-28">
+                                            {dashKPI.last12Months.map((m, i) => {
+                                                const mx = Math.max(...dashKPI.last12Months.map(x => x.revenue), 1);
+                                                const pct = m.revenue / mx;
+                                                const isLast = i === dashKPI.last12Months.length - 1;
+                                                return (
+                                                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group" style={{ height: '100%', justifyContent: 'flex-end' }}>
+                                                        <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">{formatRevenue(m.revenue)}</span>
+                                                        <div className={`w-full rounded-t-md transition-all ${isLast ? 'bg-gradient-to-t from-emerald-500 to-teal-400' : 'bg-gradient-to-t from-gray-200 to-gray-100 dark:from-gray-600 dark:to-gray-500'}`}
+                                                            style={{ height: `${Math.max(4, pct * 85)}%` }} />
+                                                        <span className="text-[8px] text-gray-400 dark:text-gray-500 font-medium">{m.month.slice(5)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 text-center py-8">{t('statsPage.noData', '데이터 없음')}</p>
+                                    )}
+                                </div>
+
+                                {/* Profitability Gauge */}
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex flex-col items-center justify-center">
+                                    <h3 className="font-extrabold text-gray-900 dark:text-white text-xs mb-3 self-start flex items-center gap-2">
+                                        <TrendingUp size={14} className="text-violet-600" />
+                                        {t('statsPage.profitability', '수익성')}
+                                    </h3>
+                                    {(() => {
+                                        const margin = dashKPI.profitMargin;
+                                        const radius = 38;
+                                        const circ = 2 * Math.PI * radius;
+                                        const dashVal = (Math.min(margin, 100) / 100) * circ;
+                                        return (
+                                            <div className="relative">
+                                                <svg width="96" height="96" viewBox="0 0 96 96">
+                                                    <circle cx="48" cy="48" r={radius} fill="none" stroke="#f3f4f6" strokeWidth="7" className="dark:stroke-gray-700" />
+                                                    <circle cx="48" cy="48" r={radius} fill="none"
+                                                        stroke={margin >= 50 ? '#10b981' : margin >= 20 ? '#f59e0b' : '#ef4444'}
+                                                        strokeWidth="7" strokeLinecap="round"
+                                                        strokeDasharray={`${dashVal} ${circ}`}
+                                                        transform="rotate(-90 48 48)"
+                                                        className="transition-all duration-1000" />
+                                                </svg>
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                    <span className={`text-xl font-extrabold ${margin >= 50 ? 'text-emerald-600' : margin >= 20 ? 'text-amber-600' : 'text-red-600'}`}>{margin}%</span>
+                                                    <span className="text-[9px] text-gray-400">{t('statsPage.marginRate', '마진율')}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                    <div className="grid grid-cols-2 gap-2 w-full mt-2">
+                                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2 text-center">
+                                            <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">{t('statsPage.plRevenue', '매출')}</p>
+                                            <p className="text-xs font-extrabold text-gray-900 dark:text-gray-100">{formatRevenue(dashKPI.totalRevenue)}</p>
+                                        </div>
+                                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
+                                            <p className="text-[9px] text-red-500 font-bold">{t('statsPage.plCost', '원가')}</p>
+                                            <p className="text-xs font-extrabold text-gray-900 dark:text-gray-100">{formatRevenue(dashKPI.totalCost)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Insights */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                    <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-white mb-2"><Trophy size={14} /></div>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.bestMonth', '최고 매출월')}</p>
+                                    <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.bestMonth ? dashKPI.bestMonth.month.slice(0, 7) : '-'}</p>
+                                    {dashKPI.bestMonth && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.bestMonth.revenue)}</p>}
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white mb-2"><ShoppingCart size={14} /></div>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
+                                    <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.totalTransactions > 0 ? formatRevenue(Math.round(dashKPI.totalRevenue / dashKPI.totalTransactions)) : '-'}</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                    <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white mb-2"><TrendingUp size={14} /></div>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.topChannel', '주요 채널')}</p>
+                                    <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topChannel ? dashKPI.topChannel[0] : '-'}</p>
+                                    {dashKPI.topChannel && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topChannel[1])}</p>}
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                    <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-2"><Star size={14} /></div>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.topCategory', '인기 상품')}</p>
+                                    <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topCategory ? dashKPI.topCategory[0] : '-'}</p>
+                                    {dashKPI.topCategory && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topCategory[1])}</p>}
                                 </div>
                             </div>
 
@@ -3650,25 +3846,70 @@ ${productSection}
                         <div className="space-y-5">
                             {analyticsData ? (
                                 <>
-                                    {/* KPI Cards */}
+                                    {/* Enhanced KPI Cards */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {[
-                                            { label: t('statsPage.analyticsTotalRev', '총 매출'), value: analyticsData.totalRevenue?.toLocaleString(), icon: DollarSign, iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', valueText: 'text-emerald-600' },
-                                            { label: t('statsPage.analyticsProfit', '및 마진'), value: `${analyticsData.profitMargin}%`, icon: TrendingUp, iconBg: 'bg-blue-100', iconText: 'text-blue-600', valueText: 'text-blue-600' },
-                                            { label: t('statsPage.analyticsGrowth', '전월 대비'), value: analyticsData.growth !== null ? `${analyticsData.growth > 0 ? '+' : ''}${analyticsData.growth}%` : '-', icon: analyticsData.growth > 0 ? ArrowUp : ArrowDown, iconBg: analyticsData.growth > 0 ? 'bg-emerald-100' : 'bg-red-100', iconText: analyticsData.growth > 0 ? 'text-emerald-600' : 'text-red-600', valueText: analyticsData.growth > 0 ? 'text-emerald-600' : 'text-red-600' },
-                                            { label: t('statsPage.analyticsForecast', '다음달 예측'), value: analyticsData.forecast?.toLocaleString() || '-', icon: Target, iconBg: 'bg-violet-100', iconText: 'text-violet-600', valueText: 'text-violet-600' },
-                                        ].map((item, i) => {
-                                            const Icon = item.icon;
-                                            return (
-                                                <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                                                    <div className={`w-8 h-8 ${item.iconBg} rounded-xl flex items-center justify-center mb-2`}>
-                                                        <Icon size={16} className={item.iconText} />
-                                                    </div>
-                                                    <p className="text-[10px] font-bold text-gray-500 uppercase">{item.label}</p>
-                                                    <p className={`text-lg font-extrabold ${item.valueText}`}>{item.value}</p>
+                                        {/* Total Revenue */}
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
+                                            <div className="absolute -right-3 -top-3 opacity-[0.06]"><DollarSign size={56} /></div>
+                                            <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-2">
+                                                <DollarSign size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsTotalRev', '총 매출')}</p>
+                                            <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{formatRevenue(analyticsData.totalRevenue)}</p>
+                                            <p className="text-[9px] text-gray-400 mt-0.5">{t('statsPage.analyticsTotalTx', '총 거래건수')}: {analyticsData.totalTx.toLocaleString()}</p>
+                                            {analyticsData.monthlyTrend.length > 1 && (
+                                                <div className="flex items-end gap-0.5 h-5 mt-1.5">
+                                                    {analyticsData.monthlyTrend.map((m, i) => {
+                                                        const mx = Math.max(...analyticsData.monthlyTrend.map(x => x.revenue), 1);
+                                                        return <div key={i} className="flex-1 bg-emerald-200 dark:bg-emerald-700 rounded-t-sm" style={{ height: `${Math.max(2, (m.revenue / mx) * 100)}%` }} />;
+                                                    })}
                                                 </div>
-                                            );
-                                        })}
+                                            )}
+                                        </div>
+                                        {/* Profit Margin */}
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
+                                            <div className="absolute -right-3 -top-3 opacity-[0.06]"><TrendingUp size={56} /></div>
+                                            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-2">
+                                                <TrendingUp size={16} className="text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsProfit', '이익 마진')}</p>
+                                            <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400">{analyticsData.profitMargin}%</p>
+                                            <p className="text-[9px] text-gray-400 mt-0.5">{t('statsPage.plRevenue', '매출')}: {formatRevenue(analyticsData.totalRevenue)} / {t('statsPage.plCost', '원가')}: {formatRevenue(analyticsData.totalCost)}</p>
+                                            {/* Mini gauge */}
+                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+                                                <div className={`h-1.5 rounded-full transition-all ${parseFloat(analyticsData.profitMargin) >= 50 ? 'bg-emerald-500' : parseFloat(analyticsData.profitMargin) >= 20 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(100, Math.max(0, parseFloat(analyticsData.profitMargin)))}%` }} />
+                                            </div>
+                                        </div>
+                                        {/* MoM Growth */}
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
+                                            <div className="absolute -right-3 -top-3 opacity-[0.06]">{analyticsData.growth > 0 ? <ArrowUp size={56} /> : <ArrowDown size={56} />}</div>
+                                            <div className={`w-8 h-8 ${analyticsData.growth > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'} rounded-xl flex items-center justify-center mb-2`}>
+                                                {analyticsData.growth > 0 ? <ArrowUp size={16} className="text-emerald-600 dark:text-emerald-400" /> : <ArrowDown size={16} className="text-red-600 dark:text-red-400" />}
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsGrowth', '전월 대비')}</p>
+                                            <p className={`text-lg font-extrabold ${analyticsData.growth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {analyticsData.growth !== null ? `${analyticsData.growth > 0 ? '+' : ''}${analyticsData.growth}%` : '-'}
+                                            </p>
+                                            {/* Monthly growth sparkline */}
+                                            {analyticsData.monthlyGrowthRates?.length > 0 && (
+                                                <div className="flex items-center gap-0.5 mt-1.5">
+                                                    {analyticsData.monthlyGrowthRates.slice(-6).map((g, i) => (
+                                                        <div key={i} className={`flex-1 h-1.5 rounded-full ${g.rate !== null && g.rate >= 0 ? 'bg-emerald-300 dark:bg-emerald-600' : 'bg-red-300 dark:bg-red-600'}`} title={g.rate !== null ? `${g.month}: ${g.rate}%` : ''} />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Forecast */}
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
+                                            <div className="absolute -right-3 -top-3 opacity-[0.06]"><Target size={56} /></div>
+                                            <div className="w-8 h-8 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center mb-2">
+                                                <Target size={16} className="text-violet-600 dark:text-violet-400" />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsForecast', '다음달 예측')}</p>
+                                            <p className="text-lg font-extrabold text-violet-600 dark:text-violet-400">{analyticsData.forecast ? formatRevenue(analyticsData.forecast) : '-'}</p>
+                                            {analyticsData.annualRunRate && <p className="text-[9px] text-gray-400 mt-0.5">{t('statsPage.annualRunRate', '연간 환산')}: {formatRevenue(analyticsData.annualRunRate)}</p>}
+                                            {analyticsData.quarterForecast && <p className="text-[9px] text-violet-400 font-bold mt-0.5">{t('statsPage.quarterForecast', '분기 예측')}: {formatRevenue(analyticsData.quarterForecast)}</p>}
+                                        </div>
                                     </div>
 
                                     {/* ═══ CRM Alert Center ═══ */}
@@ -4065,6 +4306,105 @@ ${productSection}
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* ═══ Monthly Performance Heatmap ═══ */}
+                                    {analyticsData.monthlyTrend?.length > 0 && (
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                                <Calendar size={16} className="text-teal-600" />
+                                                {t('statsPage.monthlyHeatmap', '📊 월별 성과 히트맵')}
+                                            </h3>
+                                            <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
+                                                {(() => {
+                                                    const data = analyticsData.monthlyTrend;
+                                                    const maxRev = Math.max(...data.map(m => m.revenue), 1);
+                                                    return data.map((m, i) => {
+                                                        const intensity = m.revenue / maxRev;
+                                                        const bgOpacity = Math.max(0.1, intensity);
+                                                        return (
+                                                            <div key={i} className="flex flex-col items-center gap-1 group cursor-default">
+                                                                <div className="w-full aspect-square rounded-lg flex items-center justify-center relative transition-transform group-hover:scale-110"
+                                                                    style={{ backgroundColor: `rgba(16, 185, 129, ${bgOpacity})` }}>
+                                                                    <span className={`text-[8px] font-bold ${intensity > 0.5 ? 'text-white' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                                                                        {m.month.slice(5)}
+                                                                    </span>
+                                                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[9px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                                        {m.month}: {formatRevenue(m.revenue)}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
+                                            <div className="flex items-center justify-end gap-2 mt-3">
+                                                <span className="text-[9px] text-gray-400">{t('statsPage.low', '낮음')}</span>
+                                                <div className="flex gap-0.5">
+                                                    {[0.1, 0.3, 0.5, 0.7, 0.9].map((op, i) => (
+                                                        <div key={i} className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(16, 185, 129, ${op})` }} />
+                                                    ))}
+                                                </div>
+                                                <span className="text-[9px] text-gray-400">{t('statsPage.high', '높음')}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ═══ Key Performance Insights ═══ */}
+                                    <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30 p-5">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-4 text-sm">
+                                            <Zap size={16} className="text-indigo-600" />
+                                            {t('statsPage.keyInsights', '💡 핵심 성과 인사이트')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {(() => {
+                                                const insights = [];
+                                                // Best month
+                                                if (analyticsData.monthlyTrend?.length > 0) {
+                                                    const best = analyticsData.monthlyTrend.reduce((a, b) => a.revenue > b.revenue ? a : b);
+                                                    insights.push({
+                                                        icon: '🏆', label: t('statsPage.bestMonth', '최고 매출월'),
+                                                        value: best.month, sub: formatRevenue(best.revenue), color: 'text-amber-600 dark:text-amber-400'
+                                                    });
+                                                }
+                                                // Avg growth
+                                                if (analyticsData.monthlyGrowthRates?.length > 0) {
+                                                    const validRates = analyticsData.monthlyGrowthRates.filter(g => g.rate !== null);
+                                                    const avgGrowth = validRates.length > 0 ? (validRates.reduce((s, g) => s + g.rate, 0) / validRates.length).toFixed(1) : null;
+                                                    if (avgGrowth !== null) {
+                                                        insights.push({
+                                                            icon: '📈', label: t('statsPage.avgGrowth', '평균 성장률'),
+                                                            value: `${avgGrowth > 0 ? '+' : ''}${avgGrowth}%`, sub: t('statsPage.monthlyAvg', '월평균'), color: parseFloat(avgGrowth) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                                                        });
+                                                    }
+                                                }
+                                                // Best day of week
+                                                if (analyticsData.dayOfWeekAnalysis?.some(d => d.avg > 0)) {
+                                                    const bestDay = analyticsData.dayOfWeekAnalysis.reduce((a, b) => a.avg > b.avg ? a : b);
+                                                    insights.push({
+                                                        icon: '📅', label: t('statsPage.bestDayOfWeek', '최고 매출 요일'),
+                                                        value: `${bestDay.name}${t('statsPage.dayLabel', '요일')}`, sub: `${t('statsPage.dailyAvg', '일평균')}: ${formatRevenue(bestDay.avg)}`, color: 'text-blue-600 dark:text-blue-400'
+                                                    });
+                                                }
+                                                // Top product
+                                                if (analyticsData.topProducts?.length > 0) {
+                                                    insights.push({
+                                                        icon: '🎯', label: t('statsPage.topProduct', '인기 상품'),
+                                                        value: analyticsData.topProducts[0].name, sub: formatRevenue(analyticsData.topProducts[0].revenue), color: 'text-purple-600 dark:text-purple-400'
+                                                    });
+                                                }
+                                                return insights.map((ins, i) => (
+                                                    <div key={i} className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3">
+                                                        <span className="text-2xl">{ins.icon}</span>
+                                                        <div className="min-w-0">
+                                                            <p className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase">{ins.label}</p>
+                                                            <p className={`text-sm font-extrabold truncate ${ins.color}`}>{ins.value}</p>
+                                                            <p className="text-[10px] text-gray-400">{ins.sub}</p>
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+                                    </div>
 
                                     {/* ═══ Additional KPI Row ═══ */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
