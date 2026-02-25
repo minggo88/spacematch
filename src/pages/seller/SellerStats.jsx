@@ -113,7 +113,10 @@ const COUNTRY_REGIONS = {
 
 const SellerStats = ({ userRole = 'seller' }) => {
     const { user } = useAuth();
-    const { showToast } = useToast();
+    const { showToast, toast: toastCtx } = useToast();
+    const toastFn = useCallback((opts) => {
+        if (opts && toastCtx) toastCtx[opts.type]?.(opts.message);
+    }, [toastCtx]);
     const { t, i18n } = useTranslation('seller');
     const { currency, currencies, convert, formatCurrency: fmtCurrency, formatCurrencyCompact } = useCurrency();
     const currencySymbol = currencies[currency]?.symbol || '₩';
@@ -4386,7 +4389,7 @@ ${productSection}
                             selectedCountry={selectedCountry}
                             t={t}
                             formatRevenue={formatRevenue}
-                            toast={toast}
+                            toast={toastFn}
                         />
                     )}
                 </>
