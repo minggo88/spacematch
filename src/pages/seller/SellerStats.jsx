@@ -1691,26 +1691,57 @@ ${productSection}
 
     // ── Integration Action: Copy for Google Sheets ──
     const copyForGoogleSheets = useCallback(() => {
-        if (!allStats || allStats.length === 0) return showToast('복사할 데이터가 없습니다', 'error');
-        const headers = ['날짜', '유형', '매출', '거래수', '인기상품', '메모'];
-        const rows = allStats.map(s => [
-            s.period_start || '', s.record_type || '', s.revenue || 0,
-            s.transactions || 0, s.best_selling_item || '', s.notes || ''
+        const data = filteredStats.length > 0 ? filteredStats : allStats;
+        if (!data || data.length === 0) return showToast('복사할 데이터가 없습니다', 'error');
+        const headers = ['날짜', '유형', '국가', '매출', '고객수', '거래수', '평균단가', '판매채널', '상품명', '수량', '인기상품', '메모'];
+        const rows = data.map(s => [
+            s.record_date || '',
+            s.record_type || '',
+            s.country_code || 'KR',
+            s.monthly_revenue || 0,
+            s.customer_count || 0,
+            s.transaction_count || 0,
+            s.avg_unit_price || 0,
+            s.sales_channel || '',
+            s.product_name || '',
+            s.quantity_sold || 0,
+            s.best_selling_item || '',
+            s.memo || ''
         ].join('\t'));
         const tsv = [headers.join('\t'), ...rows].join('\n');
         navigator.clipboard.writeText(tsv).then(() => {
-            showToast('Google Sheets에 붙여넣기 가능한 형식으로 복사됨 (Ctrl+V)', 'success');
+            showToast(`${data.length}건의 데이터가 복사됨 — Google Sheets에서 Ctrl+V로 붙여넣기`, 'success');
         }).catch(() => showToast('클립보드 복사 실패', 'error'));
-    }, [allStats, showToast]);
+    }, [allStats, filteredStats, showToast]);
 
     // ── Integration Action: Email Report ──
     const sendEmailReport = useCallback(() => {
-        if (!analyticsData) return showToast('분석 데이터가 없습니다', 'error');
-        const subject = encodeURIComponent(`SpaceMatch CRM 보고서 - ${new Date().toLocaleDateString()}`);
-        const body = encodeURIComponent(`매출 요약\n총 매출: ${formatRevenue(analyticsData.totalRevenue)}\n총 거래: ${analyticsData.totalTransactions}건\n평균 주문가: ${formatRevenue(analyticsData.avgOrderValue)}`);
+        if (!allStats || allStats.length === 0) return showToast('보고서를 생성할 데이터가 없습니다', 'error');
+        // Calculate totals from allStats (works from any tab)
+        const totalRevenue = allStats.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
+        const totalTransactions = allStats.reduce((sum, s) => sum + (parseInt(s.transaction_count) || 0), 0);
+        const totalCustomers = allStats.reduce((sum, s) => sum + (parseInt(s.customer_count) || 0), 0);
+        const recordCount = allStats.length;
+        const dateRange = allStats.length > 0
+            ? `${allStats[allStats.length - 1]?.record_date || '?'} ~ ${allStats[0]?.record_date || '?'}`
+            : '-';
+        const subject = encodeURIComponent(`SpaceMatch 매출 보고서 - ${new Date().toLocaleDateString()}`);
+        const body = encodeURIComponent(
+            `📊 SpaceMatch 매출 보고서\n` +
+            `작성일: ${new Date().toLocaleDateString()}\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📅 조회 기간: ${dateRange}\n` +
+            `📋 총 기록 수: ${recordCount}건\n` +
+            `💰 총 매출: ${formatRevenue(totalRevenue)}\n` +
+            `👥 총 고객 수: ${totalCustomers.toLocaleString()}명\n` +
+            `🛒 총 거래 수: ${totalTransactions.toLocaleString()}건\n` +
+            `📈 평균 매출: ${formatRevenue(Math.round(totalRevenue / Math.max(recordCount, 1)))}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n\n` +
+            `본 보고서는 SpaceMatch CRM에서 자동 생성되었습니다.`
+        );
         window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
         showToast('이메일 작성 창이 열렸습니다', 'success');
-    }, [analyticsData, showToast, formatRevenue]);
+    }, [allStats, showToast, formatRevenue]);
 
     // Auto-trigger tax/analytics when tabs become active
     useEffect(() => {
