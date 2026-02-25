@@ -1666,6 +1666,26 @@ ${productSection}
         showToast(updated[key] ? `${name} 연동이 활성화되었습니다` : `${name} 연동이 해제되었습니다`, updated[key] ? 'success' : 'info');
     }, [integrations, showToast]);
 
+    // ── Format helpers ── (moved before useCallbacks that depend on it)
+    const formatRevenue = (val) => {
+        const n = parseInt(val) || 0;
+        const converted = currency === 'KRW' ? n : convert(n);
+        const config = currencies[currency] || { locale: 'ko-KR', code: 'KRW', decimals: 0 };
+        try {
+            // Use compact notation for large numbers, standard for small
+            if (converted >= 10000 || converted <= -10000) {
+                return new Intl.NumberFormat(config.locale, {
+                    style: 'currency', currency: config.code,
+                    notation: 'compact', maximumFractionDigits: 1,
+                }).format(converted);
+            }
+            return new Intl.NumberFormat(config.locale, {
+                style: 'currency', currency: config.code,
+                minimumFractionDigits: 0, maximumFractionDigits: config.decimals,
+            }).format(converted);
+        } catch { return `${currencySymbol}${converted.toLocaleString()}`; }
+    };
+
     // ── Integration Action: KakaoTalk Share ──
     const shareToKakao = useCallback(() => {
         if (!analyticsData) return showToast('분석 데이터가 없습니다', 'error');
@@ -1818,25 +1838,6 @@ ${productSection}
         });
     };
 
-    // ── Format helpers ──
-    const formatRevenue = (val) => {
-        const n = parseInt(val) || 0;
-        const converted = currency === 'KRW' ? n : convert(n);
-        const config = currencies[currency] || { locale: 'ko-KR', code: 'KRW', decimals: 0 };
-        try {
-            // Use compact notation for large numbers, standard for small
-            if (converted >= 10000 || converted <= -10000) {
-                return new Intl.NumberFormat(config.locale, {
-                    style: 'currency', currency: config.code,
-                    notation: 'compact', maximumFractionDigits: 1,
-                }).format(converted);
-            }
-            return new Intl.NumberFormat(config.locale, {
-                style: 'currency', currency: config.code,
-                minimumFractionDigits: 0, maximumFractionDigits: config.decimals,
-            }).format(converted);
-        } catch { return `${currencySymbol}${converted.toLocaleString()}`; }
-    };
 
     const formatDateLabel = (record) => {
         const d = record.record_date;
