@@ -2176,15 +2176,15 @@ ${productSection}
                 <>
                     {/* ════ DASHBOARD TAB ════ */}
                     {activeTab === 'dashboard' && (
-                        <div className="space-y-4">
+                        <div className="max-w-5xl mx-auto space-y-3">
                             {/* Country Breakdown (compact horizontal) */}
                             {countryBreakdown.length > 1 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className="text-sm">🌍</span>
-                                        <h3 className="font-extrabold text-gray-900 dark:text-white text-xs">{t('statsPage.countryBreakdown', '국가별 매출 현황')}</h3>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-xs">🌍</span>
+                                        <h3 className="font-bold text-gray-500 dark:text-gray-400 text-[11px] uppercase tracking-wider">{t('statsPage.countryBreakdown', '국가별 매출 현황')}</h3>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-1.5">
                                         {countryBreakdown.map(cb => {
                                             const cInfo = HOST_COUNTRIES.find(vc => vc.code === cb.country_code);
                                             const isActive = selectedCountry === cb.country_code;
@@ -2197,17 +2197,17 @@ ${productSection}
                                                             setLoading(true);
                                                         }
                                                     }}
-                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${isActive
-                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-200 dark:ring-emerald-800'
+                                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all text-left ${isActive
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-200 dark:ring-emerald-800 shadow-sm'
                                                         : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:border-emerald-300 hover:bg-emerald-50/50'
                                                         }`}
                                                 >
-                                                    <span className="text-base">{cInfo?.flag || '🏳️'}</span>
-                                                    <div className="text-left">
-                                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{cInfo?.name || cb.country_code}</p>
-                                                        <p className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">{formatRevenue(cb.total_revenue)}</p>
+                                                    <span className="text-sm">{cInfo?.flag || '🏳️'}</span>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 leading-tight">{cInfo?.name || cb.country_code}</p>
+                                                        <p className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 leading-tight">{formatRevenue(cb.total_revenue)}</p>
                                                     </div>
-                                                    <span className="text-[9px] text-gray-400 ml-1">{cb.record_count}{t('statsPage.units', '건')}</span>
+                                                    <span className="text-[9px] text-gray-400">{cb.record_count}{t('statsPage.units', '건')}</span>
                                                 </button>
                                             );
                                         })}
@@ -2216,8 +2216,8 @@ ${productSection}
                             )}
 
                             {/* Hero Summary — Enhanced with Growth Indicators */}
-                            <div className="rounded-xl overflow-hidden" style={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent}, ${COLORS.dark})` }}>
-                                <div className="relative p-5 text-white">
+                            <div className="rounded-xl overflow-hidden shadow-md" style={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent}, ${COLORS.dark})` }}>
+                                <div className="relative p-4 text-white">
                                     <div className="absolute -right-6 -top-6 opacity-[0.08]"><TrendingUp size={100} /></div>
                                     <div className="flex items-center gap-2.5 mb-3">
                                         <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center"><BarChart3 size={16} /></div>
@@ -2282,9 +2282,10 @@ ${productSection}
                             </div>
 
                             {/* Revenue Trend & Profitability Overview */}
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">📊 {t('statsPage.revenueTrendSection', '매출 추이 & 수익성')}</p>
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                                 {/* Monthly Revenue Mini Chart */}
-                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="font-extrabold text-gray-900 dark:text-white text-xs flex items-center gap-2">
                                             <BarChart3 size={14} className="text-emerald-600" />
@@ -2297,7 +2298,7 @@ ${productSection}
                                         )}
                                     </div>
                                     {dashKPI.last12Months.length > 0 ? (
-                                        <div className="flex items-end gap-1.5 h-28">
+                                        <div className="flex items-end gap-1.5 h-36">
                                             {dashKPI.last12Months.map((m, i) => {
                                                 const mx = Math.max(...dashKPI.last12Months.map(x => x.revenue), 1);
                                                 const pct = m.revenue / mx;
@@ -2318,7 +2319,7 @@ ${productSection}
                                 </div>
 
                                 {/* Profitability Gauge */}
-                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex flex-col items-center justify-center">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex flex-col items-center justify-center hover:shadow-md transition-shadow">
                                     <h3 className="font-extrabold text-gray-900 dark:text-white text-xs mb-3 self-start flex items-center gap-2">
                                         <TrendingUp size={14} className="text-violet-600" />
                                         {t('statsPage.profitability', '수익성')}
@@ -2360,25 +2361,26 @@ ${productSection}
                             </div>
 
                             {/* Quick Insights */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">💡 {t('statsPage.quickInsightsSection', '핵심 인사이트')}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-white mb-2"><Trophy size={14} /></div>
                                     <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.bestMonth', '최고 매출월')}</p>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.bestMonth ? dashKPI.bestMonth.month.slice(0, 7) : '-'}</p>
                                     {dashKPI.bestMonth && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.bestMonth.revenue)}</p>}
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white mb-2"><ShoppingCart size={14} /></div>
                                     <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.totalTransactions > 0 ? formatRevenue(Math.round(dashKPI.totalRevenue / dashKPI.totalTransactions)) : '-'}</p>
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white mb-2"><TrendingUp size={14} /></div>
                                     <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.topChannel', '주요 채널')}</p>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topChannel ? dashKPI.topChannel[0] : '-'}</p>
                                     {dashKPI.topChannel && <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topChannel[1])}</p>}
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-2"><Star size={14} /></div>
                                     <p className="text-[9px] text-gray-400 font-bold uppercase">{t('statsPage.topCategory', '인기 상품')}</p>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topCategory ? dashKPI.topCategory[0] : '-'}</p>
@@ -2387,7 +2389,8 @@ ${productSection}
                             </div>
 
                             {/* Period Breakdown Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">📋 {t('statsPage.periodBreakdownSection', '기간별 데이터')}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 {[
                                     { key: 'daily', label: t('statsPage.dailyData'), icon: <Clock size={15} />, color: 'from-blue-500 to-indigo-600', bgColor: 'bg-blue-50 dark:bg-blue-900/30', textColor: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800' },
                                     { key: 'monthly', label: t('statsPage.monthlyData'), icon: <CalendarDays size={15} />, color: 'from-emerald-500 to-teal-600', bgColor: 'bg-emerald-50 dark:bg-emerald-900/30', textColor: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800' },
@@ -2438,12 +2441,13 @@ ${productSection}
                             </div>
 
                             {/* Recent Records + Sales Goal - Side by side */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">📝 {t('statsPage.recentAndGoalSection', '최근 기록 & 목표')}</p>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                                 {/* Recent Records (Left) */}
                                 {allStats.length > 0 ? (
-                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                        <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-4">
-                                            <Calendar size={16} className="text-emerald-600" />
+                                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 mb-3 text-sm">
+                                            <Calendar size={15} className="text-emerald-600" />
                                             {t('statsPage.recentRecords')}
                                         </h3>
                                         <div className="space-y-2">
@@ -2468,10 +2472,10 @@ ${productSection}
                                     const strokeDash = (progress / 100) * circumference;
 
                                     return (
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="font-extrabold text-gray-900 flex items-center gap-2">
-                                                    <Target size={16} className="text-violet-600" />
+                                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
+                                                    <Target size={15} className="text-violet-600" />
                                                     {t('statsPage.goalTitle', '🎯 매출 목표')}
                                                 </h3>
                                                 <button
@@ -2483,22 +2487,22 @@ ${productSection}
                                             </div>
 
                                             {showGoalForm && (
-                                                <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+                                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-4 space-y-3">
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500 block mb-1">{t('statsPage.goalPeriod', '기간')}</label>
+                                                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('statsPage.goalPeriod', '기간')}</label>
                                                         <div className="flex gap-2">
                                                             {[{ k: 'monthly', l: t('statsPage.tabMonthly', '월별') }, { k: 'annual', l: t('statsPage.tabAnnual', '연간') }].map(p => (
                                                                 <button key={p.k} onClick={() => setGoalPeriod(p.k)}
-                                                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${goalPeriod === p.k ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+                                                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${goalPeriod === p.k ? 'bg-violet-600 text-white border-violet-600' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'}`}>
                                                                     {p.l}
                                                                 </button>
                                                             ))}
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500 block mb-1">{t('statsPage.goalAmount', '목표 금액')}</label>
+                                                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('statsPage.goalAmount', '목표 금액')}</label>
                                                         <input type="number" value={goalAmount} onChange={e => setGoalAmount(e.target.value)} placeholder="0"
-                                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-right" />
+                                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-bold text-right text-gray-900 dark:text-white" />
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <button onClick={saveGoal} className="flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 transition-colors">{t('statsPage.goalSave', '저장')}</button>
@@ -2513,7 +2517,7 @@ ${productSection}
                                                     {/* Circular Progress */}
                                                     <div className="relative flex-shrink-0">
                                                         <svg width="96" height="96" viewBox="0 0 96 96">
-                                                            <circle cx="48" cy="48" r="40" fill="none" stroke="#f3f4f6" strokeWidth="6" />
+                                                            <circle cx="48" cy="48" r="40" fill="none" stroke="#f3f4f6" strokeWidth="6" className="dark:stroke-gray-700" />
                                                             <circle cx="48" cy="48" r="40" fill="none"
                                                                 stroke={progress >= 100 ? '#10b981' : '#7c3aed'}
                                                                 strokeWidth="6" strokeLinecap="round"
@@ -2523,18 +2527,18 @@ ${productSection}
                                                         </svg>
                                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                                                             <span className={`text-lg font-extrabold ${progress >= 100 ? 'text-emerald-600' : 'text-violet-600'}`}>{progress.toFixed(0)}%</span>
-                                                            <span className="text-[9px] text-gray-400">{t('statsPage.goalAchieved', '달성률')}</span>
+                                                            <span className="text-[9px] text-gray-400 dark:text-gray-500">{t('statsPage.goalAchieved', '달성률')}</span>
                                                         </div>
                                                     </div>
                                                     {/* Goal Details */}
                                                     <div className="flex-1 space-y-2">
-                                                        <div className="bg-violet-50 rounded-xl p-3">
-                                                            <p className="text-[10px] text-violet-500 font-bold">{t('statsPage.goalTarget', '목표')}</p>
-                                                            <p className="text-sm font-extrabold text-gray-900">{formatRevenue(goalAmt)}</p>
+                                                        <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3">
+                                                            <p className="text-[10px] text-violet-500 dark:text-violet-400 font-bold">{t('statsPage.goalTarget', '목표')}</p>
+                                                            <p className="text-sm font-extrabold text-gray-900 dark:text-white">{formatRevenue(goalAmt)}</p>
                                                         </div>
-                                                        <div className="bg-emerald-50 rounded-xl p-3">
-                                                            <p className="text-[10px] text-emerald-500 font-bold">{t('statsPage.goalCurrent', '현재')}</p>
-                                                            <p className="text-sm font-extrabold text-gray-900">{formatRevenue(currentRevenue)}</p>
+                                                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+                                                            <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold">{t('statsPage.goalCurrent', '현재')}</p>
+                                                            <p className="text-sm font-extrabold text-gray-900 dark:text-white">{formatRevenue(currentRevenue)}</p>
                                                         </div>
                                                         {remaining > 0 && (
                                                             <p className="text-[10px] text-gray-400 text-center">
