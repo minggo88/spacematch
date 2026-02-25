@@ -4215,71 +4215,186 @@ ${productSection}
                             <div className="space-y-3">
                                 {analyticsData ? (
                                     <>
-                                        {/* Enhanced KPI Cards */}
+                                        {/* ═══ Enhanced KPI Cards with SVG Infographics ═══ */}
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                            {/* Total Revenue */}
-                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
-                                                <div className="absolute -right-3 -top-3 opacity-[0.06]"><DollarSign size={56} /></div>
-                                                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-2">
-                                                    <DollarSign size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                            {/* Total Revenue — with mini area sparkline */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden group hover:shadow-lg transition-all">
+                                                <div className="absolute -right-4 -bottom-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity"><DollarSign size={80} /></div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-200 dark:shadow-emerald-900">
+                                                        <DollarSign size={17} className="text-white" />
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase leading-tight">{t('statsPage.analyticsTotalRev', '총 매출')}</p>
                                                 </div>
-                                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsTotalRev', '총 매출')}</p>
-                                                <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{formatRevenue(analyticsData.totalRevenue)}</p>
+                                                <p className="text-xl font-extrabold text-gray-900 dark:text-white">{formatRevenue(analyticsData.totalRevenue)}</p>
                                                 <p className="text-[9px] text-gray-400 mt-0.5">{t('statsPage.analyticsTotalTx', '총 거래건수')}: {analyticsData.totalTx.toLocaleString()}</p>
-                                                {analyticsData.monthlyTrend.length > 1 && (
-                                                    <div className="flex items-end gap-0.5 h-5 mt-1.5">
-                                                        {analyticsData.monthlyTrend.map((m, i) => {
-                                                            const mx = Math.max(...analyticsData.monthlyTrend.map(x => x.revenue), 1);
-                                                            return <div key={i} className="flex-1 bg-emerald-200 dark:bg-emerald-700 rounded-t-sm" style={{ height: `${Math.max(2, (m.revenue / mx) * 100)}%` }} />;
+                                                {/* SVG Area Sparkline */}
+                                                {analyticsData.monthlyTrend.length > 1 && (() => {
+                                                    const data = analyticsData.monthlyTrend;
+                                                    const mx = Math.max(...data.map(x => x.revenue), 1);
+                                                    const w = 140; const h = 32;
+                                                    const pts = data.map((m, i) => `${(i / (data.length - 1)) * w},${h - (m.revenue / mx) * (h - 4)}`);
+                                                    return (
+                                                        <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} className="mt-2" preserveAspectRatio="none">
+                                                            <defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity="0.3" /><stop offset="100%" stopColor="#10b981" stopOpacity="0.02" /></linearGradient></defs>
+                                                            <polygon points={`0,${h} ${pts.join(' ')} ${w},${h}`} fill="url(#areaGrad)" />
+                                                            <polyline points={pts.join(' ')} fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <circle cx={w} cy={h - (data[data.length - 1].revenue / mx) * (h - 4)} r="2.5" fill="#10b981" className="animate-pulse" />
+                                                        </svg>
+                                                    );
+                                                })()}
+                                            </div>
+                                            {/* Profit Margin — with SVG Radial Gauge */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden group hover:shadow-lg transition-all">
+                                                <div className="absolute -right-4 -bottom-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity"><TrendingUp size={80} /></div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-blue-200 dark:shadow-blue-900">
+                                                        <TrendingUp size={17} className="text-white" />
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase leading-tight">{t('statsPage.analyticsProfit', '이익 마진')}</p>
+                                                </div>
+                                                {/* SVG Radial Gauge */}
+                                                {(() => {
+                                                    const pct = Math.min(100, Math.max(0, parseFloat(analyticsData.profitMargin)));
+                                                    const r = 28; const circ = 2 * Math.PI * r;
+                                                    const dashVal = (pct / 100) * circ * 0.75; // 270-degree arc
+                                                    const color = pct >= 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
+                                                    return (
+                                                        <div className="flex items-center gap-3">
+                                                            <svg width="68" height="68" viewBox="0 0 68 68" className="flex-shrink-0">
+                                                                <circle cx="34" cy="34" r={r} fill="none" stroke="#f3f4f6" strokeWidth="5" strokeDasharray={`${circ * 0.75} ${circ * 0.25}`} transform="rotate(135 34 34)" className="dark:stroke-gray-700" />
+                                                                <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${dashVal} ${circ}`} transform="rotate(135 34 34)" className="transition-all duration-1000" />
+                                                                <text x="34" y="32" textAnchor="middle" className="fill-gray-900 dark:fill-white text-[13px] font-extrabold">{analyticsData.profitMargin}%</text>
+                                                                <text x="34" y="42" textAnchor="middle" className="fill-gray-400 text-[7px] font-medium">{t('statsPage.marginRate', '마진율')}</text>
+                                                            </svg>
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center gap-1 text-[9px]">
+                                                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                                    <span className="text-gray-400 truncate">{t('statsPage.plRevenue', '매출')}</span>
+                                                                    <span className="font-bold text-gray-600 dark:text-gray-300 ml-auto">{formatRevenue(analyticsData.totalRevenue)}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 text-[9px] mt-0.5">
+                                                                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                                                                    <span className="text-gray-400 truncate">{t('statsPage.plCost', '원가')}</span>
+                                                                    <span className="font-bold text-gray-600 dark:text-gray-300 ml-auto">{formatRevenue(analyticsData.totalCost)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                            {/* MoM Growth — with bar sparkline & arrow */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden group hover:shadow-lg transition-all">
+                                                <div className="absolute -right-4 -bottom-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity">{analyticsData.growth > 0 ? <ArrowUp size={80} /> : <ArrowDown size={80} />}</div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className={`w-9 h-9 bg-gradient-to-br ${analyticsData.growth > 0 ? 'from-emerald-500 to-green-600 shadow-emerald-200 dark:shadow-emerald-900' : 'from-red-500 to-rose-600 shadow-red-200 dark:shadow-red-900'} rounded-xl flex items-center justify-center shadow-sm`}>
+                                                        {analyticsData.growth > 0 ? <ArrowUp size={17} className="text-white" /> : <ArrowDown size={17} className="text-white" />}
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase leading-tight">{t('statsPage.analyticsGrowth', '전월 대비')}</p>
+                                                </div>
+                                                <p className={`text-xl font-extrabold ${analyticsData.growth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {analyticsData.growth !== null ? `${analyticsData.growth > 0 ? '+' : ''}${analyticsData.growth}%` : '-'}
+                                                </p>
+                                                {/* Mini Growth Bar Chart */}
+                                                {analyticsData.monthlyGrowthRates?.length > 0 && (
+                                                    <div className="flex items-end gap-[3px] h-7 mt-2">
+                                                        {analyticsData.monthlyGrowthRates.slice(-8).map((g, i) => {
+                                                            const rate = g.rate || 0;
+                                                            const absMax = Math.max(...analyticsData.monthlyGrowthRates.slice(-8).map(x => Math.abs(x.rate || 0)), 1);
+                                                            return (
+                                                                <div key={i} className="flex-1 flex flex-col justify-end items-center" style={{ height: '100%' }}>
+                                                                    <div className={`w-full rounded-t-sm transition-all ${rate >= 0 ? 'bg-gradient-to-t from-emerald-400 to-emerald-300 dark:from-emerald-700 dark:to-emerald-600' : 'bg-gradient-to-t from-red-400 to-red-300 dark:from-red-700 dark:to-red-600'}`}
+                                                                        style={{ height: `${Math.max(3, (Math.abs(rate) / absMax) * 100)}%` }}
+                                                                        title={g.rate !== null ? `${g.month}: ${g.rate}%` : ''} />
+                                                                </div>
+                                                            );
                                                         })}
                                                     </div>
                                                 )}
                                             </div>
-                                            {/* Profit Margin */}
-                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
-                                                <div className="absolute -right-3 -top-3 opacity-[0.06]"><TrendingUp size={56} /></div>
-                                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-2">
-                                                    <TrendingUp size={16} className="text-blue-600 dark:text-blue-400" />
+                                            {/* Forecast — with progress ring */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden group hover:shadow-lg transition-all">
+                                                <div className="absolute -right-4 -bottom-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity"><Target size={80} /></div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm shadow-violet-200 dark:shadow-violet-900">
+                                                        <Target size={17} className="text-white" />
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase leading-tight">{t('statsPage.analyticsForecast', '다음달 예측')}</p>
                                                 </div>
-                                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsProfit', '이익 마진')}</p>
-                                                <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400">{analyticsData.profitMargin}%</p>
-                                                <p className="text-[9px] text-gray-400 mt-0.5">{t('statsPage.plRevenue', '매출')}: {formatRevenue(analyticsData.totalRevenue)} / {t('statsPage.plCost', '원가')}: {formatRevenue(analyticsData.totalCost)}</p>
-                                                {/* Mini gauge */}
-                                                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-2">
-                                                    <div className={`h-1.5 rounded-full transition-all ${parseFloat(analyticsData.profitMargin) >= 50 ? 'bg-emerald-500' : parseFloat(analyticsData.profitMargin) >= 20 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(100, Math.max(0, parseFloat(analyticsData.profitMargin)))}%` }} />
-                                                </div>
-                                            </div>
-                                            {/* MoM Growth */}
-                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
-                                                <div className="absolute -right-3 -top-3 opacity-[0.06]">{analyticsData.growth > 0 ? <ArrowUp size={56} /> : <ArrowDown size={56} />}</div>
-                                                <div className={`w-8 h-8 ${analyticsData.growth > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'} rounded-xl flex items-center justify-center mb-2`}>
-                                                    {analyticsData.growth > 0 ? <ArrowUp size={16} className="text-emerald-600 dark:text-emerald-400" /> : <ArrowDown size={16} className="text-red-600 dark:text-red-400" />}
-                                                </div>
-                                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsGrowth', '전월 대비')}</p>
-                                                <p className={`text-lg font-extrabold ${analyticsData.growth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                    {analyticsData.growth !== null ? `${analyticsData.growth > 0 ? '+' : ''}${analyticsData.growth}%` : '-'}
-                                                </p>
-                                                {/* Monthly growth sparkline */}
-                                                {analyticsData.monthlyGrowthRates?.length > 0 && (
-                                                    <div className="flex items-center gap-0.5 mt-1.5">
-                                                        {analyticsData.monthlyGrowthRates.slice(-6).map((g, i) => (
-                                                            <div key={i} className={`flex-1 h-1.5 rounded-full ${g.rate !== null && g.rate >= 0 ? 'bg-emerald-300 dark:bg-emerald-600' : 'bg-red-300 dark:bg-red-600'}`} title={g.rate !== null ? `${g.month}: ${g.rate}%` : ''} />
-                                                        ))}
+                                                <p className="text-xl font-extrabold text-gray-900 dark:text-white">{analyticsData.forecast ? formatRevenue(analyticsData.forecast) : '-'}</p>
+                                                {analyticsData.annualRunRate && <p className="text-[9px] text-gray-400 mt-0.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span> {t('statsPage.annualRunRate', '연간 환산')}: {formatRevenue(analyticsData.annualRunRate)}</p>}
+                                                {analyticsData.quarterForecast && <p className="text-[9px] text-violet-500 dark:text-violet-400 font-bold mt-0.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-violet-600"></span> {t('statsPage.quarterForecast', '분기 예측')}: {formatRevenue(analyticsData.quarterForecast)}</p>}
+                                                {/* Forecast confidence mini bar */}
+                                                {analyticsData.goalProbability !== null && (
+                                                    <div className="mt-2">
+                                                        <div className="flex justify-between text-[8px] text-gray-400 mb-0.5">
+                                                            <span>{t('statsPage.confidence', '달성확률')}</span>
+                                                            <span className="font-bold">{analyticsData.goalProbability}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                                                            <div className={`h-1.5 rounded-full transition-all duration-700 ${analyticsData.goalProbability >= 70 ? 'bg-gradient-to-r from-violet-500 to-purple-400' : analyticsData.goalProbability >= 40 ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : 'bg-gradient-to-r from-red-500 to-rose-400'}`}
+                                                                style={{ width: `${analyticsData.goalProbability}%` }} />
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
-                                            {/* Forecast */}
-                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 relative overflow-hidden">
-                                                <div className="absolute -right-3 -top-3 opacity-[0.06]"><Target size={56} /></div>
-                                                <div className="w-8 h-8 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center mb-2">
-                                                    <Target size={16} className="text-violet-600 dark:text-violet-400" />
-                                                </div>
-                                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{t('statsPage.analyticsForecast', '다음달 예측')}</p>
-                                                <p className="text-lg font-extrabold text-violet-600 dark:text-violet-400">{analyticsData.forecast ? formatRevenue(analyticsData.forecast) : '-'}</p>
-                                                {analyticsData.annualRunRate && <p className="text-[9px] text-gray-400 mt-0.5">{t('statsPage.annualRunRate', '연간 환산')}: {formatRevenue(analyticsData.annualRunRate)}</p>}
-                                                {analyticsData.quarterForecast && <p className="text-[9px] text-violet-400 font-bold mt-0.5">{t('statsPage.quarterForecast', '분기 예측')}: {formatRevenue(analyticsData.quarterForecast)}</p>}
-                                            </div>
                                         </div>
+
+                                        {/* ═══ Revenue Health Score Infographic ═══ */}
+                                        {(() => {
+                                            const margin = parseFloat(analyticsData.profitMargin) || 0;
+                                            const growth = analyticsData.growth || 0;
+                                            const goalProb = analyticsData.goalProbability || 0;
+                                            // Composite health: margin(40%) + growth(30%) + goal(30%)
+                                            const marginScore = Math.min(100, margin * 2);
+                                            const growthScore = Math.min(100, Math.max(0, growth * 2 + 50));
+                                            const goalScore = goalProb;
+                                            const healthScore = Math.round(marginScore * 0.4 + growthScore * 0.3 + goalScore * 0.3);
+                                            const healthColor = healthScore >= 70 ? '#10b981' : healthScore >= 40 ? '#f59e0b' : '#ef4444';
+                                            const healthLabel = healthScore >= 70 ? t('statsPage.healthExcellent', '우수') : healthScore >= 40 ? t('statsPage.healthGood', '양호') : t('statsPage.healthCaution', '주의');
+                                            const r = 42; const circ = 2 * Math.PI * r;
+                                            const dashVal = (healthScore / 100) * circ;
+                                            return (
+                                                <div className="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-750 rounded-2xl border border-gray-700 shadow-lg p-5 text-white">
+                                                    <div className="flex items-center gap-5">
+                                                        {/* Health Ring */}
+                                                        <div className="relative flex-shrink-0">
+                                                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                                                <circle cx="50" cy="50" r={r} fill="none" stroke="#374151" strokeWidth="6" />
+                                                                <circle cx="50" cy="50" r={r} fill="none" stroke={healthColor} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${dashVal} ${circ}`} transform="rotate(-90 50 50)" className="transition-all duration-1000" />
+                                                            </svg>
+                                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                                <span className="text-2xl font-extrabold" style={{ color: healthColor }}>{healthScore}</span>
+                                                                <span className="text-[8px] text-gray-400 font-bold uppercase">{healthLabel}</span>
+                                                            </div>
+                                                        </div>
+                                                        {/* Description */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className="font-extrabold text-sm mb-1 flex items-center gap-2">
+                                                                <Zap size={14} className="text-amber-400" />
+                                                                {t('statsPage.revenueHealthScore', '매출 건강 점수')}
+                                                            </h3>
+                                                            <p className="text-[10px] text-gray-400 mb-3">{t('statsPage.healthDesc', '마진율, 성장률, 목표달성률을 종합한 비즈니스 상태 지표')}</p>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {[
+                                                                    { label: t('statsPage.marginRate', '마진율'), value: `${margin}%`, score: marginScore, color: '#10b981' },
+                                                                    { label: t('statsPage.analyticsGrowth', '성장률'), value: `${growth > 0 ? '+' : ''}${growth}%`, score: growthScore, color: '#3b82f6' },
+                                                                    { label: t('statsPage.goalAchieve', '목표달성'), value: `${goalProb}%`, score: goalScore, color: '#8b5cf6' },
+                                                                ].map((item, i) => (
+                                                                    <div key={i} className="bg-white/5 rounded-lg p-2">
+                                                                        <p className="text-[8px] text-gray-500 font-bold uppercase">{item.label}</p>
+                                                                        <p className="text-sm font-extrabold" style={{ color: item.color }}>{item.value}</p>
+                                                                        <div className="w-full bg-gray-700 rounded-full h-1 mt-1">
+                                                                            <div className="h-1 rounded-full transition-all duration-700" style={{ width: `${item.score}%`, backgroundColor: item.color }} />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* ═══ CRM Alert Center ═══ */}
                                         {crmAlerts && crmAlerts.alerts?.length > 0 && (() => {
@@ -4447,56 +4562,92 @@ ${productSection}
                                             );
                                         })()}
 
-                                        {/* Channel & Category Breakdown */}
+                                        {/* Channel & Category Breakdown — with SVG Donut Charts */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {/* Top Channels */}
-                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-                                                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3">
+                                            {/* Top Channels — Donut + List */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
+                                                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center"><BarChart3 size={12} className="text-white" /></div>
                                                     {t('statsPage.analyticsChannels', '채널별 매출')}
                                                 </h3>
-                                                <div className="space-y-2">
-                                                    {analyticsData.topChannels.map(([name, rev], i) => {
-                                                        const pct = analyticsData.totalRevenue > 0 ? (rev / analyticsData.totalRevenue * 100).toFixed(1) : 0;
-                                                        const barColors = ['bg-emerald-500', 'bg-blue-500', 'bg-violet-500', 'bg-amber-500', 'bg-pink-500'];
-                                                        return (
-                                                            <div key={i}>
-                                                                <div className="flex justify-between text-[11px] mb-1">
-                                                                    <span className="font-bold text-gray-700 dark:text-gray-300">{name}</span>
-                                                                    <span className="text-gray-400 dark:text-gray-500">{pct}%</span>
-                                                                </div>
-                                                                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                                                                    <div className={`${barColors[i % 5]} h-2 rounded-full transition-all`}
-                                                                        style={{ width: `${pct}%` }} />
-                                                                </div>
+                                                {(() => {
+                                                    const entries = analyticsData.topChannels.slice(0, 5);
+                                                    const total = entries.reduce((s, e) => s + e[1], 0);
+                                                    const donutColors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+                                                    const radius = 36; const circ = 2 * Math.PI * radius;
+                                                    let acc = 0;
+                                                    return (
+                                                        <div className="flex gap-4 items-center">
+                                                            <svg width="90" height="90" viewBox="0 0 90 90" className="flex-shrink-0">
+                                                                <circle cx="45" cy="45" r={radius} fill="none" stroke="#f3f4f6" strokeWidth="10" className="dark:stroke-gray-700" />
+                                                                {entries.map((entry, i) => {
+                                                                    const pct = total > 0 ? entry[1] / total : 0;
+                                                                    const dash = pct * circ;
+                                                                    const offset = -acc * circ + circ * 0.25;
+                                                                    acc += pct;
+                                                                    return <circle key={i} cx="45" cy="45" r={radius} fill="none" stroke={donutColors[i]} strokeWidth="10" strokeLinecap="butt" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={offset} className="transition-all duration-700" />;
+                                                                })}
+                                                                <text x="45" y="43" textAnchor="middle" className="fill-gray-900 dark:fill-white text-[10px] font-extrabold">{entries.length}</text>
+                                                                <text x="45" y="52" textAnchor="middle" className="fill-gray-400 text-[7px]">{t('statsPage.channels', '채널')}</text>
+                                                            </svg>
+                                                            <div className="flex-1 space-y-1.5">
+                                                                {entries.map(([name, rev], i) => {
+                                                                    const pct = total > 0 ? (rev / total * 100).toFixed(1) : 0;
+                                                                    return (
+                                                                        <div key={i} className="flex items-center gap-2">
+                                                                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: donutColors[i] }} />
+                                                                            <span className="text-[10px] text-gray-700 dark:text-gray-300 font-bold truncate flex-1">{name}</span>
+                                                                            <span className="text-[10px] font-extrabold text-gray-900 dark:text-white">{pct}%</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
 
-                                            {/* Top Categories */}
-                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-                                                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3">
+                                            {/* Top Categories — Donut + List */}
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
+                                                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center"><PieChart size={12} className="text-white" /></div>
                                                     {t('statsPage.analyticsCategories', '카테고리별 매출')}
                                                 </h3>
-                                                <div className="space-y-2">
-                                                    {analyticsData.topCategories.map(([name, rev], i) => {
-                                                        const pct = analyticsData.totalRevenue > 0 ? (rev / analyticsData.totalRevenue * 100).toFixed(1) : 0;
-                                                        const barColors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-pink-500'];
-                                                        return (
-                                                            <div key={i}>
-                                                                <div className="flex justify-between text-[11px] mb-1">
-                                                                    <span className="font-bold text-gray-700 dark:text-gray-300">{name}</span>
-                                                                    <span className="text-gray-400 dark:text-gray-500">{pct}%</span>
-                                                                </div>
-                                                                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                                                                    <div className={`${barColors[i % 5]} h-2 rounded-full transition-all`}
-                                                                        style={{ width: `${pct}%` }} />
-                                                                </div>
+                                                {(() => {
+                                                    const entries = analyticsData.topCategories.slice(0, 5);
+                                                    const total = entries.reduce((s, e) => s + e[1], 0);
+                                                    const donutColors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+                                                    const radius = 36; const circ = 2 * Math.PI * radius;
+                                                    let acc = 0;
+                                                    return (
+                                                        <div className="flex gap-4 items-center">
+                                                            <svg width="90" height="90" viewBox="0 0 90 90" className="flex-shrink-0">
+                                                                <circle cx="45" cy="45" r={radius} fill="none" stroke="#f3f4f6" strokeWidth="10" className="dark:stroke-gray-700" />
+                                                                {entries.map((entry, i) => {
+                                                                    const pct = total > 0 ? entry[1] / total : 0;
+                                                                    const dash = pct * circ;
+                                                                    const offset = -acc * circ + circ * 0.25;
+                                                                    acc += pct;
+                                                                    return <circle key={i} cx="45" cy="45" r={radius} fill="none" stroke={donutColors[i]} strokeWidth="10" strokeLinecap="butt" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={offset} className="transition-all duration-700" />;
+                                                                })}
+                                                                <text x="45" y="43" textAnchor="middle" className="fill-gray-900 dark:fill-white text-[10px] font-extrabold">{entries.length}</text>
+                                                                <text x="45" y="52" textAnchor="middle" className="fill-gray-400 text-[7px]">{t('statsPage.categories', '카테고리')}</text>
+                                                            </svg>
+                                                            <div className="flex-1 space-y-1.5">
+                                                                {entries.map(([name, rev], i) => {
+                                                                    const pct = total > 0 ? (rev / total * 100).toFixed(1) : 0;
+                                                                    return (
+                                                                        <div key={i} className="flex items-center gap-2">
+                                                                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: donutColors[i] }} />
+                                                                            <span className="text-[10px] text-gray-700 dark:text-gray-300 font-bold truncate flex-1">{name}</span>
+                                                                            <span className="text-[10px] font-extrabold text-gray-900 dark:text-white">{pct}%</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
 
@@ -4868,24 +5019,33 @@ ${productSection}
                                             </div>
                                         </div>
 
-                                        {/* ═══ Additional KPI Row ═══ */}
+                                        {/* ═══ Additional KPI Row — with SVG Ring Charts ═══ */}
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
-                                                <p className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">{formatRevenue(analyticsData.avgOrderValue)}</p>
-                                            </div>
-                                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">{t('statsPage.analyticsTotalTx', '총 거래건수')}</p>
-                                                <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400">{analyticsData.totalTx.toLocaleString()}</p>
-                                            </div>
-                                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">{t('statsPage.analyticsTotalQty', '총 판매수량')}</p>
-                                                <p className="text-lg font-extrabold text-purple-600 dark:text-purple-400">{analyticsData.totalQty.toLocaleString()}</p>
-                                            </div>
-                                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">{t('statsPage.analyticsTotalCustomers', '총 고객수')}</p>
-                                                <p className="text-lg font-extrabold text-teal-600 dark:text-teal-400">{analyticsData.totalCustomers.toLocaleString()}</p>
-                                            </div>
+                                            {[
+                                                { label: t('statsPage.analyticsAvgOrder', '평균 주문가'), value: formatRevenue(analyticsData.avgOrderValue), raw: analyticsData.avgOrderValue, max: analyticsData.totalRevenue > 0 ? analyticsData.totalRevenue / Math.max(1, analyticsData.totalTx) * 3 : 1, color: '#6366f1', icon: <ShoppingCart size={14} /> },
+                                                { label: t('statsPage.analyticsTotalTx', '총 거래건수'), value: analyticsData.totalTx.toLocaleString(), raw: analyticsData.totalTx, max: Math.max(analyticsData.totalTx * 1.5, 1), color: '#3b82f6', icon: <FileText size={14} /> },
+                                                { label: t('statsPage.analyticsTotalQty', '총 판매수량'), value: analyticsData.totalQty.toLocaleString(), raw: analyticsData.totalQty, max: Math.max(analyticsData.totalQty * 1.5, 1), color: '#a855f7', icon: <Package size={14} /> },
+                                                { label: t('statsPage.analyticsTotalCustomers', '총 고객수'), value: analyticsData.totalCustomers.toLocaleString(), raw: analyticsData.totalCustomers, max: Math.max(analyticsData.totalCustomers * 1.5, 1), color: '#14b8a6', icon: <Users size={14} /> },
+                                            ].map((item, idx) => {
+                                                const pct = Math.min(100, (item.raw / item.max) * 100);
+                                                const r = 22; const circ = 2 * Math.PI * r;
+                                                const dash = (pct / 100) * circ;
+                                                return (
+                                                    <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 flex items-center gap-3 hover:shadow-md transition-shadow">
+                                                        <svg width="52" height="52" viewBox="0 0 52 52" className="flex-shrink-0">
+                                                            <circle cx="26" cy="26" r={r} fill="none" stroke="#f3f4f6" strokeWidth="4" className="dark:stroke-gray-700" />
+                                                            <circle cx="26" cy="26" r={r} fill="none" stroke={item.color} strokeWidth="4" strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} transform="rotate(-90 26 26)" className="transition-all duration-700" />
+                                                        </svg>
+                                                        <div className="absolute" style={{ width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <span style={{ color: item.color }}>{item.icon}</span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] font-bold text-gray-400 uppercase">{item.label}</p>
+                                                            <p className="text-base font-extrabold" style={{ color: item.color }}>{item.value}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
 
                                         {/* Stats Footer */}
