@@ -1,0 +1,1 @@
+import{a as e}from"./index-DscjayWp.js";const r=()=>{const{user:r}=e(),o=!(!r||1!==r.is_demo&&"1"!==r.is_demo&&!0!==r.is_demo),s=(e="")=>(alert(e?`데모 계정에서는 "${e}" 기능을 사용할 수 없습니다.\n실제 계정을 만들어 이용해 주세요.`:"데모 계정에서는 이 기능을 사용할 수 없습니다.\n실제 계정을 만들어 이용해 주세요."),!0);return{isDemoUser:o,demoAlert:s,guardAction:(e,r="")=>{if(!o)return e();s(r)}}};export{r as u};

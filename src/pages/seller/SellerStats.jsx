@@ -1691,8 +1691,12 @@ ${productSection}
 
     // ── Integration Action: Copy for Google Sheets ──
     const copyForGoogleSheets = useCallback(() => {
-        const data = filteredStats.length > 0 ? filteredStats : allStats;
-        if (!data || data.length === 0) return showToast('복사할 데이터가 없습니다', 'error');
+        if (!allStats || allStats.length === 0) return showToast('복사할 데이터가 없습니다', 'error');
+        // Filter by activeTab inside the function to avoid TDZ with filteredStats
+        const data = activeTab && activeTab !== 'dashboard'
+            ? allStats.filter(s => s.record_type === activeTab)
+            : allStats;
+        if (data.length === 0) return showToast('현재 탭에 복사할 데이터가 없습니다', 'error');
         const headers = ['날짜', '유형', '국가', '매출', '고객수', '거래수', '평균단가', '판매채널', '상품명', '수량', '인기상품', '메모'];
         const rows = data.map(s => [
             s.record_date || '',
@@ -1712,7 +1716,7 @@ ${productSection}
         navigator.clipboard.writeText(tsv).then(() => {
             showToast(`${data.length}건의 데이터가 복사됨 — Google Sheets에서 Ctrl+V로 붙여넣기`, 'success');
         }).catch(() => showToast('클립보드 복사 실패', 'error'));
-    }, [allStats, filteredStats, showToast]);
+    }, [allStats, activeTab, showToast]);
 
     // ── Integration Action: Email Report ──
     const sendEmailReport = useCallback(() => {
