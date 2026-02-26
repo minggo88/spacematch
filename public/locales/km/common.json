@@ -107,7 +107,9 @@
     "justNow": "ទើបតែ",
     "minutesAgo": "{{count}} នាទីមុន",
     "hoursAgo": "{{count}} ម៉ោងមុន",
-    "daysAgo": "{{count}} ថ្ងៃមុន"
+    "daysAgo": "{{count}} ថ្ងៃមុន",
+    "weeksAgo": "{{count}} សប្ដាហ៍មុន",
+    "monthsAgo": "{{count}} ខែមុន"
   },
   "confirm_delete": "តើអ្នកពិតជាចង់លុបមែនទេ?",
   "confirm_action": "តើអ្នកចង់បន្តមែនទេ?",
@@ -170,7 +172,8 @@
     "distributionProposals": "សំណើចែកចាយ",
     "shippingManagement": "គ្រប់គ្រងការដឹកជញ្ជូន",
     "settlements": "ការទូទាត់",
-    "notificationSettings": "ការកំណត់ការជូនដំណឹង"
+    "notificationSettings": "ការកំណត់ការជូនដំណឹង",
+    "menuVisibility": "ការបង្ហាញម៉ឺនុយ"
   },
   "notif": {
     "center": "មជ្ឈមណ្ឌលជូនដំណឹង",
@@ -364,7 +367,12 @@
     "mainMenu": "ម៉ឺនុយចម្បង",
     "managementMenu": "ម៉ឺនុយគ្រប់គ្រង",
     "communityMenu": "សហគមន៍",
-    "otherMenu": "ផ្សេងៗ"
+    "otherMenu": "ផ្សេងៗ",
+    "vendor": "អ្នកផ្គត់ផ្គង់",
+    "vendorRole": "តួនាទីអ្នកផ្គត់ផ្គង់",
+    "override": "បដិសេធ",
+    "changed": "បានផ្លាស់ប្តូរ",
+    "noChanges": "គ្មានការផ្លាស់ប្តូរ"
   },
   "vendorDashboard": {
     "welcome": "សួស្តី",
@@ -391,5 +399,32 @@
     "goComplete": "បំពេញ"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM អ្នកលក់"
+  "sellerStatsManagement": "CRM អ្នកលក់",
+  "publicProfile": {
+    "typePopup": "ហាងបណ្តោះអាសន្ន",
+    "typeGallery": "វិចិត្រសាល",
+    "typeCafe": "ហាងកាហ្វេ",
+    "typeShowroom": "បន្ទប់តាំងបង្ហាញ",
+    "typeFleamarket": "ផ្សារចាស់",
+    "typeStore": "ហាង",
+    "profileLoadFailed": "បរាជ័យក្នុងការផ្ទុកប្រវត្តិរូប",
+    "profileLoadError": "កំហុសក្នុងការផ្ទុកប្រវត្តិរូប",
+    "profileNotFound": "រកមិនឃើញប្រវត្តិរូប",
+    "invalidAccess": "ការចូលមិនត្រឹមត្រូវ",
+    "goBack": "ត្រឡប់ក្រោយ",
+    "roleHost": "ម្ចាស់ទីតាំង",
+    "roleSeller": "អ្នកលក់",
+    "joined": "បានចូលរួម",
+    "registeredSpaces": "ទីតាំងដែលបានចុះឈ្មោះ",
+    "entryActivity": "សកម្មភាពចូល",
+    "allTypes": "គ្រប់ប្រភេទ",
+    "viewDetails": "មើលព័ត៌មានលម្អិត",
+    "productPhotos": "រូបភាពផលិតផល",
+    "product": "ផលិតផល",
+    "productPhoto": "រូបភាពផលិតផល",
+    "entryHistory": "ប្រវត្តិនៃការចូល",
+    "approved": "បានអនុម័ត",
+    "noSpacesYet": "មិនទាន់មានទីតាំងទេ",
+    "noSpacesDesc": "អ្នកប្រើប្រាស់នេះមិនទាន់បានចុះឈ្មោះទីតាំងទេ"
+  }
 }

@@ -107,7 +107,9 @@
     "justNow": "Щойно",
     "minutesAgo": "{{count}} хв. тому",
     "hoursAgo": "{{count}} год. тому",
-    "daysAgo": "{{count}} дн. тому"
+    "daysAgo": "{{count}} дн. тому",
+    "weeksAgo": "{{count}} тиж. тому",
+    "monthsAgo": "{{count}} міс. тому"
   },
   "confirm_delete": "Ви впевнені, що хочете видалити?",
   "confirm_action": "Продовжити?",
@@ -170,7 +172,8 @@
     "distributionProposals": "Пропозиції дистрибуції",
     "shippingManagement": "Керування доставкою",
     "settlements": "Розрахунки",
-    "notificationSettings": "Налаштування сповіщень"
+    "notificationSettings": "Налаштування сповіщень",
+    "menuVisibility": "Видимість меню"
   },
   "notif": {
     "center": "Центр сповіщень",
@@ -364,7 +367,12 @@
     "mainMenu": "Головне меню",
     "managementMenu": "Меню керування",
     "communityMenu": "Спільнота",
-    "otherMenu": "Інше"
+    "otherMenu": "Інше",
+    "vendor": "Постачальник",
+    "vendorRole": "Роль постачальника",
+    "override": "Перевизначити",
+    "changed": "Змінено",
+    "noChanges": "Без змін"
   },
   "vendorDashboard": {
     "welcome": "Вітаємо",
@@ -391,5 +399,32 @@
     "goComplete": "Заповнити"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM продавця"
+  "sellerStatsManagement": "CRM продавця",
+  "publicProfile": {
+    "typePopup": "Поп-ап магазин",
+    "typeGallery": "Галерея",
+    "typeCafe": "Кафе",
+    "typeShowroom": "Шоурум",
+    "typeFleamarket": "Блошиний ринок",
+    "typeStore": "Магазин",
+    "profileLoadFailed": "Не вдалося завантажити профіль",
+    "profileLoadError": "Помилка завантаження профілю",
+    "profileNotFound": "Профіль не знайдено",
+    "invalidAccess": "Недійсний доступ",
+    "goBack": "Назад",
+    "roleHost": "Хост",
+    "roleSeller": "Продавець",
+    "joined": "Приєднався",
+    "registeredSpaces": "Зареєстровані локації",
+    "entryActivity": "Активність входу",
+    "allTypes": "Усі типи",
+    "viewDetails": "Деталі",
+    "productPhotos": "Фото товарів",
+    "product": "Товар",
+    "productPhoto": "Фото товару",
+    "entryHistory": "Історія входів",
+    "approved": "Затверджено",
+    "noSpacesYet": "Локацій ще немає",
+    "noSpacesDesc": "Цей користувач ще не зареєстрував локації"
+  }
 }

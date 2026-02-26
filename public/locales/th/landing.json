@@ -124,7 +124,8 @@
     "sellers": "ผู้ขายที่ลงทะเบียน",
     "satisfaction": "ความพึงพอใจ",
     "regions": "พื้นที่ให้บริการ",
-    "salesRecords": "รายการขาย"
+    "salesRecords": "รายการขาย",
+    "provenResults": "ผลลัพธ์ที่พิสูจน์แล้ว"
   },
   "cta": {
     "badge": "GET STARTED",

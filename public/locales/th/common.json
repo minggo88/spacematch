@@ -107,7 +107,9 @@
     "justNow": "เมื่อสักครู่",
     "minutesAgo": "{{count}} นาทีที่แล้ว",
     "hoursAgo": "{{count}} ชั่วโมงที่แล้ว",
-    "daysAgo": "{{count}} วันที่แล้ว"
+    "daysAgo": "{{count}} วันที่แล้ว",
+    "weeksAgo": "{{count}} สัปดาห์ที่แล้ว",
+    "monthsAgo": "{{count}} เดือนที่แล้ว"
   },
   "confirm_delete": "คุณแน่ใจว่าต้องการลบหรือไม่?",
   "confirm_action": "คุณต้องการดำเนินการต่อหรือไม่?",
@@ -170,7 +172,8 @@
     "distributionProposals": "ข้อเสนอการจัดจำหน่าย",
     "shippingManagement": "การจัดการการจัดส่ง",
     "settlements": "การชำระเงิน",
-    "notificationSettings": "ตั้งค่าการแจ้งเตือน"
+    "notificationSettings": "ตั้งค่าการแจ้งเตือน",
+    "menuVisibility": "การมองเห็นเมนู"
   },
   "notif": {
     "center": "ศูนย์การแจ้งเตือน",
@@ -364,7 +367,12 @@
     "mainMenu": "เมนูหลัก",
     "managementMenu": "เมนูจัดการ",
     "communityMenu": "ชุมชน",
-    "otherMenu": "อื่นๆ"
+    "otherMenu": "อื่นๆ",
+    "vendor": "ผู้ขาย",
+    "vendorRole": "บทบาทผู้ขาย",
+    "override": "เปลี่ยนแปลง",
+    "changed": "เปลี่ยนแล้ว",
+    "noChanges": "ไม่มีการเปลี่ยนแปลง"
   },
   "vendorDashboard": {
     "welcome": "สวัสดี",
@@ -391,5 +399,32 @@
     "goComplete": "ทำให้สมบูรณ์"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM ผู้ขาย"
+  "sellerStatsManagement": "CRM ผู้ขาย",
+  "publicProfile": {
+    "typePopup": "ร้านป๊อปอัพ",
+    "typeGallery": "แกลเลอรี",
+    "typeCafe": "คาเฟ่",
+    "typeShowroom": "โชว์รูม",
+    "typeFleamarket": "ตลาดนัด",
+    "typeStore": "ร้านค้า",
+    "profileLoadFailed": "โหลดโปรไฟล์ไม่สำเร็จ",
+    "profileLoadError": "เกิดข้อผิดพลาดในการโหลดโปรไฟล์",
+    "profileNotFound": "ไม่พบโปรไฟล์",
+    "invalidAccess": "การเข้าถึงไม่ถูกต้อง",
+    "goBack": "กลับ",
+    "roleHost": "โฮสต์",
+    "roleSeller": "ผู้ขาย",
+    "joined": "เข้าร่วม",
+    "registeredSpaces": "สถานที่ที่ลงทะเบียน",
+    "entryActivity": "กิจกรรมการเข้าร่วม",
+    "allTypes": "ทุกประเภท",
+    "viewDetails": "ดูรายละเอียด",
+    "productPhotos": "รูปภาพสินค้า",
+    "product": "สินค้า",
+    "productPhoto": "รูปภาพสินค้า",
+    "entryHistory": "ประวัติการเข้าร่วม",
+    "approved": "อนุมัติแล้ว",
+    "noSpacesYet": "ยังไม่มีสถานที่",
+    "noSpacesDesc": "ผู้ใช้นี้ยังไม่ได้ลงทะเบียนสถานที่"
+  }
 }

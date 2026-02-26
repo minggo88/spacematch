@@ -1073,7 +1073,9 @@
     "commissionRate": "Hoa hồng {{rate}}%",
     "venueIntro": "Mô tả không gian",
     "venueIntroEmpty": "Chưa có mô tả chi tiết cho không gian này",
-    "backToHost": "Quay lại thông tin nhà cung cấp"
+    "backToHost": "Quay lại thông tin nhà cung cấp",
+    "unlockFailed": "Mở khóa thất bại",
+    "errorOccurred": "Đã xảy ra lỗi"
   },
   "analyticsPage": {
     "title": "Thống kê thị trường",
@@ -1182,5 +1184,15 @@
   },
   "countryFilter": "Theo quốc gia",
   "allCountries": "Tất cả quốc gia",
-  "myCountry": "Quốc gia của tôi"
+  "myCountry": "Quốc gia của tôi",
+  "sortLabel": "Sắp xếp",
+  "sortLatest": "Mới nhất",
+  "sortPriceAsc": "Giá: Thấp đến Cao",
+  "sortPriceDesc": "Giá: Cao đến Thấp",
+  "sortPopular": "Phổ biến",
+  "countryStatsTitle": "Thống kê theo quốc gia",
+  "venueCountLabel": "Địa điểm",
+  "avgPriceLabel": "Giá trung bình",
+  "activeRecruitLabel": "Đang tuyển",
+  "spaces": "địa điểm"
 }

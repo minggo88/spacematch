@@ -222,5 +222,25 @@
     "창업": "Démarrage",
     "부업": "Travail d'appoint",
     "투자": "Investissement"
-  }
+  },
+  "noBookmarksDesc": "Aucun signet pour le moment",
+  "activityLevel": "Niveau d'activité",
+  "activitySprout": "Pousse",
+  "activityGrowing": "En croissance",
+  "activityTree": "Arbre",
+  "activityStar": "Étoile",
+  "activityLegend": "Légende",
+  "reportPost": "Signaler la publication",
+  "reportDesc": "Pourquoi signalez-vous cette publication ?",
+  "reportSpam": "Spam",
+  "reportInappropriate": "Inapproprié",
+  "reportAdvertising": "Publicité",
+  "reportOther": "Autre",
+  "reportDetailPlaceholder": "Veuillez fournir plus de détails...",
+  "submitReport": "Soumettre le signalement",
+  "reportSubmitted": "Signalement soumis",
+  "reportFailed": "Échec de la soumission du signalement",
+  "trendingTags": "Tags tendance",
+  "activityScore": "Score d'activité",
+  "commentLike": "J'aime"
 }

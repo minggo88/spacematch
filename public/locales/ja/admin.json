@@ -13,7 +13,10 @@
   "trash": "ゴミ箱",
   "database": "データベース",
   "sellerStats": {
-    "title": "セラーCRM"
+    "title": "セラーCRM",
+    "emptyDashboardDesc2": "販売データを入力して分析を始めましょう",
+    "sellerDirectInputDesc": "セラーが直接入力したデータ",
+    "dataWaitingDesc": "データ入力待ち"
   },
   "totalUsers": "総ユーザー数",
   "totalVenues": "総会場数",
@@ -916,7 +919,18 @@
     "submitting": "処理中...",
     "submitEdit": "変更を保存",
     "submitCreate": "広告を作成",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "リスト表示",
+    "gridView": "グリッド表示",
+    "targetCountries": "対象国",
+    "allCountries": "全ての国",
+    "selectedCountries": "選択された国",
+    "batchEdit": "一括編集",
+    "batchCount": "{{count}}件選択",
+    "batchEditDesc": "選択した広告を一括編集",
+    "batchEditSuccess": "一括編集が完了しました",
+    "noFieldsSelected": "フィールドが選択されていません",
+    "applyBatchEdit": "一括編集を適用"
   },
   "adDashboardPage": {
     "slotHomeTop": "ホームトップ",
@@ -1049,7 +1063,10 @@
     "securitySummary": "セキュリティステータスサマリー",
     "ipBlock": "IPブロック",
     "apiLimit": "API制限",
-    "maintenanceLabel": "メンテナンスモード"
+    "maintenanceLabel": "メンテナンスモード",
+    "disableDevtoolsBlock": "DevToolsブロック無効化",
+    "disableDevtoolsBlockDesc": "開発者ツールの起動を許可",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "ゴミ箱管理",

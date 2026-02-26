@@ -222,5 +222,25 @@
     "창업": "Startup",
     "부업": "Side Job",
     "투자": "Investment"
-  }
+  },
+  "noBookmarksDesc": "No bookmarked posts yet",
+  "activityLevel": "Activity Level",
+  "activitySprout": "Sprout",
+  "activityGrowing": "Growing",
+  "activityTree": "Tree",
+  "activityStar": "Star",
+  "activityLegend": "Legend",
+  "reportPost": "Report Post",
+  "reportDesc": "Why are you reporting this post?",
+  "reportSpam": "Spam",
+  "reportInappropriate": "Inappropriate",
+  "reportAdvertising": "Advertising",
+  "reportOther": "Other",
+  "reportDetailPlaceholder": "Please provide more details...",
+  "submitReport": "Submit Report",
+  "reportSubmitted": "Report submitted",
+  "reportFailed": "Failed to submit report",
+  "trendingTags": "Trending Tags",
+  "activityScore": "Activity Score",
+  "commentLike": "Like"
 }

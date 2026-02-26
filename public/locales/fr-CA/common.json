@@ -107,7 +107,9 @@
     "justNow": "À l'instant",
     "minutesAgo": "Il y a {{count}} min",
     "hoursAgo": "Il y a {{count}} h",
-    "daysAgo": "Il y a {{count}} j"
+    "daysAgo": "Il y a {{count}} j",
+    "weeksAgo": "il y a {{count}} semaines",
+    "monthsAgo": "il y a {{count}} mois"
   },
   "confirm_delete": "Voulez-vous vraiment supprimer ?",
   "confirm_action": "Voulez-vous continuer ?",
@@ -170,7 +172,8 @@
     "distributionProposals": "Propositions de distribution",
     "shippingManagement": "Gestion des expéditions",
     "settlements": "Règlements",
-    "notificationSettings": "Paramètres de notification"
+    "notificationSettings": "Paramètres de notification",
+    "menuVisibility": "Visibilité du menu"
   },
   "notif": {
     "center": "Centre de notifications",
@@ -364,7 +367,12 @@
     "mainMenu": "Menu principal",
     "managementMenu": "Menu de gestion",
     "communityMenu": "Communauté",
-    "otherMenu": "Autre"
+    "otherMenu": "Autre",
+    "vendor": "Vendeur",
+    "vendorRole": "Rôle du vendeur",
+    "override": "Remplacer",
+    "changed": "Modifié",
+    "noChanges": "Aucune modification"
   },
   "vendorDashboard": {
     "welcome": "Bonjour",
@@ -391,5 +399,32 @@
     "goComplete": "Compléter"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM Vendeur"
+  "sellerStatsManagement": "CRM Vendeur",
+  "publicProfile": {
+    "typePopup": "Boutique éphémère",
+    "typeGallery": "Galerie",
+    "typeCafe": "Café",
+    "typeShowroom": "Salle d'exposition",
+    "typeFleamarket": "Marché aux puces",
+    "typeStore": "Magasin",
+    "profileLoadFailed": "Échec du chargement du profil",
+    "profileLoadError": "Erreur de chargement du profil",
+    "profileNotFound": "Profil introuvable",
+    "invalidAccess": "Accès invalide",
+    "goBack": "Retour",
+    "roleHost": "Hôte",
+    "roleSeller": "Vendeur",
+    "joined": "Inscrit",
+    "registeredSpaces": "Espaces enregistrés",
+    "entryActivity": "Activité d'entrée",
+    "allTypes": "Tous les types",
+    "viewDetails": "Voir les détails",
+    "productPhotos": "Photos de produits",
+    "product": "Produit",
+    "productPhoto": "Photo du produit",
+    "entryHistory": "Historique d'entrée",
+    "approved": "Approuvé",
+    "noSpacesYet": "Aucun espace pour le moment",
+    "noSpacesDesc": "Cet utilisateur n'a pas encore enregistré d'espaces"
+  }
 }

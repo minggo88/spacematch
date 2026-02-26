@@ -13,7 +13,10 @@
   "trash": "Корзина",
   "database": "База данных",
   "sellerStats": {
-    "title": "CRM продавца"
+    "title": "CRM продавца",
+    "emptyDashboardDesc2": "When sellers enter data on the CRM page",
+    "sellerDirectInputDesc": "Sellers directly enter daily/monthly/annual sales data from the CRM menu.",
+    "dataWaitingDesc": "No seller data yet. Insights will be generated when sellers input data on the CRM page."
   },
   "totalUsers": "Всего пользователей",
   "totalVenues": "Всего площадок",
@@ -437,7 +440,9 @@
     "createAdminTitle": "Добавить нового администратора",
     "labelPassword": "Пароль",
     "cancel": "Отмена",
-    "createAccount": "Создать аккаунт"
+    "createAccount": "Создать аккаунт",
+    "tabVendor": "Vendors",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "Управление платежами",
@@ -914,7 +919,18 @@
     "submitting": "Обработка...",
     "submitEdit": "Сохранить изменения",
     "submitCreate": "Создать рекламу",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "Список",
+    "gridView": "Сетка",
+    "targetCountries": "Целевые страны",
+    "allCountries": "Все страны",
+    "selectedCountries": "Выбранные страны",
+    "batchEdit": "Массовое редактирование",
+    "batchCount": "{{count}} выбрано",
+    "batchEditDesc": "Редактировать выбранные объявления",
+    "batchEditSuccess": "Массовое редактирование завершено",
+    "noFieldsSelected": "Поля не выбраны",
+    "applyBatchEdit": "Применить массовое редактирование"
   },
   "adDashboardPage": {
     "slotHomeTop": "Главная Top",
@@ -1047,7 +1063,10 @@
     "securitySummary": "Сводка безопасности",
     "ipBlock": "Блокировка IP",
     "apiLimit": "Лимит API",
-    "maintenanceLabel": "Техобслуживание"
+    "maintenanceLabel": "Техобслуживание",
+    "disableDevtoolsBlock": "Отключить блокировку DevTools",
+    "disableDevtoolsBlockDesc": "Разрешить открытие инструментов разработчика",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "Управление корзиной",

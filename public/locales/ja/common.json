@@ -107,7 +107,9 @@
     "justNow": "たった今",
     "minutesAgo": "{{count}}分前",
     "hoursAgo": "{{count}}時間前",
-    "daysAgo": "{{count}}日前"
+    "daysAgo": "{{count}}日前",
+    "weeksAgo": "{{count}}週間前",
+    "monthsAgo": "{{count}}ヶ月前"
   },
   "confirm_delete": "本当に削除しますか？",
   "confirm_action": "続行しますか？",
@@ -170,7 +172,8 @@
     "distributionProposals": "流通提案",
     "shippingManagement": "配送管理",
     "settlements": "精算",
-    "notificationSettings": "通知設定"
+    "notificationSettings": "通知設定",
+    "menuVisibility": "メニュー表示設定"
   },
   "notif": {
     "center": "通知センター",
@@ -366,7 +369,10 @@
     "mainMenu": "メインメニュー",
     "managementMenu": "管理メニュー",
     "communityMenu": "コミュニティ",
-    "otherMenu": "その他"
+    "otherMenu": "その他",
+    "override": "オーバーライド",
+    "changed": "変更済み",
+    "noChanges": "変更なし"
   },
   "vendorDashboard": {
     "welcome": "こんにちは",
@@ -393,5 +399,32 @@
     "goComplete": "完成する"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "セラーCRM"
+  "sellerStatsManagement": "セラーCRM",
+  "publicProfile": {
+    "typePopup": "ポップアップストア",
+    "typeGallery": "ギャラリー",
+    "typeCafe": "カフェ",
+    "typeShowroom": "ショールーム",
+    "typeFleamarket": "フリーマーケット",
+    "typeStore": "ストア",
+    "profileLoadFailed": "プロフィールの読み込みに失敗しました",
+    "profileLoadError": "プロフィール読み込みエラー",
+    "profileNotFound": "プロフィールが見つかりません",
+    "invalidAccess": "無効なアクセス",
+    "goBack": "戻る",
+    "roleHost": "ホスト",
+    "roleSeller": "セラー",
+    "joined": "加入",
+    "registeredSpaces": "登録スペース",
+    "entryActivity": "入店活動",
+    "allTypes": "全タイプ",
+    "viewDetails": "詳細を見る",
+    "productPhotos": "商品写真",
+    "product": "商品",
+    "productPhoto": "商品写真",
+    "entryHistory": "入店履歴",
+    "approved": "承認済み",
+    "noSpacesYet": "まだスペースがありません",
+    "noSpacesDesc": "このユーザーはまだスペースを登録していません"
+  }
 }

@@ -107,7 +107,9 @@
     "justNow": "Vừa xong",
     "minutesAgo": "{{count}} phút trước",
     "hoursAgo": "{{count}} giờ trước",
-    "daysAgo": "{{count}} ngày trước"
+    "daysAgo": "{{count}} ngày trước",
+    "weeksAgo": "{{count}} tuần trước",
+    "monthsAgo": "{{count}} tháng trước"
   },
   "confirm_delete": "Bạn có chắc muốn xóa không?",
   "confirm_action": "Bạn có muốn tiếp tục?",
@@ -170,7 +172,8 @@
     "distributionProposals": "Đề xuất Phân phối",
     "shippingManagement": "Quản lý Vận chuyển",
     "settlements": "Thanh toán",
-    "notificationSettings": "Cài đặt Thông báo"
+    "notificationSettings": "Cài đặt Thông báo",
+    "menuVisibility": "Hiển thị menu"
   },
   "notif": {
     "center": "Trung tâm thông báo",
@@ -364,7 +367,12 @@
     "mainMenu": "Menu chính",
     "managementMenu": "Menu quản lý",
     "communityMenu": "Cộng đồng",
-    "otherMenu": "Khác"
+    "otherMenu": "Khác",
+    "vendor": "Nhà cung cấp",
+    "vendorRole": "Vai trò nhà cung cấp",
+    "override": "Ghi đè",
+    "changed": "Đã thay đổi",
+    "noChanges": "Không có thay đổi"
   },
   "vendorDashboard": {
     "welcome": "Xin chào",
@@ -391,5 +399,32 @@
     "goComplete": "Hoàn thiện"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM Người bán"
+  "sellerStatsManagement": "CRM Người bán",
+  "publicProfile": {
+    "typePopup": "Cửa hàng pop-up",
+    "typeGallery": "Phòng trưng bày",
+    "typeCafe": "Quán cà phê",
+    "typeShowroom": "Phòng trưng bày",
+    "typeFleamarket": "Chợ trời",
+    "typeStore": "Cửa hàng",
+    "profileLoadFailed": "Tải hồ sơ thất bại",
+    "profileLoadError": "Lỗi tải hồ sơ",
+    "profileNotFound": "Không tìm thấy hồ sơ",
+    "invalidAccess": "Truy cập không hợp lệ",
+    "goBack": "Quay lại",
+    "roleHost": "Chủ nhà",
+    "roleSeller": "Người bán",
+    "joined": "Đã tham gia",
+    "registeredSpaces": "Địa điểm đã đăng ký",
+    "entryActivity": "Hoạt động tham gia",
+    "allTypes": "Tất cả loại",
+    "viewDetails": "Xem chi tiết",
+    "productPhotos": "Ảnh sản phẩm",
+    "product": "Sản phẩm",
+    "productPhoto": "Ảnh sản phẩm",
+    "entryHistory": "Lịch sử tham gia",
+    "approved": "Đã duyệt",
+    "noSpacesYet": "Chưa có địa điểm nào",
+    "noSpacesDesc": "Người dùng này chưa đăng ký địa điểm nào"
+  }
 }

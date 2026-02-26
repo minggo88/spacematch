@@ -107,7 +107,9 @@
     "justNow": "Just now",
     "minutesAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
-    "daysAgo": "{{count}}d ago"
+    "daysAgo": "{{count}}d ago",
+    "weeksAgo": "{{count}} weeks ago",
+    "monthsAgo": "{{count}} months ago"
   },
   "confirm_delete": "Are you sure you want to delete?",
   "confirm_action": "Do you want to proceed?",
@@ -397,5 +399,32 @@
     "goComplete": "Complete"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "Seller CRM"
+  "sellerStatsManagement": "Seller CRM",
+  "publicProfile": {
+    "typePopup": "Popup Store",
+    "typeGallery": "Gallery",
+    "typeCafe": "Cafe",
+    "typeShowroom": "Showroom",
+    "typeFleamarket": "Flea Market",
+    "typeStore": "Store",
+    "profileLoadFailed": "Failed to load profile",
+    "profileLoadError": "Error loading profile",
+    "profileNotFound": "Profile not found",
+    "invalidAccess": "Invalid access",
+    "goBack": "Go Back",
+    "roleHost": "Host",
+    "roleSeller": "Seller",
+    "joined": "Joined",
+    "registeredSpaces": "Registered Spaces",
+    "entryActivity": "Entry Activity",
+    "allTypes": "All Types",
+    "viewDetails": "View Details",
+    "productPhotos": "Product Photos",
+    "product": "Product",
+    "productPhoto": "Product Photo",
+    "entryHistory": "Entry History",
+    "approved": "Approved",
+    "noSpacesYet": "No spaces yet",
+    "noSpacesDesc": "This user hasn't registered any spaces yet"
+  }
 }

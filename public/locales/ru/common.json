@@ -107,7 +107,9 @@
     "justNow": "Только что",
     "minutesAgo": "{{count}} мин. назад",
     "hoursAgo": "{{count}} ч. назад",
-    "daysAgo": "{{count}} дн. назад"
+    "daysAgo": "{{count}} дн. назад",
+    "weeksAgo": "{{count}} нед. назад",
+    "monthsAgo": "{{count}} мес. назад"
   },
   "confirm_delete": "Вы уверены, что хотите удалить?",
   "confirm_action": "Продолжить?",
@@ -170,7 +172,8 @@
     "distributionProposals": "Предложения дистрибуции",
     "shippingManagement": "Управление доставкой",
     "settlements": "Расчёты",
-    "notificationSettings": "Настройки уведомлений"
+    "notificationSettings": "Настройки уведомлений",
+    "menuVisibility": "Видимость меню"
   },
   "notif": {
     "center": "Центр уведомлений",
@@ -364,7 +367,12 @@
     "mainMenu": "Главное меню",
     "managementMenu": "Меню управления",
     "communityMenu": "Сообщество",
-    "otherMenu": "Другое"
+    "otherMenu": "Другое",
+    "vendor": "Вендор",
+    "vendorRole": "Роль вендора",
+    "override": "Переопределить",
+    "changed": "Изменено",
+    "noChanges": "Нет изменений"
   },
   "vendorDashboard": {
     "welcome": "Здравствуйте",
@@ -391,5 +399,32 @@
     "goComplete": "Заполнить"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM продавца"
+  "sellerStatsManagement": "CRM продавца",
+  "publicProfile": {
+    "typePopup": "Поп-ап магазин",
+    "typeGallery": "Галерея",
+    "typeCafe": "Кафе",
+    "typeShowroom": "Шоурум",
+    "typeFleamarket": "Блошиный рынок",
+    "typeStore": "Магазин",
+    "profileLoadFailed": "Не удалось загрузить профиль",
+    "profileLoadError": "Ошибка загрузки профиля",
+    "profileNotFound": "Профиль не найден",
+    "invalidAccess": "Недопустимый доступ",
+    "goBack": "Назад",
+    "roleHost": "Хост",
+    "roleSeller": "Продавец",
+    "joined": "Присоединился",
+    "registeredSpaces": "Зарегистрированные площадки",
+    "entryActivity": "Активность входа",
+    "allTypes": "Все типы",
+    "viewDetails": "Подробнее",
+    "productPhotos": "Фото товаров",
+    "product": "Товар",
+    "productPhoto": "Фото товара",
+    "entryHistory": "История входов",
+    "approved": "Одобрено",
+    "noSpacesYet": "Пока нет площадок",
+    "noSpacesDesc": "Этот пользователь ещё не зарегистрировал площадки"
+  }
 }

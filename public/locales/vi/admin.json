@@ -13,7 +13,10 @@
   "trash": "Thùng rác",
   "database": "Cơ sở dữ liệu",
   "sellerStats": {
-    "title": "CRM Người bán"
+    "title": "CRM Người bán",
+    "emptyDashboardDesc2": "When sellers enter data on the CRM page",
+    "sellerDirectInputDesc": "Sellers directly enter daily/monthly/annual sales data from the CRM menu.",
+    "dataWaitingDesc": "No seller data yet. Insights will be generated when sellers input data on the CRM page."
   },
   "totalUsers": "Tổng người dùng",
   "totalVenues": "Tổng địa điểm",
@@ -437,7 +440,9 @@
     "createAdminTitle": "Thêm quản trị viên mới",
     "labelPassword": "Mật khẩu",
     "cancel": "Hủy",
-    "createAccount": "Tạo tài khoản"
+    "createAccount": "Tạo tài khoản",
+    "tabVendor": "Vendors",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "Quản lý thanh toán",
@@ -914,7 +919,18 @@
     "submitting": "Đang xử lý...",
     "submitEdit": "Lưu thay đổi",
     "submitCreate": "Tạo QC",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "Xem dạng danh sách",
+    "gridView": "Xem dạng lưới",
+    "targetCountries": "Quốc gia mục tiêu",
+    "allCountries": "Tất cả quốc gia",
+    "selectedCountries": "Quốc gia đã chọn",
+    "batchEdit": "Chỉnh sửa hàng loạt",
+    "batchCount": "Đã chọn {{count}}",
+    "batchEditDesc": "Chỉnh sửa quảng cáo đã chọn",
+    "batchEditSuccess": "Chỉnh sửa hàng loạt hoàn tất",
+    "noFieldsSelected": "Chưa chọn trường nào",
+    "applyBatchEdit": "Áp dụng chỉnh sửa hàng loạt"
   },
   "adDashboardPage": {
     "slotHomeTop": "Trang chủ Top",
@@ -1047,7 +1063,10 @@
     "securitySummary": "Tóm tắt trạng thái bảo mật",
     "ipBlock": "Chặn IP",
     "apiLimit": "Giới hạn API",
-    "maintenanceLabel": "Chế độ bảo trì"
+    "maintenanceLabel": "Chế độ bảo trì",
+    "disableDevtoolsBlock": "Tắt chặn DevTools",
+    "disableDevtoolsBlockDesc": "Cho phép mở công cụ developer",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "Quản lý thùng rác",

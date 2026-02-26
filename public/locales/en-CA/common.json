@@ -172,7 +172,8 @@
     "distributionProposals": "Distribution Proposals",
     "shippingManagement": "Shipping Management",
     "settlements": "Settlements",
-    "notificationSettings": "Notification Settings"
+    "notificationSettings": "Notification Settings",
+    "menuVisibility": "Menu Visibility"
   },
   "notif": {
     "center": "Notification Center",
@@ -366,7 +367,12 @@
     "mainMenu": "Main Menu",
     "managementMenu": "Management Menu",
     "communityMenu": "Community",
-    "otherMenu": "Other"
+    "otherMenu": "Other",
+    "vendor": "Vendor",
+    "vendorRole": "Vendor Role",
+    "override": "Override",
+    "changed": "Changed",
+    "noChanges": "No changes"
   },
   "vendorDashboard": {
     "welcome": "Hello",
@@ -393,5 +399,32 @@
     "goComplete": "Complete"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "Seller CRM"
+  "sellerStatsManagement": "Seller CRM",
+  "publicProfile": {
+    "typePopup": "Popup Store",
+    "typeGallery": "Gallery",
+    "typeCafe": "Café",
+    "typeShowroom": "Showroom",
+    "typeFleamarket": "Flea Market",
+    "typeStore": "Store",
+    "profileLoadFailed": "Failed to load profile",
+    "profileLoadError": "Error loading profile",
+    "profileNotFound": "Profile not found",
+    "invalidAccess": "Invalid access",
+    "goBack": "Go Back",
+    "roleHost": "Host",
+    "roleSeller": "Seller",
+    "joined": "Joined",
+    "registeredSpaces": "Registered Spaces",
+    "entryActivity": "Entry Activity",
+    "allTypes": "All Types",
+    "viewDetails": "View Details",
+    "productPhotos": "Product Photos",
+    "product": "Product",
+    "productPhoto": "Product Photo",
+    "entryHistory": "Entry History",
+    "approved": "Approved",
+    "noSpacesYet": "No spaces yet",
+    "noSpacesDesc": "This user hasn't registered any spaces yet"
+  }
 }
