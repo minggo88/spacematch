@@ -63,11 +63,17 @@ const OnboardingGuide = () => {
 
     // ── 노출 여부 판단 ──
     useEffect(() => {
-        if (!email || isAdmin || steps.length === 0) return;
+        console.log('[OnboardingGuide] Checking visibility:', { email, role, isAdmin, stepsCount: steps.length });
+
+        if (!email || isAdmin || steps.length === 0) {
+            console.log('[OnboardingGuide] Hidden — reason:', !email ? 'no email' : isAdmin ? 'admin' : 'no steps for role');
+            return;
+        }
 
         // 영구 숨김 체크
         const foreverKey = `onboarding_dismiss_forever_${email}`;
         if (localStorage.getItem(foreverKey) === 'true') {
+            console.log('[OnboardingGuide] Hidden — dismissed forever');
             setVisible(false);
             return;
         }
@@ -76,10 +82,12 @@ const OnboardingGuide = () => {
         const todayKey = `onboarding_dismiss_today_${email}`;
         const today = new Date().toDateString();
         if (localStorage.getItem(todayKey) === today) {
+            console.log('[OnboardingGuide] Hidden — dismissed today');
             setVisible(false);
             return;
         }
 
+        console.log('[OnboardingGuide] ✅ Showing guide!');
         setVisible(true);
         setCurrentStep(0);
     }, [email, isAdmin, steps.length]);
@@ -256,10 +264,10 @@ const OnboardingGuide = () => {
                                 key={i}
                                 onClick={() => setCurrentStep(i)}
                                 className={`h-1.5 rounded-full transition-all duration-300 ${i === currentStep
-                                        ? 'w-6 bg-indigo-500'
-                                        : i < currentStep
-                                            ? 'w-1.5 bg-indigo-300'
-                                            : 'w-1.5 bg-gray-200 dark:bg-gray-600'
+                                    ? 'w-6 bg-indigo-500'
+                                    : i < currentStep
+                                        ? 'w-1.5 bg-indigo-300'
+                                        : 'w-1.5 bg-gray-200 dark:bg-gray-600'
                                     }`}
                             />
                         ))}
