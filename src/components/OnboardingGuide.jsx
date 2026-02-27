@@ -9,11 +9,11 @@ import { X, ChevronRight, ChevronLeft, Sparkles, EyeOff } from 'lucide-react';
  * 역할별 맞춤 가이드:
  *   seller / host / vendor / admin / superadmin
  *
- * - 가입 후 1주일 이내: 매일 자동 노출, "오늘 그만 보기" 가능
- * - 가입 후 1주일 이후: "더 이상 보지 않기" 버튼 추가 → 영구 숨김
+ * - visible 기본값 TRUE → 무조건 보임
+ * - dismiss 시에만 숨김 (localStorage 기반)
  */
 
-// ── 역할별 가이드 단계 정의 (실제 사이드바 경로와 매칭) ──
+// ── 역할별 가이드 단계 정의 ──
 const GUIDE_STEPS = {
     seller: [
         { menuPath: '/seller', key: 'home', icon: '🏠' },
@@ -73,68 +73,74 @@ const OnboardingGuide = () => {
     const { user } = useAuth();
     const { t } = useTranslation('common');
     const [currentStep, setCurrentStep] = useState(0);
-    const [visible, setVisible] = useState(false);
+    // ★ 핵심 변경: 기본값 TRUE — 무조건 먼저 보여주고, dismiss 체크 후 숨김
+    const [visible, setVisible] = useState(true);
     const [highlightRect, setHighlightRect] = useState(null);
     const tooltipRef = useRef(null);
+    const [ready, setReady] = useState(false);
 
-    // user.id를 기본 식별자로 사용 (email이 비어있을 수 있음)
     const userId = user?.id;
     const role = user?.role;
     const createdAt = user?.created_at ? new Date(user.created_at) : null;
 
-    // Layout.jsx와 동일한 fallback
     const guideRole = role === 'superadmin' ? 'superadmin'
         : role === 'admin' ? 'admin'
             : role === 'host' ? 'host'
                 : role === 'vendor' ? 'vendor'
                     : role ? 'seller' : null;
 
-    // 가입 후 1주일 경과 여부
     const isAfterFirstWeek = createdAt
         ? (Date.now() - createdAt.getTime()) > ONE_WEEK_MS
         : false;
 
     const steps = guideRole ? (GUIDE_STEPS[guideRole] || []) : [];
 
-    // ── 노출 여부 판단 ──
+    // ── 숨김 여부만 판단 (기본은 보임) ──
     useEffect(() => {
-        console.log('[OnboardingGuide] Effect:', { userId, role, guideRole, stepsCount: steps.length });
-
-        // user 로딩 안됨 or 역할 가이드 없음
-        if (!userId || steps.length === 0) {
-            console.log('[OnboardingGuide] Skip:', !userId ? 'no userId' : 'no steps');
+        // user 아직 안 로드되었으면 기다림
+        if (!user) {
+            setReady(false);
             return;
         }
 
-        // 영구 숨김 체크
-        const foreverKey = `onboarding_dismiss_forever_${userId}`;
-        if (localStorage.getItem(foreverKey) === 'true') {
-            console.log('[OnboardingGuide] Dismissed forever');
+        // role이 없거나 steps가 없으면 숨김
+        if (!guideRole || steps.length === 0) {
             setVisible(false);
+            setReady(true);
+            return;
+        }
+
+        const uid = userId || user?.email || 'default';
+
+        // 영구 숨김 체크
+        const foreverKey = `onboarding_dismiss_forever_${uid}`;
+        if (localStorage.getItem(foreverKey) === 'true') {
+            setVisible(false);
+            setReady(true);
             return;
         }
 
         // 오늘 숨김 체크
-        const todayKey = `onboarding_dismiss_today_${userId}`;
+        const todayKey = `onboarding_dismiss_today_${uid}`;
         const today = new Date().toDateString();
         if (localStorage.getItem(todayKey) === today) {
-            console.log('[OnboardingGuide] Dismissed today');
             setVisible(false);
+            setReady(true);
             return;
         }
 
-        console.log('[OnboardingGuide] ✅ SHOWING! Role:', guideRole, 'Steps:', steps.length);
+        // ★ 모든 체크 통과 → 보여짐!
         setVisible(true);
         setCurrentStep(0);
-    }, [userId, steps.length, guideRole]);
+        setReady(true);
+    }, [user, userId, guideRole, steps.length]);
 
     // ── 하이라이트 대상 메뉴 위치 계산 ──
     const updateHighlight = useCallback(() => {
-        if (!visible || steps.length === 0) return;
+        if (!visible || !ready || steps.length === 0) return;
         const step = steps[currentStep];
         if (!step) return;
 
-        // 사이드바에서 해당 메뉴 NavLink 찾기
         const el = document.querySelector(`a[href="${step.menuPath}"]`);
         if (el) {
             const rect = el.getBoundingClientRect();
@@ -147,9 +153,10 @@ const OnboardingGuide = () => {
         } else {
             setHighlightRect(null);
         }
-    }, [visible, currentStep, steps]);
+    }, [visible, ready, currentStep, steps]);
 
     useEffect(() => {
+        if (!visible || !ready) return;
         updateHighlight();
         const timer = setTimeout(updateHighlight, 500);
         window.addEventListener('resize', updateHighlight);
@@ -159,17 +166,19 @@ const OnboardingGuide = () => {
             window.removeEventListener('resize', updateHighlight);
             window.removeEventListener('scroll', updateHighlight);
         };
-    }, [updateHighlight]);
+    }, [updateHighlight, visible, ready]);
 
     // ── 액션 핸들러 ──
+    const getUid = () => userId || user?.email || 'default';
+
     const dismissToday = () => {
-        const todayKey = `onboarding_dismiss_today_${userId}`;
+        const todayKey = `onboarding_dismiss_today_${getUid()}`;
         localStorage.setItem(todayKey, new Date().toDateString());
         setVisible(false);
     };
 
     const dismissForever = () => {
-        const foreverKey = `onboarding_dismiss_forever_${userId}`;
+        const foreverKey = `onboarding_dismiss_forever_${getUid()}`;
         localStorage.setItem(foreverKey, 'true');
         setVisible(false);
     };
@@ -186,8 +195,8 @@ const OnboardingGuide = () => {
         if (currentStep > 0) setCurrentStep(prev => prev - 1);
     };
 
-    // 가이드 안 보임 → null 반환
-    if (!visible || steps.length === 0) return null;
+    // ★ user 없거나 아직 ready 안 됐으면 null
+    if (!user || !ready || !visible || steps.length === 0) return null;
 
     const step = steps[currentStep];
     const stepTitle = t(`onboarding.steps.${step.key}.title`, step.key);
@@ -195,7 +204,7 @@ const OnboardingGuide = () => {
     const progress = ((currentStep + 1) / steps.length) * 100;
     const isLastStep = currentStep === steps.length - 1;
 
-    // 툴팁 위치 계산 (하이라이트 오른쪽에 표시)
+    // 툴팁 위치 계산
     const tooltipStyle = highlightRect ? {
         position: 'fixed',
         top: Math.max(16, Math.min(highlightRect.top - 20, window.innerHeight - 320)),
@@ -209,7 +218,6 @@ const OnboardingGuide = () => {
         zIndex: 10001,
     };
 
-    // 모바일에서는 중앙 하단 표시
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
     if (isMobile) {
         tooltipStyle.top = 'auto';
@@ -223,15 +231,18 @@ const OnboardingGuide = () => {
         <>
             {/* 오버레이 */}
             <div
-                className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300"
+                style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
                 onClick={dismissToday}
             />
 
             {/* 하이라이트 영역 */}
             {highlightRect && !isMobile && (
                 <div
-                    className="fixed z-[10000] rounded-xl transition-all duration-300 ease-out"
                     style={{
+                        position: 'fixed',
+                        zIndex: 10000,
+                        borderRadius: '12px',
+                        transition: 'all 0.3s ease-out',
                         top: highlightRect.top - 4,
                         left: highlightRect.left - 4,
                         width: highlightRect.width + 8,
@@ -243,109 +254,110 @@ const OnboardingGuide = () => {
                 />
             )}
 
-            {/* 말풍선 (Tooltip) */}
+            {/* 말풍선 */}
             <div
                 ref={tooltipRef}
-                style={tooltipStyle}
-                className="w-[340px] max-w-[calc(100vw-32px)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden"
+                style={{ ...tooltipStyle, width: 340, maxWidth: 'calc(100vw - 32px)', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden' }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* 진행률 바 */}
-                <div className="h-1 bg-gray-100 dark:bg-gray-700">
+                <div style={{ height: 4, backgroundColor: '#f1f5f9' }}>
                     <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
+                        style={{ height: '100%', background: 'linear-gradient(to right, #6366f1, #a855f7)', transition: 'width 0.5s ease-out', width: `${progress}%` }}
                     />
                 </div>
 
                 {/* 헤더 */}
-                <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <Sparkles size={16} className="text-white" />
+                <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #6366f1, #9333ea)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                            <Sparkles size={16} color="white" />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#6366f1', margin: 0 }}>
                                 {t('onboarding.title', '시작 가이드')}
                             </p>
-                            <p className="text-[10px] text-gray-400 font-medium">
-                                {t('onboarding.stepCount', { current: currentStep + 1, total: steps.length })}
+                            <p style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500, margin: 0 }}>
+                                {currentStep + 1} / {steps.length}
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={dismissToday}
-                        className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+                        style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}
                     >
                         <X size={16} />
                     </button>
                 </div>
 
                 {/* 본문 */}
-                <div className="px-5 pb-4">
-                    <div className="flex items-start gap-3 mb-4">
-                        <span className="text-3xl flex-shrink-0 mt-0.5">{step.icon}</span>
+                <div style={{ padding: '0 20px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+                        <span style={{ fontSize: 30, flexShrink: 0, marginTop: 2 }}>{step.icon}</span>
                         <div>
-                            <h4 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+                            <h4 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 4, marginTop: 0 }}>
                                 {stepTitle}
                             </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: 0 }}>
                                 {stepDesc}
                             </p>
                         </div>
                     </div>
 
                     {/* 단계 인디케이터 */}
-                    <div className="flex items-center gap-1 mb-4 justify-center">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16, justifyContent: 'center' }}>
                         {steps.map((_, i) => (
                             <button
                                 key={i}
                                 onClick={() => setCurrentStep(i)}
-                                className={`h-1.5 rounded-full transition-all duration-300 ${i === currentStep
-                                        ? 'w-6 bg-indigo-500'
-                                        : i < currentStep
-                                            ? 'w-1.5 bg-indigo-300'
-                                            : 'w-1.5 bg-gray-200 dark:bg-gray-600'
-                                    }`}
+                                style={{
+                                    height: 6,
+                                    borderRadius: 3,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s',
+                                    width: i === currentStep ? 24 : 6,
+                                    backgroundColor: i === currentStep ? '#6366f1' : i < currentStep ? '#a5b4fc' : '#e2e8f0',
+                                }}
                             />
                         ))}
                     </div>
 
                     {/* 네비게이션 버튼 */}
-                    <div className="flex items-center gap-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {currentStep > 0 && (
                             <button
                                 onClick={prevStep}
-                                className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', fontSize: 12, fontWeight: 700, color: '#6b7280', background: 'transparent', border: 'none', borderRadius: 12, cursor: 'pointer' }}
                             >
                                 <ChevronLeft size={14} />
                                 {t('onboarding.prev', '이전')}
                             </button>
                         )}
-                        <div className="flex-1" />
+                        <div style={{ flex: 1 }} />
                         <button
                             onClick={nextStep}
-                            className="flex items-center gap-1 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 transition-all"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 16px', fontSize: 12, fontWeight: 700, color: 'white', background: 'linear-gradient(to right, #6366f1, #9333ea)', border: 'none', borderRadius: 12, cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
                         >
                             {isLastStep ? t('onboarding.finish', '완료') : t('onboarding.next', '다음')}
                             {!isLastStep && <ChevronRight size={14} />}
                         </button>
                     </div>
 
-                    {/* 하단 Dismiss 버튼들 */}
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-3">
+                    {/* Dismiss 버튼들 */}
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                         <button
                             onClick={dismissToday}
-                            className="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 font-medium transition-colors"
+                            style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
                         >
                             {t('onboarding.dismissToday', '오늘 그만 보기')}
                         </button>
                         {isAfterFirstWeek && (
                             <>
-                                <span className="text-gray-200 dark:text-gray-600">|</span>
+                                <span style={{ color: '#e2e8f0' }}>|</span>
                                 <button
                                     onClick={dismissForever}
-                                    className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-500 dark:hover:text-red-400 font-medium transition-colors"
+                                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
                                 >
                                     <EyeOff size={11} />
                                     {t('onboarding.dismissForever', '더 이상 보지 않기')}
