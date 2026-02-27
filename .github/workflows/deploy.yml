@@ -39,10 +39,7 @@ jobs:
             cp -r public/locales dist/locales
           fi
 
-      - name: � Install lftp
-        run: sudo apt-get install -y lftp
-
-      - name: �🔑 Setup SSH key
+      - name: 🔑 Setup SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
@@ -50,14 +47,30 @@ jobs:
           ssh-keyscan -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: 🚀 Deploy to Cafe24 via SFTP
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
         run: |
-          lftp -e "
-            set sftp:connect-program 'ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }}';
-            open sftp://${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }};
-            mirror --reverse --verbose --delete dist/ /www/;
-            quit
-          "
+          # Generate sftp batch commands
+          cd dist
+          find . -type f | while read file; do
+            dir=$(dirname "$file")
+            if [ "$dir" != "." ]; then
+              echo "-mkdir /www/$dir"
+            fi
+          done | sort -u > /tmp/sftp_dirs.txt
+
+          find . -type f | while read file; do
+            echo "put $file /www/$file"
+          done > /tmp/sftp_files.txt
+
+          # Combine: create dirs first, then upload files
+          cat /tmp/sftp_dirs.txt /tmp/sftp_files.txt > /tmp/sftp_batch.txt
+
+          # Execute sftp batch
+          sftp -i ~/.ssh/deploy_key -P ${SFTP_PORT} -b /tmp/sftp_batch.txt ${SFTP_USERNAME}@${SFTP_HOST}
 
       - name: 🧹 Cleanup
         if: always()
-        run: rm -f ~/.ssh/deploy_key
+        run: rm -f ~/.ssh/deploy_key /tmp/sftp_batch.txt /tmp/sftp_dirs.txt /tmp/sftp_files.txt
