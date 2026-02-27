@@ -39,13 +39,17 @@ jobs:
             cp -r public/locales dist/locales
           fi
 
-      - name: 🚀 Deploy to Cafe24 via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        with:
-          server: ${{ secrets.SFTP_HOST }}
-          port: ${{ secrets.SFTP_PORT }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          local_path: './dist/*'
-          remote_path: '/www/'
-          sftpArgs: '-o StrictHostKeyChecking=no'
+      - name: 🔑 Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: 🚀 Deploy to Cafe24 via SCP
+        run: |
+          scp -i ~/.ssh/deploy_key -P ${{ secrets.SFTP_PORT }} -r dist/* ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/www/
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
