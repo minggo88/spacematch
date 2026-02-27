@@ -1237,7 +1237,7 @@ ${productSection}
                     if (data.batch_id) lastBatchId = data.batch_id;
                 } else {
                     showToast(data.message || t('statsPage.uploadFailed', '임포트 실패'), 'error');
-                    setUploadStep('preview');
+                    setUploadStep('mapping');
                     setImporting(false);
                     return;
                 }
@@ -1256,7 +1256,7 @@ ${productSection}
             showToast(t('statsPage.uploadSuccess', `${totalInserted}건 임포트 완료!`), 'success');
         } catch {
             showToast(t('statsPage.serverError'), 'error');
-            setUploadStep('preview');
+            setUploadStep('mapping');
         } finally { setImporting(false); }
     };
 
@@ -1307,8 +1307,12 @@ ${productSection}
     };
 
     // Auto-fetch templates and history when upload tab is active
+    // + 이전 실패 상태('preview' 등) 초기화
     useEffect(() => {
         if (activeTab === 'upload') {
+            if (uploadStep !== 'select' && uploadStep !== 'mapping' && uploadStep !== 'importing') {
+                setUploadStep('select');
+            }
             fetchTemplates();
             fetchImportHistory();
         }
@@ -3174,26 +3178,40 @@ ${productSection}
                                 {uploadStep === 'select' && (
                                     <>
                                         <div
-                                            className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer ${dragOver ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-gray-50 hover:border-emerald-300 hover:bg-emerald-50/50'
+                                            className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer ${dragOver ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/30 scale-[1.01]' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-500 dark:hover:bg-emerald-900/20'
                                                 }`}
-                                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                                            onDragLeave={() => setDragOver(false)}
+                                            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
                                             onDrop={(e) => {
-                                                e.preventDefault(); setDragOver(false);
-                                                const file = e.dataTransfer.files[0];
-                                                if (file) handleFileParse(file);
+                                                e.preventDefault(); e.stopPropagation(); setDragOver(false);
+                                                const files = e.dataTransfer?.files;
+                                                if (files && files.length > 0) {
+                                                    const file = files[0];
+                                                    console.log('[Upload] File dropped:', file.name, file.size, file.type);
+                                                    handleFileParse(file);
+                                                } else {
+                                                    console.warn('[Upload] No files in drop event');
+                                                }
                                             }}
                                             onClick={() => fileInputRef.current?.click()}
                                         >
                                             <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-                                                onChange={(e) => { if (e.target.files[0]) handleFileParse(e.target.files[0]); }} />
-                                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-2.5 flex items-center justify-center">
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        console.log('[Upload] File selected:', file.name, file.size);
+                                                        handleFileParse(file);
+                                                    }
+                                                    e.target.value = ''; // 같은 파일 재선택 가능
+                                                }} />
+                                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-2.5 flex items-center justify-center pointer-events-none">
                                                 <FolderUp className="text-white" size={28} />
                                             </div>
-                                            <h3 className="font-extrabold text-gray-900 text-lg mb-2">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-2 pointer-events-none">
                                                 {t('statsPage.uploadDragTitle', '파일을 드래그하거나 클릭하세요')}
                                             </h3>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 pointer-events-none">
                                                 {t('statsPage.uploadDragDesc', 'Excel (.xlsx, .xls) 또는 CSV 파일 지원')}
                                             </p>
                                         </div>
