@@ -39,7 +39,16 @@ self.addEventListener('fetch', (event) => {
     // HTML 네비게이션 요청은 항상 네트워크에서 가져옴 (캐시 X)
     if (event.request.mode === 'navigate' || event.request.url.endsWith('/index.html') || event.request.url.endsWith('/')) {
         event.respondWith(
-            fetch(event.request).catch(() => caches.match('/index.html'))
+            fetch(event.request).catch(() => {
+                // 오프라인 fallback: 네트워크 연결 없으면 안내 페이지
+                return caches.match(event.request).then(cached => {
+                    if (cached) return cached;
+                    return new Response(
+                        '<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666"><div style="text-align:center"><h2>오프라인 상태입니다</h2><p>인터넷 연결을 확인 후 새로고침 해주세요.</p></div></body></html>',
+                        { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+                    );
+                });
+            })
         );
         return;
     }

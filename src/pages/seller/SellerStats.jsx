@@ -1125,6 +1125,7 @@ ${productSection}
 
     // ── Upload: Parse file with SheetJS ──
     const handleFileParse = useCallback((file) => {
+        console.log('[Upload] Parsing file:', file.name, file.size, 'bytes');
         setUploadFile(file);
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1145,14 +1146,20 @@ ${productSection}
                 }
                 const headers = jsonData[headerIdx].map(h => String(h).trim());
                 const dataRows = jsonData.slice(headerIdx + 1).filter(row => row.some(c => c !== ''));
+                console.log('[Upload] Parsed:', headers.length, 'columns,', dataRows.length, 'rows');
                 setParsedHeaders(headers);
                 setParsedRows(dataRows);
                 setUploadStep('mapping');
                 // Auto-map columns via API
                 autoMapColumns(headers);
             } catch (err) {
+                console.error('[Upload] Parse error:', err);
                 showToast(t('statsPage.uploadParseError', '파일 파싱 에러: ') + err.message, 'error');
             }
+        };
+        reader.onerror = () => {
+            console.error('[Upload] FileReader error:', reader.error);
+            showToast(t('statsPage.uploadReadError', '파일 읽기에 실패했습니다. 파일이 손상되었거나 접근할 수 없습니다.'), 'error');
         };
         reader.readAsArrayBuffer(file);
     }, [showToast, t]);
