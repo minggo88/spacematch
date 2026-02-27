@@ -2241,6 +2241,7 @@ ${productSection}
                                         icon: <FileText size={18} />,
                                         iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',
                                         iconColor: 'text-emerald-600 dark:text-emerald-400',
+                                        targetTab: 'daily',
                                     },
                                     {
                                         title: t('statsPage.totalRevenue', '누적 매출'),
@@ -2251,6 +2252,7 @@ ${productSection}
                                         icon: <DollarSign size={18} />,
                                         iconBg: 'bg-teal-50 dark:bg-teal-900/20',
                                         iconColor: 'text-teal-600 dark:text-teal-400',
+                                        targetTab: 'analytics',
                                     },
                                     {
                                         title: t('statsPage.totalExpenses', '총 원가'),
@@ -2260,6 +2262,7 @@ ${productSection}
                                         icon: <Wallet size={18} />,
                                         iconBg: 'bg-red-50 dark:bg-red-900/20',
                                         iconColor: 'text-red-500 dark:text-red-400',
+                                        targetTab: 'expense',
                                     },
                                     {
                                         title: t('statsPage.totalTransactions', '총 거래건수'),
@@ -2270,9 +2273,10 @@ ${productSection}
                                         icon: <ShoppingCart size={18} />,
                                         iconBg: 'bg-violet-50 dark:bg-violet-900/20',
                                         iconColor: 'text-violet-600 dark:text-violet-400',
+                                        targetTab: 'customers',
                                     },
                                 ].map((card, idx) => (
-                                    <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all group">
+                                    <div key={idx} onClick={() => setActiveTab(card.targetTab)} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                                         <div className="flex items-start justify-between mb-3">
                                             <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{card.title}</p>
                                             <div className={`w-8 h-8 ${card.iconBg} rounded-lg flex items-center justify-center ${card.iconColor}`}>
