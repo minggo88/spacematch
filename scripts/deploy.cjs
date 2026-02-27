@@ -14,7 +14,7 @@ const config = {
 };
 
 const LOCAL_DIR = path.resolve(__dirname, '../dist');
-const REMOTE_DIR = '/www';
+const REMOTE_DIR = './www';
 
 async function uploadDirContents(sftp, localDir, remoteDir, depth = 0) {
     const items = fs.readdirSync(localDir);
