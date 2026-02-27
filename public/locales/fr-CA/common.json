@@ -491,6 +491,50 @@
       "settlements": {
         "title": "Règlements",
         "desc": "Consultez et gérez les règlements des transactions."
+      },
+      "adminHome": {
+        "title": "Accueil admin",
+        "desc": "Vue d'ensemble de la plateforme."
+      },
+      "adminDashboard": {
+        "title": "Tableau de bord admin",
+        "desc": "Page de gestion complète pour analyser les statistiques globales et les tendances."
+      },
+      "adminSellers": {
+        "title": "Gestion des vendeurs",
+        "desc": "Consultez et gérez tous les vendeurs enregistrés."
+      },
+      "adminHosts": {
+        "title": "Gestion des hôtes",
+        "desc": "Consultez et gérez tous les hôtes enregistrés."
+      },
+      "adminApps": {
+        "title": "Gestion des candidatures",
+        "desc": "Approuvez ou rejetez les candidatures des vendeurs."
+      },
+      "adminVenues": {
+        "title": "Gestion des espaces",
+        "desc": "Gérez tous les espaces enregistrés."
+      },
+      "adminUsers": {
+        "title": "Gestion des utilisateurs",
+        "desc": "Consultez tous les membres et gérez les rôles et accès."
+      },
+      "adminPayments": {
+        "title": "Gestion des paiements",
+        "desc": "Consultez et gérez le statut des paiements."
+      },
+      "adminSecurity": {
+        "title": "Paramètres de sécurité",
+        "desc": "Gérez les politiques de sécurité de la plateforme."
+      },
+      "adminDB": {
+        "title": "Gestion BD",
+        "desc": "Surveillez et gérez directement la base de données. (Super admin uniquement)"
+      },
+      "adminCommunity": {
+        "title": "Gestion communauté",
+        "desc": "Surveillez et gérez tous les forums communautaires."
       }
     }
   }

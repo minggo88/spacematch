@@ -491,6 +491,50 @@
       "settlements": {
         "title": "Thanh toán",
         "desc": "Xem và quản lý hồ sơ thanh toán giao dịch."
+      },
+      "adminHome": {
+        "title": "Trang chủ quản trị",
+        "desc": "Tổng quan toàn bộ nền tảng."
+      },
+      "adminDashboard": {
+        "title": "Bảng điều khiển quản trị",
+        "desc": "Trang quản lý toàn diện để phân tích thống kê và xu hướng."
+      },
+      "adminSellers": {
+        "title": "Quản lý người bán",
+        "desc": "Xem và quản lý tất cả người bán đã đăng ký."
+      },
+      "adminHosts": {
+        "title": "Quản lý chủ nhà",
+        "desc": "Xem và quản lý tất cả chủ nhà đã đăng ký."
+      },
+      "adminApps": {
+        "title": "Quản lý đơn ứng tuyển",
+        "desc": "Phê duyệt hoặc từ chối đơn ứng tuyển."
+      },
+      "adminVenues": {
+        "title": "Quản lý không gian",
+        "desc": "Quản lý tất cả không gian đã đăng ký."
+      },
+      "adminUsers": {
+        "title": "Quản lý người dùng",
+        "desc": "Xem tất cả thành viên và quản lý vai trò, quyền truy cập."
+      },
+      "adminPayments": {
+        "title": "Quản lý thanh toán",
+        "desc": "Xem và quản lý trạng thái thanh toán."
+      },
+      "adminSecurity": {
+        "title": "Cài đặt bảo mật",
+        "desc": "Quản lý chính sách bảo mật nền tảng."
+      },
+      "adminDB": {
+        "title": "Quản lý CSDL",
+        "desc": "Giám sát và quản lý trực tiếp cơ sở dữ liệu. (Chỉ Super Admin)"
+      },
+      "adminCommunity": {
+        "title": "Quản lý cộng đồng",
+        "desc": "Giám sát và quản lý tất cả diễn đàn cộng đồng."
       }
     }
   }

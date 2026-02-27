@@ -6,12 +6,14 @@ import { X, ChevronRight, ChevronLeft, Sparkles, EyeOff } from 'lucide-react';
 /**
  * OnboardingGuide — 신규 사용자 대시보드 기능 안내 컴포넌트
  *
+ * 역할별 맞춤 가이드:
+ *   seller / host / vendor / admin / superadmin
+ *
  * - 가입 후 1주일 이내: 매일 자동 노출, "오늘 그만 보기" 가능
  * - 가입 후 1주일 이후: "더 이상 보지 않기" 버튼 추가 → 영구 숨김
- * - Admin/SuperAdmin은 제외
  */
 
-// ── 역할별 가이드 단계 정의 ──
+// ── 역할별 가이드 단계 정의 (실제 사이드바 경로와 매칭) ──
 const GUIDE_STEPS = {
     seller: [
         { menuPath: '/seller', key: 'home', icon: '🏠' },
@@ -37,6 +39,32 @@ const GUIDE_STEPS = {
         { menuPath: '/vendor/settlements', key: 'settlements', icon: '💰' },
         { menuPath: '/vendor/profile', key: 'profile', icon: '👤' },
     ],
+    admin: [
+        { menuPath: '/admin', key: 'adminHome', icon: '🏠' },
+        { menuPath: '/admin/dashboard', key: 'adminDashboard', icon: '📊' },
+        { menuPath: '/admin/sellers', key: 'adminSellers', icon: '🛍️' },
+        { menuPath: '/admin/hosts', key: 'adminHosts', icon: '🏢' },
+        { menuPath: '/admin/applications', key: 'adminApps', icon: '📋' },
+        { menuPath: '/admin/venues', key: 'adminVenues', icon: '🏪' },
+        { menuPath: '/admin/users', key: 'adminUsers', icon: '👥' },
+        { menuPath: '/admin/payments', key: 'adminPayments', icon: '💳' },
+        { menuPath: '/admin/community/general', key: 'adminCommunity', icon: '💬' },
+        { menuPath: '/admin/profile', key: 'profile', icon: '👤' },
+    ],
+    superadmin: [
+        { menuPath: '/admin', key: 'adminHome', icon: '🏠' },
+        { menuPath: '/admin/dashboard', key: 'adminDashboard', icon: '📊' },
+        { menuPath: '/admin/sellers', key: 'adminSellers', icon: '🛍️' },
+        { menuPath: '/admin/hosts', key: 'adminHosts', icon: '🏢' },
+        { menuPath: '/admin/applications', key: 'adminApps', icon: '📋' },
+        { menuPath: '/admin/venues', key: 'adminVenues', icon: '🏪' },
+        { menuPath: '/admin/users', key: 'adminUsers', icon: '👥' },
+        { menuPath: '/admin/payments', key: 'adminPayments', icon: '💳' },
+        { menuPath: '/admin/security', key: 'adminSecurity', icon: '🔒' },
+        { menuPath: '/admin/database', key: 'adminDB', icon: '🗄️' },
+        { menuPath: '/admin/community/general', key: 'adminCommunity', icon: '💬' },
+        { menuPath: '/admin/profile', key: 'profile', icon: '👤' },
+    ],
 };
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -52,10 +80,13 @@ const OnboardingGuide = () => {
     const role = user?.role;
     const email = user?.email;
     const createdAt = user?.created_at ? new Date(user.created_at) : null;
-    const isAdmin = role === 'admin' || role === 'superadmin';
 
-    // Layout.jsx와 동일한 fallback 방식: admin/host/vendor가 아니면 → seller
-    const guideRole = isAdmin ? null : (role === 'host' ? 'host' : role === 'vendor' ? 'vendor' : 'seller');
+    // Layout.jsx와 동일한 fallback: admin/superadmin/host/vendor → 해당 역할, 그 외 → seller
+    const guideRole = role === 'superadmin' ? 'superadmin'
+        : role === 'admin' ? 'admin'
+            : role === 'host' ? 'host'
+                : role === 'vendor' ? 'vendor'
+                    : role ? 'seller' : null;
 
     // 가입 후 1주일 경과 여부
     const isAfterFirstWeek = createdAt
@@ -64,21 +95,13 @@ const OnboardingGuide = () => {
 
     const steps = guideRole ? (GUIDE_STEPS[guideRole] || []) : [];
 
-    console.log('[OnboardingGuide] Mounted:', { email, role, guideRole, isAdmin, stepsCount: steps.length });
-
     // ── 노출 여부 판단 ──
     useEffect(() => {
-        console.log('[OnboardingGuide] Checking visibility:', { email, role, guideRole, isAdmin, stepsCount: steps.length });
-
-        if (!email || isAdmin || steps.length === 0) {
-            console.log('[OnboardingGuide] Hidden — reason:', !email ? 'no email' : isAdmin ? 'admin' : 'no steps for role');
-            return;
-        }
+        if (!email || steps.length === 0) return;
 
         // 영구 숨김 체크
         const foreverKey = `onboarding_dismiss_forever_${email}`;
         if (localStorage.getItem(foreverKey) === 'true') {
-            console.log('[OnboardingGuide] Hidden — dismissed forever');
             setVisible(false);
             return;
         }
@@ -87,15 +110,13 @@ const OnboardingGuide = () => {
         const todayKey = `onboarding_dismiss_today_${email}`;
         const today = new Date().toDateString();
         if (localStorage.getItem(todayKey) === today) {
-            console.log('[OnboardingGuide] Hidden — dismissed today');
             setVisible(false);
             return;
         }
 
-        console.log('[OnboardingGuide] ✅ Showing guide!');
         setVisible(true);
         setCurrentStep(0);
-    }, [email, isAdmin, steps.length]);
+    }, [email, steps.length]);
 
     // ── 하이라이트 대상 메뉴 위치 계산 ──
     const updateHighlight = useCallback(() => {
@@ -121,9 +142,12 @@ const OnboardingGuide = () => {
 
     useEffect(() => {
         updateHighlight();
+        // 약간의 딜레이 후 다시 계산 (사이드바 렌더 완료 대기)
+        const timer = setTimeout(updateHighlight, 300);
         window.addEventListener('resize', updateHighlight);
         window.addEventListener('scroll', updateHighlight);
         return () => {
+            clearTimeout(timer);
             window.removeEventListener('resize', updateHighlight);
             window.removeEventListener('scroll', updateHighlight);
         };
@@ -214,7 +238,7 @@ const OnboardingGuide = () => {
             <div
                 ref={tooltipRef}
                 style={tooltipStyle}
-                className={`w-[340px] max-w-[calc(100vw-32px)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden ${isMobile ? '' : ''}`}
+                className="w-[340px] max-w-[calc(100vw-32px)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
                 {/* 진행률 바 */}
@@ -269,10 +293,10 @@ const OnboardingGuide = () => {
                                 key={i}
                                 onClick={() => setCurrentStep(i)}
                                 className={`h-1.5 rounded-full transition-all duration-300 ${i === currentStep
-                                    ? 'w-6 bg-indigo-500'
-                                    : i < currentStep
-                                        ? 'w-1.5 bg-indigo-300'
-                                        : 'w-1.5 bg-gray-200 dark:bg-gray-600'
+                                        ? 'w-6 bg-indigo-500'
+                                        : i < currentStep
+                                            ? 'w-1.5 bg-indigo-300'
+                                            : 'w-1.5 bg-gray-200 dark:bg-gray-600'
                                     }`}
                             />
                         ))}

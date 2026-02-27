@@ -491,6 +491,50 @@
       "settlements": {
         "title": "Settlements",
         "desc": "View and manage transaction settlement records."
+      },
+      "adminHome": {
+        "title": "Admin Home",
+        "desc": "Overview of the entire platform. Key metrics and notifications are displayed here."
+      },
+      "adminDashboard": {
+        "title": "Admin Dashboard",
+        "desc": "A comprehensive management page for analyzing overall statistics, user activity, and revenue trends."
+      },
+      "adminSellers": {
+        "title": "Seller Management",
+        "desc": "View and manage all registered sellers. Handle approvals, blocks, and detailed information."
+      },
+      "adminHosts": {
+        "title": "Host Management",
+        "desc": "View and manage all registered hosts. Check host approvals and space status."
+      },
+      "adminApps": {
+        "title": "Application Management",
+        "desc": "Approve or reject seller entry applications."
+      },
+      "adminVenues": {
+        "title": "Venue Management",
+        "desc": "Manage all registered spaces. Edit space information and change statuses."
+      },
+      "adminUsers": {
+        "title": "User Management",
+        "desc": "View all members and perform role changes, blocks, and password resets."
+      },
+      "adminPayments": {
+        "title": "Payment Management",
+        "desc": "View and manage service payment status."
+      },
+      "adminSecurity": {
+        "title": "Security Settings",
+        "desc": "Manage platform security policies and access controls."
+      },
+      "adminDB": {
+        "title": "DB Management",
+        "desc": "Monitor and directly manage the database. (Super Admin only)"
+      },
+      "adminCommunity": {
+        "title": "Community Management",
+        "desc": "Monitor and manage all community boards."
       }
     }
   }
