@@ -1204,30 +1204,56 @@ ${productSection}
 
         setImporting(true);
         setUploadStep('importing');
+
+        // ── 대용량 데이터 분할 전송 (5000행씩 chunk) ──
+        const CHUNK_SIZE = 5000;
+        let totalInserted = 0;
+        let totalSkipped = 0;
+        let allErrors = [];
+        let lastBatchId = null;
+
         try {
-            const res = await fetch(`${API_BASE}/seller_stats_import.php`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    action: 'import',
-                    rows,
-                    currency: uploadCurrency,
-                    record_type: uploadRecordType,
-                    sales_channel: uploadChannel,
-                    template: selectedTemplate,
-                }),
-            });
-            const data = await res.json();
-            if (data.success) {
-                setImportResult(data);
-                setUploadStep('done');
-                fetchStats();
-                showToast(t('statsPage.uploadSuccess', `${data.inserted}건 임포트 완료!`), 'success');
-            } else {
-                showToast(data.message || t('statsPage.uploadFailed', '임포트 실패'), 'error');
-                setUploadStep('preview');
+            const totalChunks = Math.ceil(rows.length / CHUNK_SIZE);
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = rows.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                const res = await fetch(`${API_BASE}/seller_stats_import.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        action: 'import',
+                        rows: chunk,
+                        currency: uploadCurrency,
+                        record_type: uploadRecordType,
+                        sales_channel: uploadChannel,
+                        template: selectedTemplate,
+                    }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    totalInserted += (data.inserted || 0);
+                    totalSkipped += (data.skipped || 0);
+                    if (data.errors) allErrors = allErrors.concat(data.errors);
+                    if (data.batch_id) lastBatchId = data.batch_id;
+                } else {
+                    showToast(data.message || t('statsPage.uploadFailed', '임포트 실패'), 'error');
+                    setUploadStep('preview');
+                    setImporting(false);
+                    return;
+                }
             }
+
+            setImportResult({
+                success: true,
+                inserted: totalInserted,
+                skipped: totalSkipped,
+                total: rows.length,
+                batch_id: lastBatchId,
+                errors: allErrors.slice(0, 10),
+            });
+            setUploadStep('done');
+            fetchStats();
+            showToast(t('statsPage.uploadSuccess', `${totalInserted}건 임포트 완료!`), 'success');
         } catch {
             showToast(t('statsPage.serverError'), 'error');
             setUploadStep('preview');
