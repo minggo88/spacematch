@@ -1115,7 +1115,7 @@ ${productSection}
         if (Object.keys(erpTemplates).length > 0) return;
         setLoadingTemplates(true);
         try {
-            const res = await fetch(`${API_BASE}/seller_stats_import.php?action=templates`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/seller_stats.php?action=templates`, { credentials: 'include' });
             if (!res.ok) { console.warn('[Templates] HTTP', res.status); return; }
             const data = await res.json();
             if (data.success) {
@@ -1167,7 +1167,7 @@ ${productSection}
 
     const autoMapColumns = async (headers) => {
         try {
-            const res = await fetch(`${API_BASE}/seller_stats_import.php`, {
+            const res = await fetch(`${API_BASE}/seller_stats.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1230,7 +1230,7 @@ ${productSection}
                 let retryCount = 0;
                 while (retryCount < 2) {
                     try {
-                        res = await fetch(`${API_BASE}/seller_stats_import.php`, {
+                        res = await fetch(`${API_BASE}/seller_stats.php`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'include',
@@ -1312,7 +1312,7 @@ ${productSection}
     // ── Upload: Fetch import history ──
     const fetchImportHistory = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/seller_stats_import.php?action=history`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/seller_stats.php?action=history`, { credentials: 'include' });
             const data = await res.json();
             if (data.success) setImportHistory(data.batches || []);
         } catch { /* ignore */ }
@@ -1328,7 +1328,7 @@ ${productSection}
             onConfirm: async () => {
                 setConfirmModal(null);
                 try {
-                    const res = await fetch(`${API_BASE}/seller_stats_import.php`, {
+                    const res = await fetch(`${API_BASE}/seller_stats.php`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',

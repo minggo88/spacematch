@@ -345,6 +345,142 @@ try {
             }
             break;
 
+
+        // ── IMPORT-related actions: delegate to seller_stats_import.php if it exists ──
+        case 'import':
+        case 'templates':
+        case 'auto_map':
+        case 'history':
+        case 'undo_batch':
+            $importFile = __DIR__ . '/seller_stats_import_logic.php';
+            if (file_exists($importFile)) {
+                include $importFile;
+            } else {
+                // ── Inline minimal import logic (fallback) ──
+                if ($action === 'templates') {
+                    echo json_encode(["success" => true, "templates" => [], "currencies" => ['KRW','USD','EUR','JPY','CNY','GBP','THB','VND','CAD','AUD']]);
+                } elseif ($action === 'history') {
+                    $stmt = $conn->prepare("
+                        SELECT import_batch_id, source, sales_channel, currency,
+                               COUNT(*) as record_count,
+                               SUM(monthly_revenue) as total_revenue,
+                               MIN(record_date) as date_from,
+                               MAX(record_date) as date_to,
+                               MIN(created_at) as imported_at
+                        FROM seller_stats 
+                        WHERE user_id = ? AND import_batch_id IS NOT NULL 
+                        GROUP BY import_batch_id, source, sales_channel, currency
+                        ORDER BY MIN(created_at) DESC
+                        LIMIT 20
+                    ");
+                    $stmt->execute([$userId]);
+                    echo json_encode(["success" => true, "batches" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+                } elseif ($action === 'undo_batch') {
+                    $batchId = trim($input['batch_id'] ?? '');
+                    if (empty($batchId)) {
+                        echo json_encode(["success" => false, "message" => "Batch ID required."]);
+                    } else {
+                        $stmt = $conn->prepare("DELETE FROM seller_stats WHERE user_id = ? AND import_batch_id = ?");
+                        $stmt->execute([$userId, $batchId]);
+                        echo json_encode(["success" => true, "deleted" => $stmt->rowCount()]);
+                    }
+                } elseif ($action === 'auto_map') {
+                    echo json_encode(["success" => true, "mapping" => []]);
+                } elseif ($action === 'import') {
+                    // ── Inline import logic ──
+                    $rows = $input['rows'] ?? [];
+                    $currency = trim($input['currency'] ?? 'KRW');
+                    $recordType = trim($input['record_type'] ?? 'daily');
+                    $salesChannel = trim($input['sales_channel'] ?? '');
+                    $countryCode = 'KR';
+
+                    if (empty($rows)) {
+                        echo json_encode(["success" => false, "message" => "No data."]);
+                        break;
+                    }
+                    if (!in_array($recordType, ['daily','monthly','annual'])) $recordType = 'daily';
+
+                    $batchId = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                        mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0xffff),
+                        mt_rand(0,0x0fff)|0x4000,mt_rand(0,0x3fff)|0x8000,
+                        mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0xffff));
+
+                    $stmt = $conn->prepare("INSERT INTO seller_stats 
+                        (user_id, country_code, record_type, record_date, monthly_revenue, customer_count, transaction_count,
+                         avg_unit_price, best_selling_item, product_name, quantity_sold, cost_price, profit_margin,
+                         discount_amount, tax_amount, shipping_cost, refund_amount, commission_fee, net_revenue,
+                         payment_method, order_number, sku, brand, option_info, return_qty, profit_amount,
+                         points_used, payment_status, customer_name, staff_name, store_name, platform, supplier,
+                         currency, source, import_batch_id, sales_channel, region, venue_type, satisfaction, memo)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+                    $inserted = 0; $skipped = 0; $errors = [];
+                    foreach ($rows as $i => $row) {
+                        $date = trim($row['record_date'] ?? '');
+                        if (empty($date)) { $skipped++; continue; }
+                        // Basic date normalization
+                        $date = str_replace(['/', '.'], '-', $date);
+                        if (preg_match('/^(\d{4}[-]\d{1,2}[-]\d{1,2})/', $date, $m)) $date = $m[1];
+                        elseif (is_numeric($date) && intval($date) > 30000 && intval($date) < 60000) {
+                            $date = date('Y-m-d', ($date - 25569) * 86400);
+                        }
+                        // Validate date
+                        if ($recordType === 'daily' && !preg_match('/^\d{4}-\d{1,2}-\d{1,2}$/', $date)) { $skipped++; continue; }
+
+                        $revenue = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['monthly_revenue'] ?? 0)));
+                        $customers = intval($row['customer_count'] ?? 0);
+                        $transactions = intval($row['transaction_count'] ?? 0);
+                        $quantitySold = intval($row['quantity_sold'] ?? 0);
+                        $costPrice = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['cost_price'] ?? 0)));
+                        $unitPrice = intval($row['avg_unit_price'] ?? 0);
+                        if ($unitPrice <= 0 && $transactions > 0 && $revenue > 0) $unitPrice = round($revenue / $transactions);
+                        if ($transactions === 0 && $quantitySold > 0) { $transactions = $quantitySold; if ($unitPrice <= 0 && $revenue > 0) $unitPrice = round($revenue / $quantitySold); }
+                        $profitMargin = ($revenue > 0 && $costPrice > 0) ? round((($revenue - $costPrice) / $revenue) * 100, 2) : null;
+                        $discountAmount = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['discount_amount'] ?? 0)));
+                        $taxAmount = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['tax_amount'] ?? 0)));
+                        $shippingCost = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['shipping_cost'] ?? 0)));
+                        $refundAmount = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['refund_amount'] ?? 0)));
+                        $commissionFee = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['commission_fee'] ?? 0)));
+                        $netRevenue = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['net_revenue'] ?? 0)));
+                        if ($netRevenue === 0 && $revenue > 0) $netRevenue = $revenue - $discountAmount - $taxAmount - $commissionFee - $refundAmount;
+                        $profitAmount = intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['profit_amount'] ?? 0)));
+                        if ($profitAmount === 0 && $revenue > 0 && $costPrice > 0) $profitAmount = $revenue - $costPrice;
+
+                        try {
+                            $stmt->execute([
+                                $userId, $countryCode, $recordType, $date,
+                                $revenue, $customers, $transactions, $unitPrice,
+                                trim($row['best_selling_item'] ?? ''), trim($row['product_name'] ?? ''),
+                                $quantitySold, $costPrice, $profitMargin,
+                                $discountAmount, $taxAmount, $shippingCost, $refundAmount,
+                                $commissionFee, $netRevenue,
+                                trim($row['payment_method'] ?? ''), trim($row['order_number'] ?? ''),
+                                trim($row['sku'] ?? ''), trim($row['brand'] ?? ''), trim($row['option_info'] ?? ''),
+                                intval($row['return_qty'] ?? 0), $profitAmount,
+                                intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', $row['points_used'] ?? 0))),
+                                trim($row['payment_status'] ?? ''), trim($row['customer_name'] ?? ''),
+                                trim($row['staff_name'] ?? ''), trim($row['store_name'] ?? ''),
+                                trim($row['platform'] ?? ''), trim($row['supplier'] ?? ''),
+                                $currency, 'excel', $batchId,
+                                $salesChannel ?: trim($row['platform'] ?? ''),
+                                trim($row['region'] ?? ''), trim($row['venue_type'] ?? ''),
+                                (intval($row['satisfaction'] ?? 0) >= 0 && intval($row['satisfaction'] ?? 0) <= 5) ? intval($row['satisfaction'] ?? 0) ?: null : null,
+                                trim($row['memo'] ?? '')
+                            ]);
+                            $inserted++;
+                        } catch (PDOException $e) {
+                            $skipped++;
+                            $errors[] = ['row' => $i + 1, 'error' => $e->getMessage()];
+                        }
+                    }
+                    echo json_encode([
+                        "success" => true, "batch_id" => $batchId,
+                        "inserted" => $inserted, "skipped" => $skipped,
+                        "total" => count($rows), "errors" => array_slice($errors, 0, 10)
+                    ]);
+                }
+            break;
+
         default:
             echo json_encode(["success" => false, "message" => "알 수 없는 액션입니다."]);
     }
