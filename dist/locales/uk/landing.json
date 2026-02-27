@@ -126,7 +126,8 @@
     "sellers": "Зареєстровані продавці",
     "satisfaction": "Задоволеність",
     "regions": "Активні регіони",
-    "salesRecords": "Записи продажів"
+    "salesRecords": "Записи продажів",
+    "provenResults": "Перевірені результати"
   },
   "cta": {
     "badge": "GET STARTED",

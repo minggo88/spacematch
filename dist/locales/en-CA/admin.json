@@ -13,7 +13,10 @@
   "trash": "Trash",
   "database": "Database",
   "sellerStats": {
-    "title": "Seller CRM"
+    "title": "Seller CRM",
+    "emptyDashboardDesc2": "When sellers enter data on the CRM page",
+    "sellerDirectInputDesc": "Sellers directly enter daily/monthly/annual sales data from the CRM menu.",
+    "dataWaitingDesc": "No seller data yet. Insights will be generated when sellers input data on the CRM page."
   },
   "totalUsers": "Total Users",
   "totalVenues": "Total Venues",
@@ -437,7 +440,9 @@
     "createAdminTitle": "Add New Admin",
     "labelPassword": "Password",
     "cancel": "Cancel",
-    "createAccount": "Create Account"
+    "createAccount": "Create Account",
+    "tabVendor": "Vendors",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "Payment Management",
@@ -914,7 +919,18 @@
     "submitting": "Processing..",
     "submitEdit": "Save Changes",
     "submitCreate": "Create Ad",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "List View",
+    "gridView": "Grid View",
+    "targetCountries": "Target Countries",
+    "allCountries": "All Countries",
+    "selectedCountries": "Selected Countries",
+    "batchEdit": "Batch Edit",
+    "batchCount": "{{count}} selected",
+    "batchEditDesc": "Edit selected ads in batch",
+    "batchEditSuccess": "Batch edit completed",
+    "noFieldsSelected": "No fields selected",
+    "applyBatchEdit": "Apply Batch Edit"
   },
   "adDashboardPage": {
     "slotHomeTop": "Home Top",
@@ -1047,7 +1063,10 @@
     "securitySummary": "Security Status Summary",
     "ipBlock": "IP Block",
     "apiLimit": "API Limit",
-    "maintenanceLabel": "Maintenance Mode"
+    "maintenanceLabel": "Maintenance Mode",
+    "disableDevtoolsBlock": "Disable DevTools Blocking",
+    "disableDevtoolsBlockDesc": "Allow developer tools to be opened",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "Trash Management",

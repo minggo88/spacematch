@@ -13,7 +13,10 @@
   "trash": "Кошик",
   "database": "База даних",
   "sellerStats": {
-    "title": "CRM продавця"
+    "title": "CRM продавця",
+    "emptyDashboardDesc2": "When sellers enter data on the CRM page",
+    "sellerDirectInputDesc": "Sellers directly enter daily/monthly/annual sales data from the CRM menu.",
+    "dataWaitingDesc": "No seller data yet. Insights will be generated when sellers input data on the CRM page."
   },
   "totalUsers": "Всього користувачів",
   "totalVenues": "Всього майданчиків",
@@ -437,7 +440,9 @@
     "createAdminTitle": "Додати нового адміністратора",
     "labelPassword": "Пароль",
     "cancel": "Скасувати",
-    "createAccount": "Створити акаунт"
+    "createAccount": "Створити акаунт",
+    "tabVendor": "Vendors",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "Керування платежами",
@@ -914,7 +919,18 @@
     "submitting": "Обработка...",
     "submitEdit": "Зберегти зміни",
     "submitCreate": "Створити рекламу",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "Список",
+    "gridView": "Сітка",
+    "targetCountries": "Цільові країни",
+    "allCountries": "Усі країни",
+    "selectedCountries": "Обрані країни",
+    "batchEdit": "Масове редагування",
+    "batchCount": "{{count}} обрано",
+    "batchEditDesc": "Редагувати обрані оголошення",
+    "batchEditSuccess": "Масове редагування завершено",
+    "noFieldsSelected": "Поля не обрано",
+    "applyBatchEdit": "Застосувати масове редагування"
   },
   "adDashboardPage": {
     "slotHomeTop": "Главная Top",
@@ -1047,7 +1063,10 @@
     "securitySummary": "Зведення безпеки",
     "ipBlock": "Блокування IP",
     "apiLimit": "Ліміт API",
-    "maintenanceLabel": "Техобслуговування"
+    "maintenanceLabel": "Техобслуговування",
+    "disableDevtoolsBlock": "Вимкнути блокування DevTools",
+    "disableDevtoolsBlockDesc": "Дозволити відкриття інструментів розробника",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "Керування кошиком",

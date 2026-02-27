@@ -1073,7 +1073,9 @@
     "commissionRate": "Commission {{rate}}%",
     "venueIntro": "Venue Description",
     "venueIntroEmpty": "No detailed description has been registered for this venue",
-    "backToHost": "Back to Host Info"
+    "backToHost": "Back to Host Info",
+    "unlockFailed": "Failed to unlock",
+    "errorOccurred": "An error occurred"
   },
   "analyticsPage": {
     "title": "Market Analytics",

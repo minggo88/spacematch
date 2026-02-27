@@ -13,7 +13,10 @@
   "trash": "ถังขยะ",
   "database": "ฐานข้อมูล",
   "sellerStats": {
-    "title": "CRM ผู้ขาย"
+    "title": "CRM ผู้ขาย",
+    "emptyDashboardDesc2": "When sellers enter data on the CRM page",
+    "sellerDirectInputDesc": "Sellers directly enter daily/monthly/annual sales data from the CRM menu.",
+    "dataWaitingDesc": "No seller data yet. Insights will be generated when sellers input data on the CRM page."
   },
   "totalUsers": "ผู้ใช้ทั้งหมด",
   "totalVenues": "สถานที่ทั้งหมด",
@@ -437,7 +440,9 @@
     "createAdminTitle": "เพิ่มผู้ดูแลใหม่",
     "labelPassword": "รหัสผ่าน",
     "cancel": "ยกเลิก",
-    "createAccount": "สร้างบัญชี"
+    "createAccount": "สร้างบัญชี",
+    "tabVendor": "Vendors",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "จัดการการชำระเงิน",
@@ -914,7 +919,18 @@
     "submitting": "กำลังดำเนินการ...",
     "submitEdit": "บันทึกการเปลี่ยนแปลง",
     "submitCreate": "สร้างโฆษณา",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "มุมมองรายการ",
+    "gridView": "มุมมองตาราง",
+    "targetCountries": "ประเทศเป้าหมาย",
+    "allCountries": "ทุกประเทศ",
+    "selectedCountries": "ประเทศที่เลือก",
+    "batchEdit": "แก้ไขเป็นชุด",
+    "batchCount": "เลือก {{count}} รายการ",
+    "batchEditDesc": "แก้ไขโฆษณาที่เลือกเป็นชุด",
+    "batchEditSuccess": "แก้ไขเป็นชุดเสร็จสิ้น",
+    "noFieldsSelected": "ไม่ได้เลือกฟิลด์",
+    "applyBatchEdit": "ใช้การแก้ไขเป็นชุด"
   },
   "adDashboardPage": {
     "slotHomeTop": "หน้าแรก Top",
@@ -1047,7 +1063,10 @@
     "securitySummary": "สรุปสถานะความปลอดภัย",
     "ipBlock": "บล็อก IP",
     "apiLimit": "จำกัด API",
-    "maintenanceLabel": "โหมดบำรุงรักษา"
+    "maintenanceLabel": "โหมดบำรุงรักษา",
+    "disableDevtoolsBlock": "ปิดการบล็อก DevTools",
+    "disableDevtoolsBlockDesc": "อนุญาตให้เปิดเครื่องมือนักพัฒนา",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "จัดการถังขยะ",

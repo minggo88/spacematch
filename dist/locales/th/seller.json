@@ -1073,7 +1073,9 @@
     "commissionRate": "ค่าคอมมิชชัน {{rate}}%",
     "venueIntro": "รายละเอียดพื้นที่",
     "venueIntroEmpty": "ยังไม่มีรายละเอียดสำหรับพื้นที่นี้",
-    "backToHost": "กลับไปยังข้อมูลผู้จัดหา"
+    "backToHost": "กลับไปยังข้อมูลผู้จัดหา",
+    "unlockFailed": "ปลดล็อกไม่สำเร็จ",
+    "errorOccurred": "เกิดข้อผิดพลาด"
   },
   "analyticsPage": {
     "title": "สถิติตลาด",
@@ -1182,5 +1184,15 @@
   },
   "countryFilter": "ตามประเทศ",
   "allCountries": "ทุกประเทศ",
-  "myCountry": "ประเทศของฉัน"
+  "myCountry": "ประเทศของฉัน",
+  "sortLabel": "เรียงตาม",
+  "sortLatest": "ล่าสุด",
+  "sortPriceAsc": "ราคา: ต่ำไปสูง",
+  "sortPriceDesc": "ราคา: สูงไปต่ำ",
+  "sortPopular": "ยอดนิยม",
+  "countryStatsTitle": "สถิติตามประเทศ",
+  "venueCountLabel": "สถานที่",
+  "avgPriceLabel": "ราคาเฉลี่ย",
+  "activeRecruitLabel": "กำลังรับสมัคร",
+  "spaces": "สถานที่"
 }

@@ -13,7 +13,10 @@
   "trash": "Corbeille",
   "database": "Base de données",
   "sellerStats": {
-    "title": "CRM Vendeur"
+    "title": "CRM Vendeur",
+    "emptyDashboardDesc2": "When sellers enter data on the CRM page",
+    "sellerDirectInputDesc": "Sellers directly enter daily/monthly/annual sales data from the CRM menu.",
+    "dataWaitingDesc": "No seller data yet. Insights will be generated when sellers input data on the CRM page."
   },
   "totalUsers": "Total utilisateurs",
   "totalVenues": "Total espaces",
@@ -437,7 +440,9 @@
     "createAdminTitle": "Ajouter un nouvel admin",
     "labelPassword": "Mot de passe",
     "cancel": "Annuler",
-    "createAccount": "Créer le compte"
+    "createAccount": "Créer le compte",
+    "tabVendor": "Vendors",
+    "distributionTrade": "Distribution"
   },
   "paymentsPage": {
     "title": "Gestion des paiements",
@@ -914,7 +919,18 @@
     "submitting": "Traitement..",
     "submitEdit": "Enregistrer les modifications",
     "submitCreate": "Créer la pub",
-    "period_not_set": "—"
+    "period_not_set": "—",
+    "listView": "Vue en liste",
+    "gridView": "Vue en grille",
+    "targetCountries": "Pays ciblés",
+    "allCountries": "Tous les pays",
+    "selectedCountries": "Pays sélectionnés",
+    "batchEdit": "Modification groupée",
+    "batchCount": "{{count}} sélectionnés",
+    "batchEditDesc": "Modifier les annonces sélectionnées en masse",
+    "batchEditSuccess": "Modification groupée terminée",
+    "noFieldsSelected": "Aucun champ sélectionné",
+    "applyBatchEdit": "Appliquer la modification groupée"
   },
   "adDashboardPage": {
     "slotHomeTop": "Accueil Top",
@@ -1047,7 +1063,10 @@
     "securitySummary": "Résumé de l'état de sécurité",
     "ipBlock": "Blocage IP",
     "apiLimit": "Limite API",
-    "maintenanceLabel": "Mode maintenance"
+    "maintenanceLabel": "Mode maintenance",
+    "disableDevtoolsBlock": "Désactiver le blocage DevTools",
+    "disableDevtoolsBlockDesc": "Autoriser l'ouverture des outils de développement",
+    "devtoolsLabel": "DevTools"
   },
   "trashPage": {
     "title": "Gestion de la corbeille",

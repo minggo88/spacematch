@@ -1073,7 +1073,9 @@
     "commissionRate": "手数料 {{rate}}%",
     "venueIntro": "スペース紹介",
     "venueIntroEmpty": "このスペースの詳細説明はまだ登録されていません",
-    "backToHost": "ベンダー情報に戻る"
+    "backToHost": "ベンダー情報に戻る",
+    "unlockFailed": "ロック解除に失敗しました",
+    "errorOccurred": "エラーが発生しました"
   },
   "analyticsPage": {
     "title": "マーケット統計",
@@ -1182,5 +1184,15 @@
   },
   "countryFilter": "国別表示",
   "allCountries": "全ての国",
-  "myCountry": "自分の国"
+  "myCountry": "自分の国",
+  "sortLabel": "並べ替え",
+  "sortLatest": "最新順",
+  "sortPriceAsc": "価格: 安い順",
+  "sortPriceDesc": "価格: 高い順",
+  "sortPopular": "人気順",
+  "countryStatsTitle": "国別統計",
+  "venueCountLabel": "スペース数",
+  "avgPriceLabel": "平均価格",
+  "activeRecruitLabel": "募集中",
+  "spaces": "スペース"
 }

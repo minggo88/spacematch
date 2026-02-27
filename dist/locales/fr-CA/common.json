@@ -107,7 +107,9 @@
     "justNow": "À l'instant",
     "minutesAgo": "Il y a {{count}} min",
     "hoursAgo": "Il y a {{count}} h",
-    "daysAgo": "Il y a {{count}} j"
+    "daysAgo": "Il y a {{count}} j",
+    "weeksAgo": "il y a {{count}} semaines",
+    "monthsAgo": "il y a {{count}} mois"
   },
   "confirm_delete": "Voulez-vous vraiment supprimer ?",
   "confirm_action": "Voulez-vous continuer ?",
@@ -170,7 +172,8 @@
     "distributionProposals": "Propositions de distribution",
     "shippingManagement": "Gestion des expéditions",
     "settlements": "Règlements",
-    "notificationSettings": "Paramètres de notification"
+    "notificationSettings": "Paramètres de notification",
+    "menuVisibility": "Visibilité du menu"
   },
   "notif": {
     "center": "Centre de notifications",
@@ -364,7 +367,12 @@
     "mainMenu": "Menu principal",
     "managementMenu": "Menu de gestion",
     "communityMenu": "Communauté",
-    "otherMenu": "Autre"
+    "otherMenu": "Autre",
+    "vendor": "Vendeur",
+    "vendorRole": "Rôle du vendeur",
+    "override": "Remplacer",
+    "changed": "Modifié",
+    "noChanges": "Aucune modification"
   },
   "vendorDashboard": {
     "welcome": "Bonjour",
@@ -391,5 +399,143 @@
     "goComplete": "Compléter"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM Vendeur"
+  "sellerStatsManagement": "CRM Vendeur",
+  "publicProfile": {
+    "typePopup": "Boutique éphémère",
+    "typeGallery": "Galerie",
+    "typeCafe": "Café",
+    "typeShowroom": "Salle d'exposition",
+    "typeFleamarket": "Marché aux puces",
+    "typeStore": "Magasin",
+    "profileLoadFailed": "Échec du chargement du profil",
+    "profileLoadError": "Erreur de chargement du profil",
+    "profileNotFound": "Profil introuvable",
+    "invalidAccess": "Accès invalide",
+    "goBack": "Retour",
+    "roleHost": "Hôte",
+    "roleSeller": "Vendeur",
+    "joined": "Inscrit",
+    "registeredSpaces": "Espaces enregistrés",
+    "entryActivity": "Activité d'entrée",
+    "allTypes": "Tous les types",
+    "viewDetails": "Voir les détails",
+    "productPhotos": "Photos de produits",
+    "product": "Produit",
+    "productPhoto": "Photo du produit",
+    "entryHistory": "Historique d'entrée",
+    "approved": "Approuvé",
+    "noSpacesYet": "Aucun espace pour le moment",
+    "noSpacesDesc": "Cet utilisateur n'a pas encore enregistré d'espaces"
+  },
+  "onboarding": {
+    "title": "Guide de démarrage",
+    "stepCount": "Étape {{current}} sur {{total}}",
+    "next": "Suivant",
+    "prev": "Précédent",
+    "finish": "Terminé",
+    "dismissToday": "Ne plus afficher aujourd'hui",
+    "dismissForever": "Ne plus afficher",
+    "steps": {
+      "home": {
+        "title": "Accueil",
+        "desc": "Consultez votre statut actuel d'un coup d'œil."
+      },
+      "applications": {
+        "title": "Candidatures",
+        "desc": "Postulez aux espaces et suivez le statut de votre candidature."
+      },
+      "hosts": {
+        "title": "Répertoire d'hôtes",
+        "desc": "Explorez divers hôtes et espaces pour vos produits."
+      },
+      "stats": {
+        "title": "Gestion des ventes",
+        "desc": "Enregistrez et analysez vos données de ventes avec le CRM."
+      },
+      "community": {
+        "title": "Communauté",
+        "desc": "Connectez-vous avec d'autres vendeurs et hôtes."
+      },
+      "profile": {
+        "title": "Mon profil",
+        "desc": "Un profil complet vous rend plus attractif auprès des hôtes."
+      },
+      "dashboard": {
+        "title": "Tableau de bord",
+        "desc": "Voir le statut des entrées et les statistiques clés."
+      },
+      "venues": {
+        "title": "Gestion d'espaces",
+        "desc": "Enregistrez et gérez vos espaces."
+      },
+      "sellers": {
+        "title": "Répertoire des vendeurs",
+        "desc": "Parcourez les vendeurs enregistrés."
+      },
+      "hostStats": {
+        "title": "Gestion des ventes",
+        "desc": "Analysez les ventes par espace et par vendeur."
+      },
+      "vendorSellers": {
+        "title": "Répertoire des vendeurs",
+        "desc": "Parcourez les vendeurs pour envoyer des propositions."
+      },
+      "proposals": {
+        "title": "Propositions de distribution",
+        "desc": "Envoyez des propositions de distribution aux vendeurs."
+      },
+      "shipments": {
+        "title": "Gestion des expéditions",
+        "desc": "Gérez les commandes et le statut d'expédition."
+      },
+      "settlements": {
+        "title": "Règlements",
+        "desc": "Consultez et gérez les règlements des transactions."
+      },
+      "adminHome": {
+        "title": "Accueil admin",
+        "desc": "Vue d'ensemble de la plateforme."
+      },
+      "adminDashboard": {
+        "title": "Tableau de bord admin",
+        "desc": "Page de gestion complète pour analyser les statistiques globales et les tendances."
+      },
+      "adminSellers": {
+        "title": "Gestion des vendeurs",
+        "desc": "Consultez et gérez tous les vendeurs enregistrés."
+      },
+      "adminHosts": {
+        "title": "Gestion des hôtes",
+        "desc": "Consultez et gérez tous les hôtes enregistrés."
+      },
+      "adminApps": {
+        "title": "Gestion des candidatures",
+        "desc": "Approuvez ou rejetez les candidatures des vendeurs."
+      },
+      "adminVenues": {
+        "title": "Gestion des espaces",
+        "desc": "Gérez tous les espaces enregistrés."
+      },
+      "adminUsers": {
+        "title": "Gestion des utilisateurs",
+        "desc": "Consultez tous les membres et gérez les rôles et accès."
+      },
+      "adminPayments": {
+        "title": "Gestion des paiements",
+        "desc": "Consultez et gérez le statut des paiements."
+      },
+      "adminSecurity": {
+        "title": "Paramètres de sécurité",
+        "desc": "Gérez les politiques de sécurité de la plateforme."
+      },
+      "adminDB": {
+        "title": "Gestion BD",
+        "desc": "Surveillez et gérez directement la base de données. (Super admin uniquement)"
+      },
+      "adminCommunity": {
+        "title": "Gestion communauté",
+        "desc": "Surveillez et gérez tous les forums communautaires."
+      }
+    }
+  }
 }

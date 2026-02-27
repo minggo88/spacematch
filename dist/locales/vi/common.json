@@ -107,7 +107,9 @@
     "justNow": "Vừa xong",
     "minutesAgo": "{{count}} phút trước",
     "hoursAgo": "{{count}} giờ trước",
-    "daysAgo": "{{count}} ngày trước"
+    "daysAgo": "{{count}} ngày trước",
+    "weeksAgo": "{{count}} tuần trước",
+    "monthsAgo": "{{count}} tháng trước"
   },
   "confirm_delete": "Bạn có chắc muốn xóa không?",
   "confirm_action": "Bạn có muốn tiếp tục?",
@@ -170,7 +172,8 @@
     "distributionProposals": "Đề xuất Phân phối",
     "shippingManagement": "Quản lý Vận chuyển",
     "settlements": "Thanh toán",
-    "notificationSettings": "Cài đặt Thông báo"
+    "notificationSettings": "Cài đặt Thông báo",
+    "menuVisibility": "Hiển thị menu"
   },
   "notif": {
     "center": "Trung tâm thông báo",
@@ -364,7 +367,12 @@
     "mainMenu": "Menu chính",
     "managementMenu": "Menu quản lý",
     "communityMenu": "Cộng đồng",
-    "otherMenu": "Khác"
+    "otherMenu": "Khác",
+    "vendor": "Nhà cung cấp",
+    "vendorRole": "Vai trò nhà cung cấp",
+    "override": "Ghi đè",
+    "changed": "Đã thay đổi",
+    "noChanges": "Không có thay đổi"
   },
   "vendorDashboard": {
     "welcome": "Xin chào",
@@ -391,5 +399,143 @@
     "goComplete": "Hoàn thiện"
   },
   "salesManagement": "CRM",
-  "sellerStatsManagement": "CRM Người bán"
+  "sellerStatsManagement": "CRM Người bán",
+  "publicProfile": {
+    "typePopup": "Cửa hàng pop-up",
+    "typeGallery": "Phòng trưng bày",
+    "typeCafe": "Quán cà phê",
+    "typeShowroom": "Phòng trưng bày",
+    "typeFleamarket": "Chợ trời",
+    "typeStore": "Cửa hàng",
+    "profileLoadFailed": "Tải hồ sơ thất bại",
+    "profileLoadError": "Lỗi tải hồ sơ",
+    "profileNotFound": "Không tìm thấy hồ sơ",
+    "invalidAccess": "Truy cập không hợp lệ",
+    "goBack": "Quay lại",
+    "roleHost": "Chủ nhà",
+    "roleSeller": "Người bán",
+    "joined": "Đã tham gia",
+    "registeredSpaces": "Địa điểm đã đăng ký",
+    "entryActivity": "Hoạt động tham gia",
+    "allTypes": "Tất cả loại",
+    "viewDetails": "Xem chi tiết",
+    "productPhotos": "Ảnh sản phẩm",
+    "product": "Sản phẩm",
+    "productPhoto": "Ảnh sản phẩm",
+    "entryHistory": "Lịch sử tham gia",
+    "approved": "Đã duyệt",
+    "noSpacesYet": "Chưa có địa điểm nào",
+    "noSpacesDesc": "Người dùng này chưa đăng ký địa điểm nào"
+  },
+  "onboarding": {
+    "title": "Hướng dẫn bắt đầu",
+    "stepCount": "Bước {{current}} / {{total}}",
+    "next": "Tiếp",
+    "prev": "Quay lại",
+    "finish": "Hoàn tất",
+    "dismissToday": "Không hiển thị hôm nay",
+    "dismissForever": "Không hiển thị nữa",
+    "steps": {
+      "home": {
+        "title": "Trang chủ",
+        "desc": "Xem trạng thái mới nhất."
+      },
+      "applications": {
+        "title": "Đơn ứng tuyển",
+        "desc": "Nộp đơn vào không gian và theo dõi trạng thái phê duyệt."
+      },
+      "hosts": {
+        "title": "Danh bạ chủ nhà",
+        "desc": "Khám phá chủ nhà và không gian đa dạng."
+      },
+      "stats": {
+        "title": "Quản lý doanh số",
+        "desc": "Ghi lại và phân tích dữ liệu doanh số."
+      },
+      "community": {
+        "title": "Cộng đồng",
+        "desc": "Kết nối với người bán và chủ nhà khác."
+      },
+      "profile": {
+        "title": "Hồ sơ của tôi",
+        "desc": "Hồ sơ hoàn chỉnh giúp bạn hấp dẫn hơn."
+      },
+      "dashboard": {
+        "title": "Bảng điều khiển",
+        "desc": "Xem trạng thái nhập cửa và thống kê quan trọng."
+      },
+      "venues": {
+        "title": "Quản lý không gian",
+        "desc": "Đăng ký và quản lý không gian."
+      },
+      "sellers": {
+        "title": "Danh bạ người bán",
+        "desc": "Duyệt người bán đã đăng ký."
+      },
+      "hostStats": {
+        "title": "Quản lý doanh số",
+        "desc": "Phân tích doanh số theo không gian."
+      },
+      "vendorSellers": {
+        "title": "Danh bạ người bán",
+        "desc": "Duyệt người bán để gửi đề xuất phân phối."
+      },
+      "proposals": {
+        "title": "Đề xuất phân phối",
+        "desc": "Gửi đề xuất phân phối cho người bán."
+      },
+      "shipments": {
+        "title": "Quản lý vận chuyển",
+        "desc": "Quản lý đơn hàng và trạng thái vận chuyển."
+      },
+      "settlements": {
+        "title": "Thanh toán",
+        "desc": "Xem và quản lý hồ sơ thanh toán giao dịch."
+      },
+      "adminHome": {
+        "title": "Trang chủ quản trị",
+        "desc": "Tổng quan toàn bộ nền tảng."
+      },
+      "adminDashboard": {
+        "title": "Bảng điều khiển quản trị",
+        "desc": "Trang quản lý toàn diện để phân tích thống kê và xu hướng."
+      },
+      "adminSellers": {
+        "title": "Quản lý người bán",
+        "desc": "Xem và quản lý tất cả người bán đã đăng ký."
+      },
+      "adminHosts": {
+        "title": "Quản lý chủ nhà",
+        "desc": "Xem và quản lý tất cả chủ nhà đã đăng ký."
+      },
+      "adminApps": {
+        "title": "Quản lý đơn ứng tuyển",
+        "desc": "Phê duyệt hoặc từ chối đơn ứng tuyển."
+      },
+      "adminVenues": {
+        "title": "Quản lý không gian",
+        "desc": "Quản lý tất cả không gian đã đăng ký."
+      },
+      "adminUsers": {
+        "title": "Quản lý người dùng",
+        "desc": "Xem tất cả thành viên và quản lý vai trò, quyền truy cập."
+      },
+      "adminPayments": {
+        "title": "Quản lý thanh toán",
+        "desc": "Xem và quản lý trạng thái thanh toán."
+      },
+      "adminSecurity": {
+        "title": "Cài đặt bảo mật",
+        "desc": "Quản lý chính sách bảo mật nền tảng."
+      },
+      "adminDB": {
+        "title": "Quản lý CSDL",
+        "desc": "Giám sát và quản lý trực tiếp cơ sở dữ liệu. (Chỉ Super Admin)"
+      },
+      "adminCommunity": {
+        "title": "Quản lý cộng đồng",
+        "desc": "Giám sát và quản lý tất cả diễn đàn cộng đồng."
+      }
+    }
+  }
 }
