@@ -77,11 +77,12 @@ const OnboardingGuide = () => {
     const [highlightRect, setHighlightRect] = useState(null);
     const tooltipRef = useRef(null);
 
+    // user.id를 기본 식별자로 사용 (email이 비어있을 수 있음)
+    const userId = user?.id;
     const role = user?.role;
-    const email = user?.email;
     const createdAt = user?.created_at ? new Date(user.created_at) : null;
 
-    // Layout.jsx와 동일한 fallback: admin/superadmin/host/vendor → 해당 역할, 그 외 → seller
+    // Layout.jsx와 동일한 fallback
     const guideRole = role === 'superadmin' ? 'superadmin'
         : role === 'admin' ? 'admin'
             : role === 'host' ? 'host'
@@ -97,26 +98,35 @@ const OnboardingGuide = () => {
 
     // ── 노출 여부 판단 ──
     useEffect(() => {
-        if (!email || steps.length === 0) return;
+        console.log('[OnboardingGuide] Effect:', { userId, role, guideRole, stepsCount: steps.length });
+
+        // user 로딩 안됨 or 역할 가이드 없음
+        if (!userId || steps.length === 0) {
+            console.log('[OnboardingGuide] Skip:', !userId ? 'no userId' : 'no steps');
+            return;
+        }
 
         // 영구 숨김 체크
-        const foreverKey = `onboarding_dismiss_forever_${email}`;
+        const foreverKey = `onboarding_dismiss_forever_${userId}`;
         if (localStorage.getItem(foreverKey) === 'true') {
+            console.log('[OnboardingGuide] Dismissed forever');
             setVisible(false);
             return;
         }
 
         // 오늘 숨김 체크
-        const todayKey = `onboarding_dismiss_today_${email}`;
+        const todayKey = `onboarding_dismiss_today_${userId}`;
         const today = new Date().toDateString();
         if (localStorage.getItem(todayKey) === today) {
+            console.log('[OnboardingGuide] Dismissed today');
             setVisible(false);
             return;
         }
 
+        console.log('[OnboardingGuide] ✅ SHOWING! Role:', guideRole, 'Steps:', steps.length);
         setVisible(true);
         setCurrentStep(0);
-    }, [email, steps.length]);
+    }, [userId, steps.length, guideRole]);
 
     // ── 하이라이트 대상 메뉴 위치 계산 ──
     const updateHighlight = useCallback(() => {
@@ -125,8 +135,7 @@ const OnboardingGuide = () => {
         if (!step) return;
 
         // 사이드바에서 해당 메뉴 NavLink 찾기
-        const selector = `a[href="${step.menuPath}"]`;
-        const el = document.querySelector(selector);
+        const el = document.querySelector(`a[href="${step.menuPath}"]`);
         if (el) {
             const rect = el.getBoundingClientRect();
             setHighlightRect({
@@ -142,8 +151,7 @@ const OnboardingGuide = () => {
 
     useEffect(() => {
         updateHighlight();
-        // 약간의 딜레이 후 다시 계산 (사이드바 렌더 완료 대기)
-        const timer = setTimeout(updateHighlight, 300);
+        const timer = setTimeout(updateHighlight, 500);
         window.addEventListener('resize', updateHighlight);
         window.addEventListener('scroll', updateHighlight);
         return () => {
@@ -155,13 +163,13 @@ const OnboardingGuide = () => {
 
     // ── 액션 핸들러 ──
     const dismissToday = () => {
-        const todayKey = `onboarding_dismiss_today_${email}`;
+        const todayKey = `onboarding_dismiss_today_${userId}`;
         localStorage.setItem(todayKey, new Date().toDateString());
         setVisible(false);
     };
 
     const dismissForever = () => {
-        const foreverKey = `onboarding_dismiss_forever_${email}`;
+        const foreverKey = `onboarding_dismiss_forever_${userId}`;
         localStorage.setItem(foreverKey, 'true');
         setVisible(false);
     };
@@ -178,6 +186,7 @@ const OnboardingGuide = () => {
         if (currentStep > 0) setCurrentStep(prev => prev - 1);
     };
 
+    // 가이드 안 보임 → null 반환
     if (!visible || steps.length === 0) return null;
 
     const step = steps[currentStep];
@@ -200,7 +209,7 @@ const OnboardingGuide = () => {
         zIndex: 10001,
     };
 
-    // 모바일에서는 중앙 표시
+    // 모바일에서는 중앙 하단 표시
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
     if (isMobile) {
         tooltipStyle.top = 'auto';
@@ -212,13 +221,13 @@ const OnboardingGuide = () => {
 
     return (
         <>
-            {/* 오버레이 (클릭하면 닫기) */}
+            {/* 오버레이 */}
             <div
                 className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300"
                 onClick={dismissToday}
             />
 
-            {/* 하이라이트 영역 (사이드바 메뉴 위치) */}
+            {/* 하이라이트 영역 */}
             {highlightRect && !isMobile && (
                 <div
                     className="fixed z-[10000] rounded-xl transition-all duration-300 ease-out"
