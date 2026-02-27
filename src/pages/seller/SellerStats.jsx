@@ -1116,11 +1116,12 @@ ${productSection}
         setLoadingTemplates(true);
         try {
             const res = await fetch(`${API_BASE}/seller_stats_import.php?action=templates`, { credentials: 'include' });
+            if (!res.ok) { console.warn('[Templates] HTTP', res.status); return; }
             const data = await res.json();
             if (data.success) {
                 setErpTemplates(data.templates || {});
             }
-        } catch { /* ignore */ } finally { setLoadingTemplates(false); }
+        } catch (err) { console.warn('[Templates] fetch error:', err); } finally { setLoadingTemplates(false); }
     }, [erpTemplates]);
 
     // ── Upload: Parse file with SheetJS ──
@@ -1223,20 +1224,60 @@ ${productSection}
             const totalChunks = Math.ceil(rows.length / CHUNK_SIZE);
             for (let i = 0; i < totalChunks; i++) {
                 const chunk = rows.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-                const res = await fetch(`${API_BASE}/seller_stats_import.php`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        action: 'import',
-                        rows: chunk,
-                        currency: uploadCurrency,
-                        record_type: uploadRecordType,
-                        sales_channel: uploadChannel,
-                        template: selectedTemplate,
-                    }),
-                });
-                const data = await res.json();
+
+                // 최대 2회 시도 (네트워크 일시 장애 대비)
+                let res = null;
+                let retryCount = 0;
+                while (retryCount < 2) {
+                    try {
+                        res = await fetch(`${API_BASE}/seller_stats_import.php`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                action: 'import',
+                                rows: chunk,
+                                currency: uploadCurrency,
+                                record_type: uploadRecordType,
+                                sales_channel: uploadChannel,
+                                template: selectedTemplate,
+                            }),
+                        });
+                        break; // 성공 시 루프 종료
+                    } catch (fetchErr) {
+                        retryCount++;
+                        if (retryCount >= 2) throw fetchErr;
+                        await new Promise(r => setTimeout(r, 1000)); // 1초 대기 후 재시도
+                    }
+                }
+
+                // HTTP 상태 코드 확인
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        showToast(t('statsPage.uploadApiNotFound', '서버 API 파일을 찾을 수 없습니다. 관리자에게 문의하세요. (404)'), 'error');
+                    } else if (res.status === 403) {
+                        showToast(t('statsPage.uploadAuthError', '로그인이 필요합니다. 다시 로그인해주세요.'), 'error');
+                    } else if (res.status >= 500) {
+                        showToast(t('statsPage.uploadServerError', `서버 내부 오류가 발생했습니다. (${res.status})`), 'error');
+                    } else {
+                        showToast(t('statsPage.uploadHttpError', `서버 오류: HTTP ${res.status}`), 'error');
+                    }
+                    setUploadStep('mapping');
+                    setImporting(false);
+                    return;
+                }
+
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    console.error('[Import] JSON parse error:', jsonErr, 'Response status:', res.status);
+                    showToast(t('statsPage.uploadJsonError', '서버 응답을 처리할 수 없습니다. 서버 설정을 확인해주세요.'), 'error');
+                    setUploadStep('mapping');
+                    setImporting(false);
+                    return;
+                }
+
                 if (data.success) {
                     totalInserted += (data.inserted || 0);
                     totalSkipped += (data.skipped || 0);
@@ -1261,8 +1302,9 @@ ${productSection}
             setUploadStep('done');
             fetchStats();
             showToast(t('statsPage.uploadSuccess', `${totalInserted}건 임포트 완료!`), 'success');
-        } catch {
-            showToast(t('statsPage.serverError'), 'error');
+        } catch (err) {
+            console.error('[Import] Network/fetch error:', err);
+            showToast(t('statsPage.serverError', '서버 연결에 실패했습니다. 네트워크 상태를 확인해주세요.'), 'error');
             setUploadStep('mapping');
         } finally { setImporting(false); }
     };
