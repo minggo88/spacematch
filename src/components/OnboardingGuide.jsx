@@ -54,16 +54,21 @@ const OnboardingGuide = () => {
     const createdAt = user?.created_at ? new Date(user.created_at) : null;
     const isAdmin = role === 'admin' || role === 'superadmin';
 
+    // Layout.jsx와 동일한 fallback 방식: admin/host/vendor가 아니면 → seller
+    const guideRole = isAdmin ? null : (role === 'host' ? 'host' : role === 'vendor' ? 'vendor' : 'seller');
+
     // 가입 후 1주일 경과 여부
     const isAfterFirstWeek = createdAt
         ? (Date.now() - createdAt.getTime()) > ONE_WEEK_MS
         : false;
 
-    const steps = !isAdmin && role ? (GUIDE_STEPS[role] || []) : [];
+    const steps = guideRole ? (GUIDE_STEPS[guideRole] || []) : [];
+
+    console.log('[OnboardingGuide] Mounted:', { email, role, guideRole, isAdmin, stepsCount: steps.length });
 
     // ── 노출 여부 판단 ──
     useEffect(() => {
-        console.log('[OnboardingGuide] Checking visibility:', { email, role, isAdmin, stepsCount: steps.length });
+        console.log('[OnboardingGuide] Checking visibility:', { email, role, guideRole, isAdmin, stepsCount: steps.length });
 
         if (!email || isAdmin || steps.length === 0) {
             console.log('[OnboardingGuide] Hidden — reason:', !email ? 'no email' : isAdmin ? 'admin' : 'no steps for role');
