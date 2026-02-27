@@ -1,6 +1,6 @@
 /**
  * Cafe24 SFTP 배포 스크립트
- * ssh2-sftp-client를 사용하여 dist/ 내용을 /www/ 로 전송
+ * ssh2-sftp-client를 사용하여 dist/ 내용을 서버로 전송
  */
 const SftpClient = require('ssh2-sftp-client');
 const path = require('path');
@@ -16,9 +16,10 @@ const config = {
 const LOCAL_DIR = path.resolve(__dirname, '../dist');
 const REMOTE_DIR = '/www';
 
-async function uploadDirContents(sftp, localDir, remoteDir) {
+async function uploadDirContents(sftp, localDir, remoteDir, depth = 0) {
     const items = fs.readdirSync(localDir);
     let uploadCount = 0;
+    const indent = '  '.repeat(depth);
 
     for (const item of items) {
         const localPath = path.join(localDir, item);
@@ -26,19 +27,26 @@ async function uploadDirContents(sftp, localDir, remoteDir) {
         const stat = fs.statSync(localPath);
 
         if (stat.isDirectory()) {
-            // 디렉토리면 원격에 생성 (이미 존재하면 무시)
+            console.log(`${indent}📁 ${item}/`);
             try {
-                await sftp.mkdir(remotePath, true);
+                const exists = await sftp.exists(remotePath);
+                if (!exists) {
+                    await sftp.mkdir(remotePath, true);
+                }
             } catch (e) {
-                // 이미 존재하는 경우 무시
+                console.log(`${indent}  ⚠️ mkdir ${remotePath}: ${e.message} (continuing...)`);
             }
-            // 재귀적으로 내부 파일 업로드
-            const subCount = await uploadDirContents(sftp, localPath, remotePath);
+            const subCount = await uploadDirContents(sftp, localPath, remotePath, depth + 1);
             uploadCount += subCount;
         } else {
-            // 파일이면 업로드
-            await sftp.put(localPath, remotePath);
-            uploadCount++;
+            try {
+                await sftp.put(localPath, remotePath);
+                uploadCount++;
+                if (depth === 0) console.log(`${indent}📄 ${item} ✓`);
+            } catch (e) {
+                console.log(`${indent}❌ ${item}: ${e.message}`);
+                throw e;
+            }
         }
     }
 
@@ -52,9 +60,33 @@ async function deploy() {
     await sftp.connect(config);
     console.log('✅ Connected!');
 
-    console.log(`📂 Uploading contents of ${LOCAL_DIR} → ${REMOTE_DIR}`);
+    // 디버그: 원격 디렉토리 확인
+    console.log('\n📋 Checking remote directory...');
+    try {
+        const cwd = await sftp.cwd();
+        console.log(`  Current dir: ${cwd}`);
+    } catch (e) { /* ignore */ }
+
+    try {
+        const wwwExists = await sftp.exists(REMOTE_DIR);
+        console.log(`  /www exists: ${wwwExists}`);
+        if (wwwExists) {
+            const list = await sftp.list(REMOTE_DIR);
+            console.log(`  /www contents (${list.length} items): ${list.slice(0, 10).map(f => f.name).join(', ')}${list.length > 10 ? '...' : ''}`);
+        }
+    } catch (e) {
+        console.log(`  /www check error: ${e.message}`);
+    }
+
+    // 홈 디렉토리 확인
+    try {
+        const homeList = await sftp.list('.');
+        console.log(`  Home dir contents: ${homeList.slice(0, 10).map(f => f.name).join(', ')}`);
+    } catch (e) { /* ignore */ }
+
+    console.log(`\n📂 Uploading to ${REMOTE_DIR}...`);
     const count = await uploadDirContents(sftp, LOCAL_DIR, REMOTE_DIR);
-    console.log(`✅ ${count} files uploaded!`);
+    console.log(`\n✅ ${count} files uploaded!`);
 
     await sftp.end();
     console.log('🎉 Deploy finished!');
