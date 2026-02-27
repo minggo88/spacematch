@@ -130,6 +130,8 @@ const SellerStats = ({ userRole = 'seller' }) => {
     // ── Host: Country selection ──
     const [selectedCountry, setSelectedCountry] = useState('KR');
     const [countryBreakdown, setCountryBreakdown] = useState([]);
+    const [showCountryPicker, setShowCountryPicker] = useState(false);
+    const countryPickerRef = useRef(null);
 
     // ── Country-specific currency symbol ──
     const countryCurrency = COUNTRY_CURRENCY[selectedCountry] || COUNTRY_CURRENCY.KR;
@@ -2161,26 +2163,46 @@ ${productSection}
                 })}
             </div>
 
-            {/* ── Country Filter Bar ── */}
-            <div className="flex flex-wrap items-center gap-1.5 mb-5 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm">
-                <span className="text-xs font-bold text-gray-400 mr-1">🌐</span>
-                {HOST_COUNTRIES.map(c => (
-                    <button
-                        key={c.code}
-                        onClick={() => {
-                            if (selectedCountry !== c.code) {
-                                setSelectedCountry(c.code);
-                                setLoading(true);
-                            }
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${selectedCountry === c.code
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-emerald-400 hover:bg-emerald-50'
-                            }`}
-                    >
-                        <span className="mr-1">{c.flag}</span>{c.name}
-                    </button>
-                ))}
+            {/* ── Country Filter (Dropdown) ── */}
+            <div className="relative mb-5" ref={countryPickerRef}>
+                <button
+                    onClick={() => setShowCountryPicker(!showCountryPicker)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all"
+                >
+                    <span className="text-base">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🏳️'}</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.name || selectedCountry}</span>
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${showCountryPicker ? 'rotate-180' : ''}`} />
+                </button>
+                {showCountryPicker && (
+                    <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowCountryPicker(false)} />
+                        <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-2 min-w-[220px] animate-in fade-in slide-in-from-top-2">
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 py-1.5 mb-1">{t('statsPage.selectCountry', '국가 선택')}</p>
+                            {HOST_COUNTRIES.map(c => (
+                                <button
+                                    key={c.code}
+                                    onClick={() => {
+                                        if (selectedCountry !== c.code) {
+                                            setSelectedCountry(c.code);
+                                            setLoading(true);
+                                        }
+                                        setShowCountryPicker(false);
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${selectedCountry === c.code
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                        }`}
+                                >
+                                    <span className="text-lg">{c.flag}</span>
+                                    <span className="flex-1 text-left">{c.name}</span>
+                                    {selectedCountry === c.code && (
+                                        <CheckCircle size={16} className="text-emerald-500" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                )}
             </div>
 
             {loading ? (
