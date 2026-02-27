@@ -356,9 +356,111 @@ try {
             if (file_exists($importFile)) {
                 include $importFile;
             } else {
-                // ── Inline minimal import logic (fallback) ──
+                // ── Full inline import logic (complete) ──
+                $SUPPORTED_CURRENCIES = ['KRW','USD','EUR','JPY','CNY','GBP','THB','VND','CAD','AUD','SGD','HKD','TWD','MYR','PHP','IDR','INR','BRL','MXN','CHF'];
+                $ERP_TEMPLATES = [
+                    'generic' => ['name'=>'Generic / Custom','name_ko'=>'범용 / 커스텀','columns'=>[
+                        ['key'=>'record_date','label'=>'Date','label_ko'=>'날짜','required'=>true],
+                        ['key'=>'monthly_revenue','label'=>'Revenue','label_ko'=>'매출액','required'=>true],
+                        ['key'=>'transaction_count','label'=>'Transactions','label_ko'=>'거래건수','required'=>false],
+                        ['key'=>'customer_count','label'=>'Customers','label_ko'=>'고객수','required'=>false],
+                        ['key'=>'product_name','label'=>'Product','label_ko'=>'상품명','required'=>false],
+                        ['key'=>'quantity_sold','label'=>'Qty Sold','label_ko'=>'판매수량','required'=>false],
+                        ['key'=>'cost_price','label'=>'Cost','label_ko'=>'원가','required'=>false],
+                        ['key'=>'best_selling_item','label'=>'Category','label_ko'=>'카테고리','required'=>false],
+                        ['key'=>'memo','label'=>'Memo','label_ko'=>'메모','required'=>false],
+                    ]],
+                    'naver_smartstore' => ['name'=>'Naver Smartstore','name_ko'=>'네이버 스마트스토어',
+                        'auto_map'=>['결제일'=>'record_date','상품주문번호'=>'memo','상품명'=>'product_name','수량'=>'quantity_sold','상품별 총 주문금액'=>'monthly_revenue','결제금액'=>'monthly_revenue','구매자명'=>'customer_count'],
+                        'columns'=>[['key'=>'record_date','label'=>'결제일','required'=>true],['key'=>'product_name','label'=>'상품명','required'=>false],['key'=>'quantity_sold','label'=>'수량','required'=>false],['key'=>'monthly_revenue','label'=>'결제금액','required'=>true],['key'=>'memo','label'=>'주문번호','required'=>false]]],
+                    'coupang' => ['name'=>'Coupang','name_ko'=>'쿠팡',
+                        'auto_map'=>['주문일'=>'record_date','결제일'=>'record_date','노출상품명'=>'product_name','상품명'=>'product_name','수량'=>'quantity_sold','판매가(할인가)'=>'monthly_revenue','결제액'=>'monthly_revenue','주문번호'=>'memo'],
+                        'columns'=>[['key'=>'record_date','label'=>'주문일','required'=>true],['key'=>'product_name','label'=>'상품명','required'=>false],['key'=>'quantity_sold','label'=>'수량','required'=>false],['key'=>'monthly_revenue','label'=>'결제액','required'=>true],['key'=>'memo','label'=>'주문번호','required'=>false]]],
+                    'cafe24' => ['name'=>'Cafe24','name_ko'=>'카페24',
+                        'auto_map'=>['주문일시'=>'record_date','주문일'=>'record_date','상품명'=>'product_name','수량'=>'quantity_sold','주문금액'=>'monthly_revenue','실결제금액'=>'monthly_revenue','주문번호'=>'memo'],
+                        'columns'=>[['key'=>'record_date','label'=>'주문일시','required'=>true],['key'=>'product_name','label'=>'상품명','required'=>false],['key'=>'quantity_sold','label'=>'수량','required'=>false],['key'=>'monthly_revenue','label'=>'주문금액','required'=>true],['key'=>'memo','label'=>'주문번호','required'=>false]]],
+                    'shopify' => ['name'=>'Shopify','name_ko'=>'Shopify',
+                        'auto_map'=>['Created at'=>'record_date','Date'=>'record_date','Lineitem name'=>'product_name','Lineitem quantity'=>'quantity_sold','Total'=>'monthly_revenue','Subtotal'=>'monthly_revenue','Name'=>'memo'],
+                        'columns'=>[['key'=>'record_date','label'=>'Created at','required'=>true],['key'=>'product_name','label'=>'Lineitem name','required'=>false],['key'=>'quantity_sold','label'=>'Lineitem quantity','required'=>false],['key'=>'monthly_revenue','label'=>'Total','required'=>true],['key'=>'memo','label'=>'Name','required'=>false]]],
+                    'amazon' => ['name'=>'Amazon','name_ko'=>'Amazon',
+                        'auto_map'=>['purchase-date'=>'record_date','order-date'=>'record_date','product-name'=>'product_name','quantity-purchased'=>'quantity_sold','item-price'=>'monthly_revenue','order-id'=>'memo'],
+                        'columns'=>[['key'=>'record_date','label'=>'purchase-date','required'=>true],['key'=>'product_name','label'=>'product-name','required'=>false],['key'=>'quantity_sold','label'=>'quantity-purchased','required'=>false],['key'=>'monthly_revenue','label'=>'item-price','required'=>true],['key'=>'memo','label'=>'order-id','required'=>false]]],
+                    'rakuten' => ['name'=>'Rakuten','name_ko'=>'라쿠텐 (楽天)',
+                        'auto_map'=>['注文日時'=>'record_date','注文日'=>'record_date','商品名'=>'product_name','個数'=>'quantity_sold','合計金額'=>'monthly_revenue','受注番号'=>'memo'],
+                        'columns'=>[['key'=>'record_date','label'=>'注文日時','required'=>true],['key'=>'product_name','label'=>'商品名','required'=>false],['key'=>'quantity_sold','label'=>'個数','required'=>false],['key'=>'monthly_revenue','label'=>'合計金額','required'=>true],['key'=>'memo','label'=>'受注番号','required'=>false]]],
+                    'etsy' => ['name'=>'Etsy','name_ko'=>'Etsy',
+                        'auto_map'=>['Sale Date'=>'record_date','Date'=>'record_date','Item Name'=>'product_name','Quantity'=>'quantity_sold','Order Value'=>'monthly_revenue','Price'=>'monthly_revenue','Order ID'=>'memo'],
+                        'columns'=>[['key'=>'record_date','label'=>'Sale Date','required'=>true],['key'=>'product_name','label'=>'Item Name','required'=>false],['key'=>'quantity_sold','label'=>'Quantity','required'=>false],['key'=>'monthly_revenue','label'=>'Order Value','required'=>true],['key'=>'memo','label'=>'Order ID','required'=>false]]],
+                ];
+                $COLUMN_KEYWORDS = [
+                    'record_date'=>['date','날짜','일자','주문일','결제일','발행일','日付','注文日','日期','datum','fecha','data','영업일'],
+                    'order_number'=>['order id','order no','주문번호','거래번호','전표번호','영수증','注文番号','伝票','订单号','bestellnummer','invoice','receipt','연수증번호'],
+                    'transaction_count'=>['transaction','건수','주문수','거래건','取引','注文','订单','orders'],
+                    'product_name'=>['product','item','상품','품목','商品','产品','name','상품명'],
+                    'sku'=>['sku','barcode','바코드','상품코드','품번','コード','编码','upc','ean'],
+                    'brand'=>['brand','브랜드','제조사','ブランド','品牌','manufacturer'],
+                    'option_info'=>['option','옵션','색상','사이즈','オプション','选项','variant','size','color'],
+                    'best_selling_item'=>['category','카테고리','분류','상품군','カテゴリ','类别','type'],
+                    'quantity_sold'=>['quantity','qty','수량','개수','판매수량','数量','個数','units','pcs'],
+                    'return_qty'=>['return qty','반품수량','환불수량','返品数','退货数'],
+                    'customer_count'=>['customer','고객','방문','고객수','顧客','客数','客户','buyer'],
+                    'monthly_revenue'=>['revenue','sales','amount','매출','금액','결제금액','판매액','매출액','売上','金額','收入','total','합계','합계금액','단가'],
+                    'avg_unit_price'=>['unit price','단가','판매단가','単価','单价','prix unitaire'],
+                    'cost_price'=>['cost','원가','매입가','仕入','成本','cogs','공급가액','공급가'],
+                    'discount_amount'=>['discount','할인','할인액','쿠폰할인','割引','折扣','coupon'],
+                    'tax_amount'=>['tax','vat','세금','부가세','소비세','부가가치세','税','税金','부가세'],
+                    'shipping_cost'=>['shipping','delivery','배송비','배송','택배','배송료','送料','运费'],
+                    'refund_amount'=>['refund','환불','환불액','반품금액','返品','返金','退款'],
+                    'commission_fee'=>['commission','fee','수수료','플랫폼수수료','手数料','佣金'],
+                    'net_revenue'=>['net','순매출','순수익','정산금액','실수령액','純売上','净收入'],
+                    'profit_amount'=>['profit','이익','이익금','순이익','마진','利益','利润'],
+                    'points_used'=>['points','적립금','포인트','마일리지','ポイント','积分'],
+                    'payment_method'=>['payment method','결제수단','결제방법','결제유형','決済方法','支付方式','card','카드','현금','cash','결제상세'],
+                    'payment_status'=>['status','결제상태','주문상태','상태','ステータス','状态'],
+                    'customer_name'=>['customer name','고객명','주문자','구매자','顧客名','客户名','buyer name'],
+                    'staff_name'=>['staff','employee','판매원','담당자','직원','担当','员工','cashier'],
+                    'store_name'=>['store','branch','shop','매장','지점','판매점','점포','店舗','门店'],
+                    'platform'=>['platform','플랫폼','プラットフォーム','平台','marketplace','마켓플레이스'],
+                    'supplier'=>['supplier','vendor','거래처','공급업체','仕入先','供应商'],
+                    'sales_channel'=>['channel','판매채널','채널','유통경로','チャネル','渠道'],
+                    'region'=>['region','지역','관할','地域','地区','area'],
+                    'venue_type'=>['venue','매장유형','업태','업종','業態','业态'],
+                    'satisfaction'=>['rating','satisfaction','만족도','평점','評価','评分','review','score'],
+                    'memo'=>['memo','note','비고','메모','備考','备注','remark','comment','내역'],
+                ];
+
                 if ($action === 'templates') {
-                    echo json_encode(["success" => true, "templates" => [], "currencies" => ['KRW','USD','EUR','JPY','CNY','GBP','THB','VND','CAD','AUD']]);
+                    echo json_encode(["success" => true, "templates" => $ERP_TEMPLATES, "currencies" => $SUPPORTED_CURRENCIES, "column_keywords" => $COLUMN_KEYWORDS]);
+                } elseif ($action === 'auto_map') {
+                    $headers = $input['headers'] ?? [];
+                    $templateKey = $input['template'] ?? '';
+                    $mapping = [];
+                    // Template auto_map first
+                    if ($templateKey && isset($ERP_TEMPLATES[$templateKey]['auto_map'])) {
+                        $autoMap = $ERP_TEMPLATES[$templateKey]['auto_map'];
+                        foreach ($headers as $idx => $header) {
+                            $hClean = trim($header);
+                            if (isset($autoMap[$hClean])) $mapping[$idx] = $autoMap[$hClean];
+                        }
+                    }
+                    // Keyword matching for unmapped
+                    foreach ($headers as $idx => $header) {
+                        if (isset($mapping[$idx])) continue;
+                        $hLower = mb_strtolower(trim($header));
+                        $bestMatch = null; $bestLen = 0;
+                        foreach ($COLUMN_KEYWORDS as $field => $keywords) {
+                            if (in_array($field, $mapping)) continue;
+                            foreach ($keywords as $kw) {
+                                $kwL = mb_strtolower($kw);
+                                if (mb_strpos($hLower, $kwL) !== false) {
+                                    $kwLen = mb_strlen($kwL);
+                                    if ($kwLen > $bestLen) { $bestMatch = $field; $bestLen = $kwLen; }
+                                }
+                            }
+                        }
+                        if ($bestMatch) $mapping[$idx] = $bestMatch;
+                    }
+                    echo json_encode(["success" => true, "mapping" => $mapping]);
                 } elseif ($action === 'history') {
                     $stmt = $conn->prepare("
                         SELECT import_batch_id, source, sales_channel, currency,
@@ -384,8 +486,6 @@ try {
                         $stmt->execute([$userId, $batchId]);
                         echo json_encode(["success" => true, "deleted" => $stmt->rowCount()]);
                     }
-                } elseif ($action === 'auto_map') {
-                    echo json_encode(["success" => true, "mapping" => []]);
                 } elseif ($action === 'import') {
                     // ── Inline import logic ──
                     $rows = $input['rows'] ?? [];
