@@ -39,16 +39,24 @@ jobs:
             cp -r public/locales dist/locales
           fi
 
-      - name: 🔑 Setup SSH key
+      - name: � Install lftp
+        run: sudo apt-get install -y lftp
+
+      - name: �🔑 Setup SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: 🚀 Deploy to Cafe24 via SCP
+      - name: 🚀 Deploy to Cafe24 via SFTP
         run: |
-          scp -i ~/.ssh/deploy_key -P ${{ secrets.SFTP_PORT }} -r dist/* ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:/www/
+          lftp -e "
+            set sftp:connect-program 'ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }}';
+            open sftp://${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }};
+            mirror --reverse --verbose --delete dist/ /www/;
+            quit
+          "
 
       - name: 🧹 Cleanup
         if: always()
