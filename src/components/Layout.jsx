@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { countryToLang, getPopupLocalized } from '../utils/translateText';
 import ChatPage from '../pages/ChatPage';
 import { subscribeToPush } from '../utils/pushNotifications';
+import OnboardingGuide from './OnboardingGuide';
 
 const Layout = () => {
     const { user, logout } = useAuth();
@@ -604,6 +605,9 @@ const Layout = () => {
 
             {/* Browser Notification Permission Prompt */}
             <NotificationPrompt />
+
+            {/* Onboarding Guide for new users */}
+            <OnboardingGuide />
 
             {/* ━━ Notification Popup Modal ━━ */}
             {showNotifs && (

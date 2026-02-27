@@ -426,5 +426,72 @@
     "approved": "Approved",
     "noSpacesYet": "No spaces yet",
     "noSpacesDesc": "This user hasn't registered any spaces yet"
+  },
+  "onboarding": {
+    "title": "Getting Started",
+    "stepCount": "Step {{current}} of {{total}}",
+    "next": "Next",
+    "prev": "Back",
+    "finish": "Done",
+    "dismissToday": "Don't show today",
+    "dismissForever": "Don't show again",
+    "steps": {
+      "home": {
+        "title": "Home",
+        "desc": "View your latest status at a glance. Key notifications and quick action menus are here."
+      },
+      "applications": {
+        "title": "Applications",
+        "desc": "Apply to spaces you like and track your approval status."
+      },
+      "hosts": {
+        "title": "Host Directory",
+        "desc": "Explore various hosts and spaces to find the perfect spot for your products."
+      },
+      "stats": {
+        "title": "Sales Management",
+        "desc": "Record and analyze your sales data. Use CRM features to manage your performance."
+      },
+      "community": {
+        "title": "Community",
+        "desc": "Connect with other sellers and hosts, and share useful information."
+      },
+      "profile": {
+        "title": "My Profile",
+        "desc": "A complete profile makes you more attractive to hosts. Add your business info and product photos."
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "desc": "A management page to view entry status, pending applications, and key statistics at a glance."
+      },
+      "venues": {
+        "title": "Space Management",
+        "desc": "Register and manage your spaces. Set seller recruitment periods and conditions."
+      },
+      "sellers": {
+        "title": "Seller Directory",
+        "desc": "Browse registered sellers and find the right fit for your space."
+      },
+      "hostStats": {
+        "title": "Sales Management",
+        "desc": "Record and analyze sales by space, and check performance by seller."
+      },
+      "vendorSellers": {
+        "title": "Seller Directory",
+        "desc": "Browse sellers to send distribution proposals. Search by category and region."
+      },
+      "proposals": {
+        "title": "Distribution Proposals",
+        "desc": "Send distribution proposals to sellers and manage proposal status."
+      },
+      "shipments": {
+        "title": "Shipping Management",
+        "desc": "Manage orders and shipping status. Track deliveries and view history."
+      },
+      "settlements": {
+        "title": "Settlements",
+        "desc": "View and manage transaction settlement records."
+      }
+    }
   }
 }

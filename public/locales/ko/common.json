@@ -425,5 +425,72 @@
         "goComplete": "완성하기"
     },
     "salesManagement": "CRM",
-    "sellerStatsManagement": "셀러 CRM"
+    "sellerStatsManagement": "셀러 CRM",
+    "onboarding": {
+        "title": "시작 가이드",
+        "stepCount": "{{current}} / {{total}} 단계",
+        "next": "다음",
+        "prev": "이전",
+        "finish": "완료",
+        "dismissToday": "오늘 그만 보기",
+        "dismissForever": "더 이상 보지 않기",
+        "steps": {
+            "home": {
+                "title": "홈 화면",
+                "desc": "대시보드에서 최신 현황을 한눈에 확인할 수 있습니다. 주요 알림과 빠른 작업 메뉴가 여기에 있어요."
+            },
+            "applications": {
+                "title": "입점 신청",
+                "desc": "원하는 공간에 입점 신청을 하고, 승인 현황을 확인할 수 있습니다."
+            },
+            "hosts": {
+                "title": "호스트 탐색",
+                "desc": "다양한 호스트와 공간을 탐색하고, 입점에 적합한 장소를 찾아보세요."
+            },
+            "stats": {
+                "title": "매출 관리",
+                "desc": "매출 데이터를 기록하고 분석할 수 있습니다. CRM 기능으로 매출 현황을 관리하세요."
+            },
+            "community": {
+                "title": "커뮤니티",
+                "desc": "다른 셀러·호스트와 소통하고, 유용한 정보를 공유할 수 있습니다."
+            },
+            "profile": {
+                "title": "내 프로필",
+                "desc": "프로필을 완성하면 호스트에게 더 매력적으로 보입니다. 사업자 정보와 상품 사진을 등록하세요."
+            },
+            "dashboard": {
+                "title": "대시보드",
+                "desc": "입점 현황, 진행 중인 신청, 주요 통계를 한눈에 볼 수 있는 관리 페이지입니다."
+            },
+            "venues": {
+                "title": "공간 관리",
+                "desc": "보유한 공간을 등록하고 관리합니다. 셀러 모집 기간과 조건을 설정할 수 있어요."
+            },
+            "sellers": {
+                "title": "셀러 탐색",
+                "desc": "등록된 셀러를 탐색하고, 우리 공간에 적합한 셀러를 찾아보세요."
+            },
+            "hostStats": {
+                "title": "매출 관리",
+                "desc": "공간별 매출을 기록·분석하고, 셀러별 성과를 확인할 수 있습니다."
+            },
+            "vendorSellers": {
+                "title": "셀러 탐색",
+                "desc": "유통 제안을 보낼 셀러를 탐색합니다. 카테고리와 지역으로 검색해 보세요."
+            },
+            "proposals": {
+                "title": "유통 제안",
+                "desc": "셀러에게 유통 제안을 보내고, 제안 상태를 관리할 수 있습니다."
+            },
+            "shipments": {
+                "title": "배송 관리",
+                "desc": "발주 및 배송 상태를 관리합니다. 배송 추적과 이력을 확인하세요."
+            },
+            "settlements": {
+                "title": "정산",
+                "desc": "거래 정산 내역을 확인하고 관리합니다."
+            }
+        }
+    }
 }
