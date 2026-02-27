@@ -426,5 +426,72 @@
     "approved": "Đã duyệt",
     "noSpacesYet": "Chưa có địa điểm nào",
     "noSpacesDesc": "Người dùng này chưa đăng ký địa điểm nào"
+  },
+  "onboarding": {
+    "title": "Hướng dẫn bắt đầu",
+    "stepCount": "Bước {{current}} / {{total}}",
+    "next": "Tiếp",
+    "prev": "Quay lại",
+    "finish": "Hoàn tất",
+    "dismissToday": "Không hiển thị hôm nay",
+    "dismissForever": "Không hiển thị nữa",
+    "steps": {
+      "home": {
+        "title": "Trang chủ",
+        "desc": "Xem trạng thái mới nhất."
+      },
+      "applications": {
+        "title": "Đơn ứng tuyển",
+        "desc": "Nộp đơn vào không gian và theo dõi trạng thái phê duyệt."
+      },
+      "hosts": {
+        "title": "Danh bạ chủ nhà",
+        "desc": "Khám phá chủ nhà và không gian đa dạng."
+      },
+      "stats": {
+        "title": "Quản lý doanh số",
+        "desc": "Ghi lại và phân tích dữ liệu doanh số."
+      },
+      "community": {
+        "title": "Cộng đồng",
+        "desc": "Kết nối với người bán và chủ nhà khác."
+      },
+      "profile": {
+        "title": "Hồ sơ của tôi",
+        "desc": "Hồ sơ hoàn chỉnh giúp bạn hấp dẫn hơn."
+      },
+      "dashboard": {
+        "title": "Bảng điều khiển",
+        "desc": "Xem trạng thái nhập cửa và thống kê quan trọng."
+      },
+      "venues": {
+        "title": "Quản lý không gian",
+        "desc": "Đăng ký và quản lý không gian."
+      },
+      "sellers": {
+        "title": "Danh bạ người bán",
+        "desc": "Duyệt người bán đã đăng ký."
+      },
+      "hostStats": {
+        "title": "Quản lý doanh số",
+        "desc": "Phân tích doanh số theo không gian."
+      },
+      "vendorSellers": {
+        "title": "Danh bạ người bán",
+        "desc": "Duyệt người bán để gửi đề xuất phân phối."
+      },
+      "proposals": {
+        "title": "Đề xuất phân phối",
+        "desc": "Gửi đề xuất phân phối cho người bán."
+      },
+      "shipments": {
+        "title": "Quản lý vận chuyển",
+        "desc": "Quản lý đơn hàng và trạng thái vận chuyển."
+      },
+      "settlements": {
+        "title": "Thanh toán",
+        "desc": "Xem và quản lý hồ sơ thanh toán giao dịch."
+      }
+    }
   }
 }

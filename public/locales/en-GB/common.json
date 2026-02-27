@@ -426,5 +426,72 @@
     "approved": "Approved",
     "noSpacesYet": "No spaces yet",
     "noSpacesDesc": "This user hasn't registered any spaces yet"
+  },
+  "onboarding": {
+    "title": "Getting Started",
+    "stepCount": "Step {{current}} of {{total}}",
+    "next": "Next",
+    "prev": "Back",
+    "finish": "Done",
+    "dismissToday": "Don't show today",
+    "dismissForever": "Don't show again",
+    "steps": {
+      "home": {
+        "title": "Home",
+        "desc": "View your latest status at a glance."
+      },
+      "applications": {
+        "title": "Applications",
+        "desc": "Apply to spaces and track your approval status."
+      },
+      "hosts": {
+        "title": "Host Directory",
+        "desc": "Explore hosts and spaces for your products."
+      },
+      "stats": {
+        "title": "Sales Management",
+        "desc": "Record and analyze your sales data."
+      },
+      "community": {
+        "title": "Community",
+        "desc": "Connect with other sellers and hosts."
+      },
+      "profile": {
+        "title": "My Profile",
+        "desc": "A complete profile makes you more attractive to hosts."
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "desc": "View entry status and key statistics at a glance."
+      },
+      "venues": {
+        "title": "Space Management",
+        "desc": "Register and manage your spaces."
+      },
+      "sellers": {
+        "title": "Seller Directory",
+        "desc": "Browse registered sellers."
+      },
+      "hostStats": {
+        "title": "Sales Management",
+        "desc": "Analyze sales by space and seller."
+      },
+      "vendorSellers": {
+        "title": "Seller Directory",
+        "desc": "Browse sellers to send distribution proposals."
+      },
+      "proposals": {
+        "title": "Distribution Proposals",
+        "desc": "Send distribution proposals to sellers."
+      },
+      "shipments": {
+        "title": "Shipping Management",
+        "desc": "Manage orders and shipping status."
+      },
+      "settlements": {
+        "title": "Settlements",
+        "desc": "View and manage transaction settlements."
+      }
+    }
   }
 }
