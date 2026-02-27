@@ -39,34 +39,44 @@
             var GUIDE_STEPS = {
                 seller: [
                     {
-                        icon: '🏠', title: '매출 관리 대시보드',
-                        desc: '실시간 매출 현황, 주문 건수, 고객 수를 한눈에 확인할 수 있는 대시보드입니다. 일간·주간·월간 데이터를 비교하고, 매출 추이 그래프를 통해 사업 성장세를 파악하세요.',
-                        tip: '💡 대시보드에서 기간을 변경하면 원하는 구간의 데이터를 볼 수 있어요.'
+                        icon: '👋', title: 'SpaceMatch에 오신 것을 환영합니다!',
+                        desc: 'SpaceMatch는 셀러와 호스트를 연결하는 팝업 매칭 플랫폼입니다. 전국의 다양한 공간에서 팝업스토어를 열고, 매출 데이터를 관리하며, 다른 셀러들과 소통할 수 있습니다. 지금부터 주요 기능을 함께 살펴볼까요?',
+                        tip: '💡 이 가이드는 언제든 다시 볼 수 있으며, 화면을 클릭하면 닫을 수 있어요.'
                     },
                     {
-                        icon: '📋', title: '입점 신청하기',
-                        desc: '원하는 장소에 입점 신청을 보낼 수 있습니다. 호스트가 등록한 공간의 위치, 면적, 가격 등을 확인하고, 맞는 공간이 있으면 바로 신청해보세요. 신청 현황도 실시간으로 추적 가능합니다.',
-                        tip: '💡 프로필을 완성하면 입점 승인율이 높아져요!'
+                        icon: '📊', title: '매출 관리 대시보드',
+                        desc: '매출 현황, 주문 건수, 고객 수를 실시간으로 확인하세요. 일간·주간·월간 데이터를 비교 분석하고, 매출 추이 그래프를 통해 사업이 어떻게 성장하고 있는지 한눈에 파악할 수 있습니다. 기간별 필터를 사용하면 원하는 구간의 데이터를 바로 볼 수 있어요.',
+                        tip: '💡 TIP: 대시보드에서 "일간 데이터"를 누르면 매일의 매출 변화를 추적할 수 있어요.'
+                    },
+                    {
+                        icon: '📋', title: '입점 신청 · 공간 찾기',
+                        desc: '왼쪽 메뉴의 "입점 신청"에서 원하는 공간을 찾아 신청할 수 있습니다. 호스트가 등록한 공간의 위치, 면적, 가격, 운영 조건 등을 비교하고, 조건에 맞는 공간이 있으면 바로 신청해보세요. 신청 후에는 실시간으로 승인 여부를 추적할 수 있습니다.',
+                        tip: '💡 TIP: 프로필이 완성되어 있으면 호스트의 입점 승인율이 크게 높아져요!'
                     },
                     {
                         icon: '🏢', title: '호스트 탐색',
-                        desc: '전국 각지의 호스트와 그들이 운영하는 공간을 검색해보세요. 지역별·유형별 필터를 사용하면 내 브랜드에 딱 맞는 공간을 빠르게 찾을 수 있습니다.',
-                        tip: '💡 마음에 드는 호스트를 즐겨찾기에 추가해두면 나중에 쉽게 찾을 수 있어요.'
+                        desc: '전국 각지의 호스트와 운영 공간을 검색하세요. 지역별·공간유형별·면적별 필터를 활용하면 내 브랜드에 딱 맞는 공간을 빠르게 찾을 수 있습니다. 마음에 드는 공간이 있다면 호스트에게 직접 문의할 수도 있어요.',
+                        tip: '💡 TIP: 호스트 페이지에서 공간 사진과 리뷰를 확인할 수 있어요.'
                     },
                     {
-                        icon: '📊', title: 'CRM · 매출 데이터 관리',
-                        desc: 'POS 데이터, 매출 보고서 등을 엑셀(.xlsx) 또는 CSV 파일로 업로드하세요. 자동으로 데이터를 분석하고 일간·월간·연간 통계를 생성합니다. 1년치 이상의 대용량 데이터도 한 번에 처리 가능합니다.',
-                        tip: '💡 파일을 드래그 앤 드롭하거나 클릭해서 쉽게 업로드할 수 있어요.'
+                        icon: '📈', title: 'CRM · 매출 데이터 관리',
+                        desc: '왼쪽 메뉴의 "통계"에서 매출 데이터를 관리할 수 있습니다. POS 데이터나 매출 보고서를 엑셀(.xlsx) 또는 CSV 파일로 업로드하면, 자동으로 일간·월간·연간 통계가 생성됩니다. 1년 치 이상의 대용량 데이터도 한 번에 처리 가능합니다.',
+                        tip: '💡 TIP: 파일을 화면에 드래그하여 놓으면 바로 업로드가 시작돼요.'
                     },
                     {
-                        icon: '💬', title: '셀러 커뮤니티',
-                        desc: '다른 셀러들과 사업 노하우, 팝업 운영 경험담, 좋은 공간 추천 등을 자유롭게 공유하세요. 질문을 올리면 경험 많은 선배 셀러들이 답변해줍니다.',
-                        tip: '💡 인기 게시글과 최신 트렌드를 놓치지 마세요.'
+                        icon: '📣', title: '마케팅 · 인기도',
+                        desc: '광고 집행, 프로모션 관리를 통해 더 많은 호스트에게 브랜드를 노출하세요. 인기도 페이지에서는 현재 트렌드에 맞는 인기 셀러 정보도 확인할 수 있습니다. 마케팅을 효과적으로 활용하면 입점 기회가 더 많아집니다.',
+                        tip: '💡 TIP: 프로필을 자세히 작성하면 마케팅 효과가 극대화돼요.'
                     },
                     {
-                        icon: '👤', title: '내 프로필 설정',
-                        desc: '브랜드명, 소개글, 카테고리, SNS 링크 등 프로필 정보를 완성해주세요. 호스트들이 입점 심사 시 프로필을 참고하기 때문에 상세히 작성할수록 승인 확률이 높아집니다.',
-                        tip: '💡 프로필 사진과 포트폴리오를 추가하면 신뢰도가 올라가요.'
+                        icon: '💬', title: '커뮤니티 · 소통',
+                        desc: '셀러 전용 커뮤니티에서 사업 노하우, 팝업 운영 후기, 공간 추천 등을 자유롭게 공유하세요. 경험 많은 선배 셀러들의 팁을 얻거나, 좋은 호스트 정보를 교환할 수 있습니다. 채팅 기능으로 호스트와 실시간 소통도 가능합니다.',
+                        tip: '💡 TIP: 질문을 올리면 보통 하루 내에 답변을 받을 수 있어요.'
+                    },
+                    {
+                        icon: '👤', title: '내 프로필 완성하기',
+                        desc: '마지막으로 프로필을 완성해주세요! 브랜드명, 소개글, 카테고리, 대표 사진, SNS 링크 등을 모두 입력하면 호스트에게 훨씬 매력적으로 보입니다. 호스트들이 입점 심사 시 프로필을 가장 먼저 확인하기 때문에, 상세히 작성할수록 승인 확률이 크게 높아집니다.',
+                        tip: '💡 TIP: 포트폴리오 사진을 3장 이상 올리면 호스트의 관심도가 2배 이상 높아져요!'
                     }
                 ],
                 host: [
@@ -160,6 +170,9 @@
 
             var ROLE_NAMES = { seller: '셀러', host: '호스트', vendor: '벤더', admin: '관리자', superadmin: '슈퍼 관리자' };
             var ROLE_COLORS = { seller: '#10b981', host: '#f59e0b', vendor: '#8b5cf6', admin: '#ef4444', superadmin: '#ef4444' };
+            var ROLE_BG = { seller: 'rgba(16,185,129,0.08)', host: 'rgba(245,158,11,0.08)', vendor: 'rgba(139,92,246,0.08)', admin: 'rgba(239,68,68,0.08)', superadmin: 'rgba(239,68,68,0.08)' };
+            var ROLE_BORDER = { seller: 'rgba(16,185,129,0.2)', host: 'rgba(245,158,11,0.2)', vendor: 'rgba(139,92,246,0.2)', admin: 'rgba(239,68,68,0.2)', superadmin: 'rgba(239,68,68,0.2)' };
+            var ROLE_ICON_BG = { seller: 'rgba(16,185,129,0.12)', host: 'rgba(245,158,11,0.12)', vendor: 'rgba(139,92,246,0.12)', admin: 'rgba(239,68,68,0.12)', superadmin: 'rgba(239,68,68,0.12)' };
 
             function initOnboarding() {
                 if (window.location.pathname === '/login' || window.location.pathname === '/signup'
@@ -196,7 +209,10 @@
 
                 var card = document.createElement('div');
                 card.id = 'onboarding-card';
-                card.style.cssText = 'position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);width:420px;max-width:calc(100vw - 32px);background:#fff;border-radius:24px;box-shadow:0 25px 60px rgba(0,0,0,0.35);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;animation:onb-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);';
+                var roleBg = ROLE_BG[guideRole] || 'rgba(99,102,241,0.08)';
+                var roleBorder = ROLE_BORDER[guideRole] || 'rgba(99,102,241,0.2)';
+                var roleIconBg = ROLE_ICON_BG[guideRole] || 'rgba(99,102,241,0.12)';
+                card.style.cssText = 'position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);width:440px;max-width:calc(100vw - 32px);background:#fff;border-radius:24px;box-shadow:0 25px 60px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.05);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;animation:onb-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);';
                 card.onclick = function (e) { e.stopPropagation(); };
 
                 var style = document.createElement('style');
@@ -210,36 +226,38 @@
                     var isFirst = currentStep === 0;
 
                     card.innerHTML = ''
-                        + '<div style="height:5px;background:#f1f5f9"><div style="height:100%;background:linear-gradient(to right,#6366f1,#a855f7);transition:width 0.5s;width:' + progress + '%"></div></div>'
-                        // Header with welcome
-                        + '<div style="padding:20px 24px 12px">'
-                        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-                        + '<div style="display:flex;align-items:center;gap:10px">'
-                        + '<div style="width:40px;height:40px;background:linear-gradient(135deg,#6366f1,#9333ea);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(99,102,241,0.35);color:#fff;font-size:18px">✨</div>'
+                        // Gradient header bar
+                        + '<div style="height:5px;background:#f1f5f9"><div style="height:100%;background:linear-gradient(to right,' + roleColor + ',#6366f1);transition:width 0.5s;width:' + progress + '%"></div></div>'
+                        // Header
+                        + '<div style="padding:20px 24px 0">'
+                        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+                        + '<div style="display:flex;align-items:center;gap:12px">'
+                        + '<div style="width:44px;height:44px;background:linear-gradient(135deg,' + roleColor + ',#6366f1);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(99,102,241,0.3);color:#fff;font-size:20px">✨</div>'
                         + '<div>'
-                        + '<p style="font-size:15px;font-weight:800;color:#111827;margin:0">SpaceMatch 시작 가이드</p>'
-                        + '<p style="font-size:11px;color:#9ca3af;font-weight:500;margin:2px 0 0">' + (currentStep + 1) + ' / ' + steps.length + '단계</p>'
+                        + '<p style="font-size:16px;font-weight:800;color:#111827;margin:0;letter-spacing:-0.3px">SpaceMatch 시작 가이드</p>'
+                        + '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'
+                        + '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:' + roleBg + ';border:1px solid ' + roleBorder + '">'
+                        + '<span style="width:5px;height:5px;border-radius:50%;background:' + roleColor + '"></span>'
+                        + '<span style="font-size:10px;font-weight:600;color:' + roleColor + '">' + roleName + '</span>'
+                        + '</span>'
+                        + '<span style="font-size:11px;color:#9ca3af;font-weight:600">' + (currentStep + 1) + ' / ' + steps.length + '</span>'
                         + '</div>'
                         + '</div>'
-                        + '<button id="onb-close" style="width:32px;height:32px;border-radius:10px;border:none;background:#f1f5f9;cursor:pointer;font-size:16px;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:background 0.2s"onmouseover="this.style.background=\'#e2e8f0\'"onmouseout="this.style.background=\'#f1f5f9\'">✕</button>'
                         + '</div>'
-                        // Role badge
-                        + '<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:' + roleColor + '15;border:1px solid ' + roleColor + '30;margin-bottom:6px">'
-                        + '<span style="width:6px;height:6px;border-radius:50%;background:' + roleColor + '"></span>'
-                        + '<span style="font-size:11px;font-weight:600;color:' + roleColor + '">' + roleName + ' 전용 가이드</span>'
+                        + '<button id="onb-close" style="width:34px;height:34px;border-radius:10px;border:none;background:#f1f5f9;cursor:pointer;font-size:16px;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:all 0.2s"onmouseover="this.style.background=\'#e2e8f0\'"onmouseout="this.style.background=\'#f1f5f9\'">✕</button>'
                         + '</div>'
                         + '</div>'
-                        // Content
+                        // Content card
                         + '<div style="padding:0 24px 20px">'
-                        + '<div style="background:#f8fafc;border-radius:16px;padding:20px;margin-bottom:16px">'
-                        + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">'
-                        + '<div style="width:52px;height:52px;background:linear-gradient(135deg,' + roleColor + '22,' + roleColor + '11);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">' + step.icon + '</div>'
+                        + '<div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid #e2e8f0">'
+                        + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'
+                        + '<div style="width:56px;height:56px;background:' + roleIconBg + ';border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;border:1px solid ' + roleBorder + '">' + step.icon + '</div>'
                         + '<div style="flex:1">'
-                        + '<h4 style="font-size:17px;font-weight:800;color:#111827;margin:0 0 2px;line-height:1.3">' + step.title + '</h4>'
+                        + '<h4 style="font-size:18px;font-weight:800;color:#111827;margin:0;line-height:1.3;letter-spacing:-0.3px">' + step.title + '</h4>'
                         + '</div>'
                         + '</div>'
-                        + '<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 12px">' + step.desc + '</p>'
-                        + (step.tip ? '<div style="display:flex;align-items:flex-start;gap:6px;padding:10px 12px;background:#fffbeb;border-radius:10px;border:1px solid #fef3c7"><p style="font-size:12px;color:#92400e;line-height:1.5;margin:0;font-weight:500">' + step.tip + '</p></div>' : '')
+                        + '<p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 14px;word-break:keep-all">' + step.desc + '</p>'
+                        + (step.tip ? '<div style="display:flex;align-items:flex-start;gap:8px;padding:12px 14px;background:rgba(255,251,235,0.8);border-radius:12px;border:1px solid #fde68a"><p style="font-size:12px;color:#92400e;line-height:1.6;margin:0;font-weight:600">' + step.tip + '</p></div>' : '')
                         + '</div>'
                         // Dots
                         + '<div style="display:flex;align-items:center;gap:5px;margin-bottom:16px;justify-content:center">'
