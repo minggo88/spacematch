@@ -32,6 +32,190 @@
             });
         }
     </script>
+
+    <!-- ═══ 온보딩 가이드 (순수 JS — React 완전 우회) ═══ -->
+    <script>
+        (function () {
+            var GUIDE_STEPS = {
+                seller: [
+                    { icon: '🏠', title: '매출 관리', desc: '대시보드에서 매출 현황을 한눈에 확인하세요.' },
+                    { icon: '📋', title: '입점 신청', desc: '원하는 장소에 입점 신청을 보낼 수 있습니다.' },
+                    { icon: '🏢', title: '호스트 찾기', desc: '등록된 호스트와 공간을 검색해보세요.' },
+                    { icon: '📊', title: 'CRM 데이터', desc: '매출 데이터를 업로드하고 분석할 수 있습니다.' },
+                    { icon: '💬', title: '커뮤니티', desc: '다른 셀러들과 정보를 공유해보세요.' },
+                    { icon: '👤', title: '내 프로필', desc: '프로필을 완성하면 호스트에게 더 잘 보입니다.' }
+                ],
+                host: [
+                    { icon: '🏠', title: '홈', desc: '호스트 대시보드에서 공간 현황을 확인하세요.' },
+                    { icon: '📊', title: '대시보드', desc: '신청 현황과 매출을 한눈에 볼 수 있습니다.' },
+                    { icon: '🏪', title: '내 공간', desc: '등록한 공간을 관리하고 새 공간을 추가하세요.' },
+                    { icon: '🛍️', title: '셀러 관리', desc: '입점 셀러를 확인하고 관리할 수 있습니다.' },
+                    { icon: '📈', title: '통계', desc: '공간별 매출과 방문 데이터를 분석하세요.' },
+                    { icon: '💬', title: '커뮤니티', desc: '다른 호스트들과 노하우를 공유해보세요.' }
+                ],
+                vendor: [
+                    { icon: '🏠', title: '홈', desc: '벤더 대시보드에서 주문 현황을 확인하세요.' },
+                    { icon: '🛍️', title: '셀러 관리', desc: '거래 중인 셀러 목록을 확인하세요.' },
+                    { icon: '📩', title: '제안서', desc: '셀러에게 제안서를 보내고 관리하세요.' },
+                    { icon: '📦', title: '배송', desc: '배송 현황을 추적하고 관리할 수 있습니다.' },
+                    { icon: '💰', title: '정산', desc: '정산 내역을 확인하고 관리하세요.' }
+                ],
+                admin: [
+                    { icon: '🏠', title: '관리자 홈', desc: '전체 플랫폼 현황을 한눈에 확인하세요.' },
+                    { icon: '📊', title: '대시보드', desc: '주요 지표와 통계를 분석할 수 있습니다.' },
+                    { icon: '👥', title: '사용자 관리', desc: '등록된 모든 사용자를 관리하세요.' },
+                    { icon: '🏪', title: '공간 관리', desc: '등록된 공간을 검토하고 승인하세요.' },
+                    { icon: '💳', title: '결제 관리', desc: '결제 내역을 확인하고 관리할 수 있습니다.' }
+                ]
+            };
+            GUIDE_STEPS.superadmin = GUIDE_STEPS.admin;
+
+            function initOnboarding() {
+                // 로그인 페이지에서는 실행 안 함
+                if (window.location.pathname === '/login' || window.location.pathname === '/signup') return;
+
+                // API로 유저 정보 확인
+                fetch('/api/auth/me.php', { credentials: 'include' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data.success || !data.user) return;
+                        var user = data.user;
+                        var role = user.role;
+                        var uid = user.id || user.email || 'default';
+
+                        // 역할 매핑
+                        var guideRole = (role === 'superadmin') ? 'superadmin'
+                            : (role === 'admin') ? 'admin'
+                                : (role === 'host') ? 'host'
+                                    : (role === 'vendor') ? 'vendor'
+                                        : 'seller';
+
+                        var steps = GUIDE_STEPS[guideRole];
+                        if (!steps || steps.length === 0) return;
+
+                        // 영구 숨김 체크
+                        if (localStorage.getItem('onboarding_dismiss_forever_' + uid) === 'true') return;
+
+                        // 오늘 숨김 체크
+                        var today = new Date().toDateString();
+                        if (localStorage.getItem('onboarding_dismiss_today_' + uid) === today) return;
+
+                        // ★ 가이드 표시!
+                        showGuide(steps, uid);
+                    })
+                    .catch(function () { /* 로그인 안 된 상태 */ });
+            }
+
+            function showGuide(steps, uid) {
+                var currentStep = 0;
+
+                // Overlay
+                var overlay = document.createElement('div');
+                overlay.id = 'onboarding-overlay';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);transition:opacity 0.3s;';
+                overlay.onclick = function () { dismissToday(); };
+
+                // Card
+                var card = document.createElement('div');
+                card.id = 'onboarding-card';
+                card.style.cssText = 'position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);width:360px;max-width:calc(100vw - 32px);background:#fff;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,0.3);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;animation:onb-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);';
+                card.onclick = function (e) { e.stopPropagation(); };
+
+                // Animation
+                var style = document.createElement('style');
+                style.textContent = '@keyframes onb-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.8)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}';
+                document.head.appendChild(style);
+
+                function render() {
+                    var step = steps[currentStep];
+                    var progress = ((currentStep + 1) / steps.length) * 100;
+                    var isLast = currentStep === steps.length - 1;
+
+                    card.innerHTML = ''
+                        // Progress bar
+                        + '<div style="height:4px;background:#f1f5f9"><div style="height:100%;background:linear-gradient(to right,#6366f1,#a855f7);transition:width 0.5s;width:' + progress + '%"></div></div>'
+                        // Header
+                        + '<div style="padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between">'
+                        + '<div style="display:flex;align-items:center;gap:8px">'
+                        + '<div style="width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#9333ea);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,0.3);color:#fff;font-size:14px">✨</div>'
+                        + '<div><p style="font-size:12px;font-weight:700;color:#6366f1;margin:0">시작 가이드</p>'
+                        + '<p style="font-size:10px;color:#9ca3af;font-weight:500;margin:0">' + (currentStep + 1) + ' / ' + steps.length + '</p></div>'
+                        + '</div>'
+                        + '<button id="onb-close" style="width:28px;height:28px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-size:18px;color:#9ca3af;display:flex;align-items:center;justify-content:center">✕</button>'
+                        + '</div>'
+                        // Body
+                        + '<div style="padding:0 20px 16px">'
+                        + '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">'
+                        + '<span style="font-size:30px;flex-shrink:0;margin-top:2px">' + step.icon + '</span>'
+                        + '<div><h4 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 4px">' + step.title + '</h4>'
+                        + '<p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0">' + step.desc + '</p></div>'
+                        + '</div>'
+                        // Dots
+                        + '<div style="display:flex;align-items:center;gap:4px;margin-bottom:16px;justify-content:center">'
+                        + steps.map(function (_, i) {
+                            return '<span class="onb-dot" data-i="' + i + '" style="display:inline-block;height:6px;border-radius:3px;cursor:pointer;transition:all 0.3s;'
+                                + (i === currentStep ? 'width:24px;background:#6366f1' : i < currentStep ? 'width:6px;background:#a5b4fc' : 'width:6px;background:#e2e8f0')
+                                + '"></span>';
+                        }).join('')
+                        + '</div>'
+                        // Buttons
+                        + '<div style="display:flex;align-items:center;gap:8px">'
+                        + (currentStep > 0 ? '<button id="onb-prev" style="display:flex;align-items:center;gap:4px;padding:8px 12px;font-size:12px;font-weight:700;color:#6b7280;background:transparent;border:none;border-radius:12px;cursor:pointer">← 이전</button>' : '')
+                        + '<div style="flex:1"></div>'
+                        + '<button id="onb-next" style="display:flex;align-items:center;gap:4px;padding:8px 16px;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(to right,#6366f1,#9333ea);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,0.3)">' + (isLast ? '완료 ✓' : '다음 →') + '</button>'
+                        + '</div>'
+                        // Dismiss
+                        + '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:center;gap:12px">'
+                        + '<button id="onb-today" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;font-weight:500">오늘 그만 보기</button>'
+                        + '<span style="color:#e2e8f0">|</span>'
+                        + '<button id="onb-forever" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;font-weight:500">🙈 더 이상 보지 않기</button>'
+                        + '</div>'
+                        + '</div>';
+
+                    // Event listeners
+                    card.querySelector('#onb-close').onclick = function () { dismissToday(); };
+                    card.querySelector('#onb-next').onclick = function () {
+                        if (currentStep < steps.length - 1) { currentStep++; render(); }
+                        else { dismissToday(); }
+                    };
+                    var prevBtn = card.querySelector('#onb-prev');
+                    if (prevBtn) prevBtn.onclick = function () { if (currentStep > 0) { currentStep--; render(); } };
+                    card.querySelector('#onb-today').onclick = function () { dismissToday(); };
+                    card.querySelector('#onb-forever').onclick = function () { dismissForever(); };
+                    // Dot clicks
+                    var dots = card.querySelectorAll('.onb-dot');
+                    dots.forEach(function (dot) {
+                        dot.onclick = function () { currentStep = parseInt(dot.getAttribute('data-i')); render(); };
+                    });
+                }
+
+                function dismissToday() {
+                    localStorage.setItem('onboarding_dismiss_today_' + uid, new Date().toDateString());
+                    close();
+                }
+                function dismissForever() {
+                    localStorage.setItem('onboarding_dismiss_forever_' + uid, 'true');
+                    close();
+                }
+                function close() {
+                    overlay.style.opacity = '0';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translate(-50%,-50%) scale(0.9)';
+                    setTimeout(function () {
+                        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                        if (card.parentNode) card.parentNode.removeChild(card);
+                    }, 300);
+                }
+
+                render();
+                document.body.appendChild(overlay);
+                document.body.appendChild(card);
+            }
+
+            // React가 로드될 시간을 준 후 실행 (2초 대기)
+            setTimeout(initOnboarding, 2000);
+        })();
+    </script>
 </body>
 
 </html>
