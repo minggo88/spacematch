@@ -201,6 +201,11 @@
                 var currentStep = 0;
                 var roleName = ROLE_NAMES[guideRole] || '사용자';
                 var roleColor = ROLE_COLORS[guideRole] || '#6366f1';
+                var roleBg = ROLE_BG[guideRole] || 'rgba(99,102,241,0.08)';
+                var roleBorder = ROLE_BORDER[guideRole] || 'rgba(99,102,241,0.2)';
+                var roleIconBg = ROLE_ICON_BG[guideRole] || 'rgba(99,102,241,0.12)';
+
+                function isMobile() { return window.innerWidth < 768; }
 
                 var overlay = document.createElement('div');
                 overlay.id = 'onboarding-overlay';
@@ -209,75 +214,112 @@
 
                 var card = document.createElement('div');
                 card.id = 'onboarding-card';
-                var roleBg = ROLE_BG[guideRole] || 'rgba(99,102,241,0.08)';
-                var roleBorder = ROLE_BORDER[guideRole] || 'rgba(99,102,241,0.2)';
-                var roleIconBg = ROLE_ICON_BG[guideRole] || 'rgba(99,102,241,0.12)';
-                card.style.cssText = 'position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);width:440px;max-width:calc(100vw - 32px);background:#fff;border-radius:24px;box-shadow:0 25px 60px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.05);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;animation:onb-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);';
                 card.onclick = function (e) { e.stopPropagation(); };
 
                 var style = document.createElement('style');
-                style.textContent = '@keyframes onb-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.85)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}';
+                style.textContent = ''
+                    + '@keyframes onb-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.85)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}'
+                    + '@keyframes onb-slide{0%{opacity:0;transform:translateY(100%)}100%{opacity:1;transform:translateY(0)}}';
                 document.head.appendChild(style);
+
+                function applyCardStyle() {
+                    if (isMobile()) {
+                        card.style.cssText = 'position:fixed;z-index:100000;bottom:0;left:0;right:0;width:100%;max-height:85vh;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.25);overflow-y:auto;overflow-x:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;animation:onb-slide 0.35s ease-out;padding-bottom:env(safe-area-inset-bottom,0);-webkit-overflow-scrolling:touch;';
+                    } else {
+                        card.style.cssText = 'position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);width:440px;max-width:calc(100vw - 32px);max-height:90vh;background:#fff;border-radius:24px;box-shadow:0 25px 60px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.05);overflow-y:auto;overflow-x:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;animation:onb-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);';
+                    }
+                }
+
+                // 화면 회전/리사이즈 대응
+                var resizeTimer;
+                function onResize() {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function () { applyCardStyle(); }, 150);
+                }
+                window.addEventListener('resize', onResize);
 
                 function render() {
                     var step = steps[currentStep];
                     var progress = ((currentStep + 1) / steps.length) * 100;
                     var isLast = currentStep === steps.length - 1;
-                    var isFirst = currentStep === 0;
+                    var m = isMobile();
+
+                    applyCardStyle();
+
+                    // 모바일/PC 분기 스타일 변수
+                    var pad = m ? '16px' : '24px';
+                    var padTop = m ? '16px' : '20px';
+                    var iconSize = m ? '36px' : '44px';
+                    var iconFont = m ? '16px' : '20px';
+                    var titleFont = m ? '14px' : '16px';
+                    var stepIconSize = m ? '46px' : '56px';
+                    var stepIconFont = m ? '24px' : '30px';
+                    var stepTitleFont = m ? '16px' : '18px';
+                    var descFont = m ? '13px' : '14px';
+                    var tipFont = m ? '11px' : '12px';
+                    var tipPad = m ? '10px 12px' : '12px 14px';
+                    var btnPad = m ? '12px 16px' : '10px 20px';
+                    var btnFont = m ? '13px' : '13px';
+                    var dotSize = m ? '6px' : '7px';
+                    var dotActive = m ? '22px' : '28px';
+                    var contentPad = m ? '16px' : '20px';
+                    var closeBtnSize = m ? '38px' : '34px';
 
                     card.innerHTML = ''
-                        // Gradient header bar
-                        + '<div style="height:5px;background:#f1f5f9"><div style="height:100%;background:linear-gradient(to right,' + roleColor + ',#6366f1);transition:width 0.5s;width:' + progress + '%"></div></div>'
+                        // Handle bar (모바일)
+                        + (m ? '<div style="display:flex;justify-content:center;padding:10px 0 4px"><div style="width:36px;height:4px;border-radius:2px;background:#d1d5db"></div></div>' : '')
+                        // Progress bar
+                        + '<div style="height:' + (m ? '4px' : '5px') + ';background:#f1f5f9;' + (m ? '' : '') + '"><div style="height:100%;background:linear-gradient(to right,' + roleColor + ',#6366f1);transition:width 0.5s;width:' + progress + '%"></div></div>'
                         // Header
-                        + '<div style="padding:20px 24px 0">'
-                        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
-                        + '<div style="display:flex;align-items:center;gap:12px">'
-                        + '<div style="width:44px;height:44px;background:linear-gradient(135deg,' + roleColor + ',#6366f1);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(99,102,241,0.3);color:#fff;font-size:20px">✨</div>'
+                        + '<div style="padding:' + padTop + ' ' + pad + ' 0">'
+                        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (m ? '12px' : '14px') + '">'
+                        + '<div style="display:flex;align-items:center;gap:' + (m ? '10px' : '12px') + '">'
+                        + '<div style="width:' + iconSize + ';height:' + iconSize + ';background:linear-gradient(135deg,' + roleColor + ',#6366f1);border-radius:' + (m ? '12px' : '14px') + ';display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(99,102,241,0.3);color:#fff;font-size:' + iconFont + '">✨</div>'
                         + '<div>'
-                        + '<p style="font-size:16px;font-weight:800;color:#111827;margin:0;letter-spacing:-0.3px">SpaceMatch 시작 가이드</p>'
-                        + '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'
-                        + '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:' + roleBg + ';border:1px solid ' + roleBorder + '">'
-                        + '<span style="width:5px;height:5px;border-radius:50%;background:' + roleColor + '"></span>'
-                        + '<span style="font-size:10px;font-weight:600;color:' + roleColor + '">' + roleName + '</span>'
+                        + '<p style="font-size:' + titleFont + ';font-weight:800;color:#111827;margin:0;letter-spacing:-0.3px">시작 가이드</p>'
+                        + '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">'
+                        + '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:' + roleBg + ';border:1px solid ' + roleBorder + '">'
+                        + '<span style="width:4px;height:4px;border-radius:50%;background:' + roleColor + '"></span>'
+                        + '<span style="font-size:' + (m ? '9px' : '10px') + ';font-weight:600;color:' + roleColor + '">' + roleName + '</span>'
                         + '</span>'
-                        + '<span style="font-size:11px;color:#9ca3af;font-weight:600">' + (currentStep + 1) + ' / ' + steps.length + '</span>'
+                        + '<span style="font-size:' + (m ? '10px' : '11px') + ';color:#9ca3af;font-weight:600">' + (currentStep + 1) + '/' + steps.length + '</span>'
                         + '</div>'
                         + '</div>'
                         + '</div>'
-                        + '<button id="onb-close" style="width:34px;height:34px;border-radius:10px;border:none;background:#f1f5f9;cursor:pointer;font-size:16px;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:all 0.2s"onmouseover="this.style.background=\'#e2e8f0\'"onmouseout="this.style.background=\'#f1f5f9\'">✕</button>'
+                        + '<button id="onb-close" style="width:' + closeBtnSize + ';height:' + closeBtnSize + ';min-width:' + closeBtnSize + ';border-radius:10px;border:none;background:#f1f5f9;cursor:pointer;font-size:16px;color:#6b7280;display:flex;align-items:center;justify-content:center">✕</button>'
                         + '</div>'
                         + '</div>'
-                        // Content card
-                        + '<div style="padding:0 24px 20px">'
-                        + '<div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid #e2e8f0">'
-                        + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'
-                        + '<div style="width:56px;height:56px;background:' + roleIconBg + ';border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;border:1px solid ' + roleBorder + '">' + step.icon + '</div>'
+                        // Content
+                        + '<div style="padding:0 ' + pad + ' ' + (m ? '16px' : '20px') + '">'
+                        + '<div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:' + (m ? '14px' : '16px') + ';padding:' + contentPad + ';margin-bottom:' + (m ? '12px' : '16px') + ';border:1px solid #e2e8f0">'
+                        + '<div style="display:flex;align-items:center;gap:' + (m ? '12px' : '14px') + ';margin-bottom:' + (m ? '10px' : '14px') + '">'
+                        + '<div style="width:' + stepIconSize + ';height:' + stepIconSize + ';background:' + roleIconBg + ';border-radius:' + (m ? '14px' : '16px') + ';display:flex;align-items:center;justify-content:center;font-size:' + stepIconFont + ';flex-shrink:0;border:1px solid ' + roleBorder + '">' + step.icon + '</div>'
                         + '<div style="flex:1">'
-                        + '<h4 style="font-size:18px;font-weight:800;color:#111827;margin:0;line-height:1.3;letter-spacing:-0.3px">' + step.title + '</h4>'
+                        + '<h4 style="font-size:' + stepTitleFont + ';font-weight:800;color:#111827;margin:0;line-height:1.3;letter-spacing:-0.3px">' + step.title + '</h4>'
                         + '</div>'
                         + '</div>'
-                        + '<p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 14px;word-break:keep-all">' + step.desc + '</p>'
-                        + (step.tip ? '<div style="display:flex;align-items:flex-start;gap:8px;padding:12px 14px;background:rgba(255,251,235,0.8);border-radius:12px;border:1px solid #fde68a"><p style="font-size:12px;color:#92400e;line-height:1.6;margin:0;font-weight:600">' + step.tip + '</p></div>' : '')
+                        + '<p style="font-size:' + descFont + ';color:#374151;line-height:1.7;margin:0 0 ' + (m ? '10px' : '14px') + ';word-break:keep-all">' + step.desc + '</p>'
+                        + (step.tip ? '<div style="padding:' + tipPad + ';background:rgba(255,251,235,0.8);border-radius:' + (m ? '10px' : '12px') + ';border:1px solid #fde68a"><p style="font-size:' + tipFont + ';color:#92400e;line-height:1.5;margin:0;font-weight:600">' + step.tip + '</p></div>' : '')
                         + '</div>'
                         // Dots
-                        + '<div style="display:flex;align-items:center;gap:5px;margin-bottom:16px;justify-content:center">'
+                        + '<div style="display:flex;align-items:center;gap:' + (m ? '4px' : '5px') + ';margin-bottom:' + (m ? '12px' : '16px') + ';justify-content:center">'
                         + steps.map(function (_, i) {
-                            return '<span class="onb-dot" data-i="' + i + '" style="display:inline-block;height:7px;border-radius:4px;cursor:pointer;transition:all 0.3s;'
-                                + (i === currentStep ? 'width:28px;background:#6366f1' : i < currentStep ? 'width:7px;background:#a5b4fc' : 'width:7px;background:#e2e8f0')
+                            return '<span class="onb-dot" data-i="' + i + '" style="display:inline-block;height:' + dotSize + ';border-radius:4px;cursor:pointer;transition:all 0.3s;'
+                                + (i === currentStep ? 'width:' + dotActive + ';background:#6366f1' : i < currentStep ? 'width:' + dotSize + ';background:#a5b4fc' : 'width:' + dotSize + ';background:#e2e8f0')
                                 + '"></span>';
                         }).join('')
                         + '</div>'
                         // Buttons
-                        + '<div style="display:flex;align-items:center;gap:10px">'
-                        + (currentStep > 0 ? '<button id="onb-prev" style="display:flex;align-items:center;gap:4px;padding:10px 16px;font-size:13px;font-weight:700;color:#6b7280;background:#f1f5f9;border:none;border-radius:12px;cursor:pointer;transition:background 0.2s"onmouseover="this.style.background=\'#e2e8f0\'"onmouseout="this.style.background=\'#f1f5f9\'">← 이전</button>' : '')
+                        + '<div style="display:flex;align-items:center;gap:' + (m ? '8px' : '10px') + '">'
+                        + (currentStep > 0 ? '<button id="onb-prev" style="display:flex;align-items:center;justify-content:center;padding:' + btnPad + ';font-size:' + btnFont + ';font-weight:700;color:#6b7280;background:#f1f5f9;border:none;border-radius:12px;cursor:pointer;min-height:44px">← 이전</button>' : '')
                         + '<div style="flex:1"></div>'
-                        + '<button id="onb-next" style="display:flex;align-items:center;gap:4px;padding:10px 20px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#6366f1,#9333ea);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.35);transition:transform 0.2s"onmouseover="this.style.transform=\'translateY(-1px)\'"onmouseout="this.style.transform=\'none\'">' + (isLast ? '완료하기 ✓' : '다음으로 →') + '</button>'
+                        + '<button id="onb-next" style="display:flex;align-items:center;justify-content:center;padding:' + btnPad + ';font-size:' + btnFont + ';font-weight:700;color:#fff;background:linear-gradient(135deg,#6366f1,#9333ea);border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.35);min-height:44px">' + (isLast ? '완료하기 ✓' : '다음으로 →') + '</button>'
                         + '</div>'
                         // Dismiss
-                        + '<div style="margin-top:14px;padding-top:14px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:center;gap:16px">'
-                        + '<button id="onb-today" style="font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer;font-weight:500;transition:color 0.2s"onmouseover="this.style.color=\'#6b7280\'"onmouseout="this.style.color=\'#9ca3af\'">오늘 그만 보기</button>'
+                        + '<div style="margin-top:' + (m ? '10px' : '14px') + ';padding-top:' + (m ? '10px' : '14px') + ';border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:center;gap:' + (m ? '12px' : '16px') + '">'
+                        + '<button id="onb-today" style="font-size:' + (m ? '11px' : '12px') + ';color:#9ca3af;background:none;border:none;cursor:pointer;font-weight:500;min-height:36px;padding:6px 8px">오늘 그만 보기</button>'
                         + '<span style="color:#e2e8f0;font-size:10px">|</span>'
-                        + '<button id="onb-forever" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer;font-weight:500;transition:color 0.2s"onmouseover="this.style.color=\'#6b7280\'"onmouseout="this.style.color=\'#9ca3af\'">🙈 더 이상 보지 않기</button>'
+                        + '<button id="onb-forever" style="display:flex;align-items:center;gap:4px;font-size:' + (m ? '11px' : '12px') + ';color:#9ca3af;background:none;border:none;cursor:pointer;font-weight:500;min-height:36px;padding:6px 8px">🙈 더 이상 보지 않기</button>'
                         + '</div>'
                         + '</div>';
 
@@ -305,9 +347,15 @@
                     close();
                 }
                 function close() {
+                    window.removeEventListener('resize', onResize);
                     overlay.style.opacity = '0';
-                    card.style.opacity = '0';
-                    card.style.transform = 'translate(-50%,-50%) scale(0.9)';
+                    if (isMobile()) {
+                        card.style.transform = 'translateY(100%)';
+                        card.style.opacity = '0';
+                    } else {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translate(-50%,-50%) scale(0.9)';
+                    }
                     setTimeout(function () {
                         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
                         if (card.parentNode) card.parentNode.removeChild(card);
