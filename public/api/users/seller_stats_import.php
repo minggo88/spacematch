@@ -16,6 +16,12 @@ session_start();
 header('Content-Type: application/json');
 error_reporting(E_ERROR);
 
+// 대량 임포트를 위한 PHP 제한 확장
+@ini_set('max_execution_time', 300);  // 5분
+@ini_set('memory_limit', '512M');
+@ini_set('post_max_size', '100M');
+@ini_set('upload_max_filesize', '100M');
+
 // Require login + seller role
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
@@ -328,8 +334,8 @@ try {
                 exit;
             }
 
-            if (count($rows) > 5000) {
-                echo json_encode(["success" => false, "message" => "Maximum 5000 rows per import."]);
+            if (count($rows) > 50000) {
+                echo json_encode(["success" => false, "message" => "Maximum 50,000 rows per import."]);
                 exit;
             }
 

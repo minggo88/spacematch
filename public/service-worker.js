@@ -1,10 +1,8 @@
 // ─── SpaceMatch Service Worker ───
 // 네트워크 우선, 캐시 폴백 + 웹 푸시 알림 지원
 
-const CACHE_NAME = 'spacematch-v4';
+const CACHE_NAME = 'spacematch-v5';
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
     '/manifest.json'
 ];
 
@@ -38,6 +36,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // HTML 네비게이션 요청은 항상 네트워크에서 가져옴 (캐시 X)
+    if (event.request.mode === 'navigate' || event.request.url.endsWith('/index.html') || event.request.url.endsWith('/')) {
+        event.respondWith(
+            fetch(event.request).catch(() => caches.match('/index.html'))
+        );
+        return;
+    }
+
     // HTTPS 요청만 캐시 (보안)
     if (!event.request.url.startsWith('https://') && !event.request.url.startsWith('http://localhost')) {
         return;
@@ -46,7 +52,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // 유효한 응답만 캐시
+                // 유효한 응답만 캐시 (JS/CSS 등 정적 에셋)
                 if (response && response.status === 200 && response.type === 'basic') {
                     const responseClone = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
