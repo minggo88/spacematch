@@ -1,15 +1,16 @@
 name: 🚀 Build & Deploy to Cafe24
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'public/**'
-      - 'index.html'
-      - 'vite.config.js'
-      - 'package.json'
+  workflow_dispatch:  # 수동 실행 (GitHub → Actions → Run workflow)
+  # ── 아래 push 트리거를 주석 해제하면 자동 배포 복원 ──
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'src/**'
+  #     - 'public/**'
+  #     - 'index.html'
+  #     - 'vite.config.js'
+  #     - 'package.json'
 
 jobs:
   build-and-deploy:
