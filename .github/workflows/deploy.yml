@@ -46,31 +46,16 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: 🚀 Deploy to Cafe24 via SFTP
+      - name: 🚀 Deploy to Cafe24 via rsync
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
         run: |
-          # Generate sftp batch commands
-          cd dist
-          find . -type f | while read file; do
-            dir=$(dirname "$file")
-            if [ "$dir" != "." ]; then
-              echo "-mkdir /www/$dir"
-            fi
-          done | sort -u > /tmp/sftp_dirs.txt
-
-          find . -type f | while read file; do
-            echo "put $file /www/$file"
-          done > /tmp/sftp_files.txt
-
-          # Combine: create dirs first, then upload files
-          cat /tmp/sftp_dirs.txt /tmp/sftp_files.txt > /tmp/sftp_batch.txt
-
-          # Execute sftp batch
-          sftp -i ~/.ssh/deploy_key -P ${SFTP_PORT} -b /tmp/sftp_batch.txt ${SFTP_USERNAME}@${SFTP_HOST}
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${SFTP_PORT}" \
+            dist/ ${SFTP_USERNAME}@${SFTP_HOST}:/www/
 
       - name: 🧹 Cleanup
         if: always()
-        run: rm -f ~/.ssh/deploy_key /tmp/sftp_batch.txt /tmp/sftp_dirs.txt /tmp/sftp_files.txt
+        run: rm -f ~/.ssh/deploy_key
