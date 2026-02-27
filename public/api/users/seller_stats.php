@@ -346,6 +346,20 @@ try {
             break;
 
 
+        // ── IMPORT actions: include seller_stats_import.php ──
+        case 'import':
+        case 'templates':
+        case 'auto_map':
+        case 'history':
+        case 'undo_batch':
+            $importFile = __DIR__ . '/seller_stats_import.php';
+            if (file_exists($importFile)) {
+                require $importFile;
+            } else {
+                echo json_encode(["success" => false, "message" => "Import module not found on server."]);
+            }
+            break;
+
         default:
             echo json_encode(["success" => false, "message" => "알 수 없는 액션입니다."]);
     }
