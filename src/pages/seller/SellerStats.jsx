@@ -3223,8 +3223,8 @@ ${productSection}
                                             </p>
                                         </div>
 
-                                        {/* ERP Template Selector */}
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                        {/* ERP Template Selector — 숨김 처리 */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4" style={{ display: 'none' }}>
                                             <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
                                                 <Download size={16} className="text-emerald-600" />
                                                 {t('statsPage.uploadErpTitle', 'ERP / 마켓플레이스 템플릿')}
