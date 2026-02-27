@@ -46,16 +46,43 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.SFTP_PORT }} ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: 🚀 Deploy to Cafe24 via rsync
+      - name: 🚀 Deploy to Cafe24 via SFTP
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
         run: |
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p ${SFTP_PORT}" \
-            dist/ ${SFTP_USERNAME}@${SFTP_HOST}:/www/
+          cd dist
+
+          # Generate sftp batch file with proper paths
+          # 1. Create all directories (parent dirs first, sorted for proper order)
+          find . -type d | sed 's|^\./||' | grep -v '^\.$' | sort | while read dir; do
+            echo "-mkdir /www/${dir}"
+          done > /tmp/sftp_batch.txt
+
+          # 2. Upload all files with correct paths
+          find . -type f | sed 's|^\./||' | while read file; do
+            echo "put ${file} /www/${file}"
+          done >> /tmp/sftp_batch.txt
+
+          echo "quit" >> /tmp/sftp_batch.txt
+
+          # Show batch file for debugging
+          echo "=== SFTP Batch Commands (first 30 lines) ==="
+          head -30 /tmp/sftp_batch.txt
+          echo "=== Total commands: $(wc -l < /tmp/sftp_batch.txt) ==="
+
+          # Execute sftp batch (use -b - to ignore errors on mkdir for existing dirs)
+          sftp -i ~/.ssh/deploy_key -P ${SFTP_PORT} -b /tmp/sftp_batch.txt ${SFTP_USERNAME}@${SFTP_HOST} || {
+            echo "SFTP batch had errors (likely existing dirs). Retrying file uploads only..."
+            # Retry with only file uploads (skip mkdir)
+            find . -type f | sed 's|^\./||' | while read file; do
+              echo "put ${file} /www/${file}"
+            done > /tmp/sftp_files_only.txt
+            echo "quit" >> /tmp/sftp_files_only.txt
+            sftp -i ~/.ssh/deploy_key -P ${SFTP_PORT} -b /tmp/sftp_files_only.txt ${SFTP_USERNAME}@${SFTP_HOST}
+          }
 
       - name: 🧹 Cleanup
         if: always()
-        run: rm -f ~/.ssh/deploy_key
+        run: rm -f ~/.ssh/deploy_key /tmp/sftp_batch.txt /tmp/sftp_files_only.txt
