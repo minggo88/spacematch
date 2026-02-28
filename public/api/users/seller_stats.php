@@ -1,6 +1,8 @@
 <?php
 include_once '../db_connect.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
 error_reporting(E_ERROR);
 
@@ -346,25 +348,337 @@ try {
             break;
 
 
-        // ── IMPORT actions: include seller_stats_import.php ──
-        case 'import':
+        // ── TEMPLATES ──
         case 'templates':
+            $SUPPORTED_CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY', 'CNY', 'GBP', 'THB', 'VND', 'CAD', 'AUD', 'SGD', 'HKD', 'TWD', 'MYR', 'PHP', 'IDR', 'INR', 'BRL', 'MXN', 'CHF'];
+            $ERP_TEMPLATES = [
+                'generic' => [
+                    'name' => 'Generic',
+                    'name_ko' => 'Generic',
+                    'columns' => [
+                        ['key' => 'record_date', 'label' => 'Date', 'label_ko' => 'Date', 'required' => true],
+                        ['key' => 'monthly_revenue', 'label' => 'Revenue', 'label_ko' => 'Revenue', 'required' => true],
+                        ['key' => 'transaction_count', 'label' => 'Transactions', 'label_ko' => 'Transactions', 'required' => false],
+                        ['key' => 'product_name', 'label' => 'Product', 'label_ko' => 'Product', 'required' => false],
+                        ['key' => 'quantity_sold', 'label' => 'Qty', 'label_ko' => 'Qty', 'required' => false],
+                    ]
+                ],
+                'naver_smartstore' => [
+                    'name' => 'Naver Smartstore',
+                    'name_ko' => 'Naver Smartstore',
+                    'auto_map' => ['결제일' => 'record_date', '상품명' => 'product_name', '수량' => 'quantity_sold', '결제금액' => 'monthly_revenue', '상품주문번호' => 'memo', '상품별 총 주문금액' => 'monthly_revenue', '구매자명' => 'customer_count'],
+                    'columns' => [['key' => 'record_date', 'label' => 'Date', 'required' => true], ['key' => 'product_name', 'label' => 'Product', 'required' => false], ['key' => 'quantity_sold', 'label' => 'Qty', 'required' => false], ['key' => 'monthly_revenue', 'label' => 'Revenue', 'required' => true]]
+                ],
+                'coupang' => [
+                    'name' => 'Coupang',
+                    'name_ko' => 'Coupang',
+                    'auto_map' => ['주문일' => 'record_date', '결제일' => 'record_date', '노출상품명' => 'product_name', '상품명' => 'product_name', '수량' => 'quantity_sold', '판매가(할인가)' => 'monthly_revenue', '결제액' => 'monthly_revenue', '주문번호' => 'memo'],
+                    'columns' => [['key' => 'record_date', 'label' => 'Date', 'required' => true], ['key' => 'product_name', 'label' => 'Product', 'required' => false], ['key' => 'monthly_revenue', 'label' => 'Revenue', 'required' => true]]
+                ],
+                'cafe24' => [
+                    'name' => 'Cafe24',
+                    'name_ko' => 'Cafe24',
+                    'auto_map' => ['주문일시' => 'record_date', '주문일' => 'record_date', '상품명' => 'product_name', '수량' => 'quantity_sold', '주문금액' => 'monthly_revenue', '실결제금액' => 'monthly_revenue', '주문번호' => 'memo'],
+                    'columns' => [['key' => 'record_date', 'label' => 'Date', 'required' => true], ['key' => 'product_name', 'label' => 'Product', 'required' => false], ['key' => 'monthly_revenue', 'label' => 'Revenue', 'required' => true]]
+                ],
+                'shopify' => [
+                    'name' => 'Shopify',
+                    'name_ko' => 'Shopify',
+                    'auto_map' => ['Created at' => 'record_date', 'Date' => 'record_date', 'Lineitem name' => 'product_name', 'Lineitem quantity' => 'quantity_sold', 'Total' => 'monthly_revenue', 'Subtotal' => 'monthly_revenue', 'Name' => 'memo'],
+                    'columns' => [['key' => 'record_date', 'label' => 'Date', 'required' => true], ['key' => 'product_name', 'label' => 'Product', 'required' => false], ['key' => 'monthly_revenue', 'label' => 'Revenue', 'required' => true]]
+                ],
+                'amazon' => [
+                    'name' => 'Amazon',
+                    'name_ko' => 'Amazon',
+                    'auto_map' => ['purchase-date' => 'record_date', 'order-date' => 'record_date', 'product-name' => 'product_name', 'quantity-purchased' => 'quantity_sold', 'item-price' => 'monthly_revenue', 'order-id' => 'memo'],
+                    'columns' => [['key' => 'record_date', 'label' => 'Date', 'required' => true], ['key' => 'product_name', 'label' => 'Product', 'required' => false], ['key' => 'monthly_revenue', 'label' => 'Revenue', 'required' => true]]
+                ],
+            ];
+            $COLUMN_KEYWORDS = [
+                'record_date' => ['date', '날짜', '일자', '주문일', '결제일', '발행일', '영업일', '거래일'],
+                'order_number' => ['order id', 'order no', '주문번호', '거래번호', '전표번호', '영수증번호', '영수증', 'invoice', 'receipt'],
+                'transaction_count' => ['transaction', '건수', '주문수', '거래건', 'orders'],
+                'product_name' => ['product', 'item', '상품', '품목', 'name', '상품명'],
+                'sku' => ['sku', 'barcode', '바코드', '상품코드', '품번', 'upc', 'ean'],
+                'brand' => ['brand', '브랜드', '제조사', 'manufacturer'],
+                'option_info' => ['option', '옵션', '색상', '사이즈', 'variant', 'size', 'color'],
+                'best_selling_item' => ['category', '카테고리', '분류', '상품군', 'type'],
+                'quantity_sold' => ['quantity', 'qty', '수량', '개수', '판매수량', 'units', 'pcs'],
+                'return_qty' => ['return qty', '반품수량', '환불수량'],
+                'customer_count' => ['customer', '고객', '방문', '고객수', 'buyer'],
+                'monthly_revenue' => ['revenue', 'sales', 'amount', '매출', '금액', '결제금액', '판매액', '매출액', '판매금액', '판매가', '합계', 'total'],
+                'avg_unit_price' => ['unit price', '단가', '판매단가', 'unitprice'],
+                'cost_price' => ['cost', '원가', '매입가', '공급가액', '공급가', 'cogs', 'expense'],
+                'discount_amount' => ['discount', '할인', '할인액', '쿠폰할인', 'coupon'],
+                'tax_amount' => ['tax', 'vat', '세금', '부가세', '소비세', '부가가치세', 'gst'],
+                'shipping_cost' => ['shipping', 'delivery', '배송비', '배송', '택배', '배송료', 'freight'],
+                'refund_amount' => ['refund', '환불', '환불액', '반품금액'],
+                'commission_fee' => ['commission', 'fee', '수수료', '플랫폼수수료'],
+                'net_revenue' => ['net', '순매출', '순수익', '정산금액', '실수령액'],
+                'profit_amount' => ['profit', '이익', '이익금', '순이익', '마진', 'margin'],
+                'points_used' => ['points', '적립금', '포인트', '마일리지', 'rewards'],
+                'payment_method' => ['payment method', '결제수단', '결제방법', '결제유형', 'card', '카드', '현금', 'cash', '계좌이체'],
+                'payment_status' => ['status', '결제상태', '주문상태', '상태', 'complete', 'pending'],
+                'customer_name' => ['customer name', '고객명', '주문자', '구매자', 'buyer name'],
+                'staff_name' => ['staff', 'employee', '판매원', '담당자', '직원', 'cashier'],
+                'store_name' => ['store', 'branch', 'shop', '매장', '지점', '판매점', '점포', 'outlet'],
+                'platform' => ['platform', '플랫폼', 'marketplace'],
+                'supplier' => ['supplier', 'vendor', '거래처', '공급업체'],
+                'sales_channel' => ['channel', '판매채널', '채널'],
+                'region' => ['region', '지역', 'area'],
+                'venue_type' => ['venue', '매장유형', '업태', '업종'],
+                'satisfaction' => ['rating', 'satisfaction', '만족도', '평점', 'review', 'score'],
+                'memo' => ['memo', 'note', '비고', '메모', 'remark', 'comment', '내역'],
+            ];
+            echo json_encode(["success" => true, "templates" => $ERP_TEMPLATES, "currencies" => $SUPPORTED_CURRENCIES, "column_keywords" => $COLUMN_KEYWORDS]);
+            break;
+
+        // ── AUTO_MAP ──
         case 'auto_map':
-        case 'history':
-        case 'undo_batch':
-            $importFile = __DIR__ . '/seller_stats_import.php';
-            if (file_exists($importFile)) {
-                require $importFile;
-            } else {
-                echo json_encode(["success" => false, "message" => "Import module not found on server."]);
+            $headers = $input['headers'] ?? [];
+            $templateKey = $input['template'] ?? '';
+            $COLUMN_KEYWORDS = [
+                'record_date' => ['date', '날짜', '일자', '주문일', '결제일', '발행일', '영업일', '거래일'],
+                'order_number' => ['order id', 'order no', '주문번호', '거래번호', '전표번호', '영수증번호', '영수증', 'invoice', 'receipt'],
+                'transaction_count' => ['transaction', '건수', '주문수', '거래건', 'orders'],
+                'product_name' => ['product', 'item', '상품', '품목', 'name', '상품명'],
+                'sku' => ['sku', 'barcode', '바코드', '상품코드', '품번', 'upc', 'ean'],
+                'brand' => ['brand', '브랜드', '제조사', 'manufacturer'],
+                'option_info' => ['option', '옵션', '색상', '사이즈', 'variant', 'size', 'color'],
+                'best_selling_item' => ['category', '카테고리', '분류', '상품군', 'type'],
+                'quantity_sold' => ['quantity', 'qty', '수량', '개수', '판매수량', 'units', 'pcs'],
+                'return_qty' => ['return qty', '반품수량', '환불수량'],
+                'customer_count' => ['customer', '고객', '방문', '고객수', 'buyer'],
+                'monthly_revenue' => ['revenue', 'sales', 'amount', '매출', '금액', '결제금액', '판매액', '매출액', '판매금액', '판매가', '합계', 'total'],
+                'avg_unit_price' => ['unit price', '단가', '판매단가', 'unitprice'],
+                'cost_price' => ['cost', '원가', '매입가', '공급가액', '공급가', 'cogs', 'expense'],
+                'discount_amount' => ['discount', '할인', '할인액', '쿠폰할인', 'coupon'],
+                'tax_amount' => ['tax', 'vat', '세금', '부가세', '소비세', '부가가치세', 'gst'],
+                'shipping_cost' => ['shipping', 'delivery', '배송비', '배송', '택배', '배송료', 'freight'],
+                'refund_amount' => ['refund', '환불', '환불액', '반품금액'],
+                'commission_fee' => ['commission', 'fee', '수수료', '플랫폼수수료'],
+                'net_revenue' => ['net', '순매출', '순수익', '정산금액', '실수령액'],
+                'profit_amount' => ['profit', '이익', '이익금', '순이익', '마진', 'margin'],
+                'points_used' => ['points', '적립금', '포인트', '마일리지', 'rewards'],
+                'payment_method' => ['payment method', '결제수단', '결제방법', '결제유형', 'card', '카드', '현금', 'cash', '계좌이체'],
+                'payment_status' => ['status', '결제상태', '주문상태', '상태', 'complete', 'pending'],
+                'customer_name' => ['customer name', '고객명', '주문자', '구매자', 'buyer name'],
+                'staff_name' => ['staff', 'employee', '판매원', '담당자', '직원', 'cashier'],
+                'store_name' => ['store', 'branch', 'shop', '매장', '지점', '판매점', '점포', 'outlet'],
+                'platform' => ['platform', '플랫폼', 'marketplace'],
+                'supplier' => ['supplier', 'vendor', '거래처', '공급업체'],
+                'sales_channel' => ['channel', '판매채널', '채널'],
+                'region' => ['region', '지역', 'area'],
+                'venue_type' => ['venue', '매장유형', '업태', '업종'],
+                'satisfaction' => ['rating', 'satisfaction', '만족도', '평점', 'review', 'score'],
+                'memo' => ['memo', 'note', '비고', '메모', 'remark', 'comment', '내역'],
+            ];
+            $ERP_TEMPLATES = [
+                'naver_smartstore' => ['auto_map' => ['결제일' => 'record_date', '상품명' => 'product_name', '수량' => 'quantity_sold', '결제금액' => 'monthly_revenue', '상품주문번호' => 'memo', '상품별 총 주문금액' => 'monthly_revenue', '구매자명' => 'customer_count']],
+                'coupang' => ['auto_map' => ['주문일' => 'record_date', '결제일' => 'record_date', '노출상품명' => 'product_name', '상품명' => 'product_name', '수량' => 'quantity_sold', '판매가(할인가)' => 'monthly_revenue', '결제액' => 'monthly_revenue', '주문번호' => 'memo']],
+                'cafe24' => ['auto_map' => ['주문일시' => 'record_date', '주문일' => 'record_date', '상품명' => 'product_name', '수량' => 'quantity_sold', '주문금액' => 'monthly_revenue', '실결제금액' => 'monthly_revenue', '주문번호' => 'memo']],
+                'shopify' => ['auto_map' => ['Created at' => 'record_date', 'Date' => 'record_date', 'Lineitem name' => 'product_name', 'Lineitem quantity' => 'quantity_sold', 'Total' => 'monthly_revenue', 'Subtotal' => 'monthly_revenue', 'Name' => 'memo']],
+                'amazon' => ['auto_map' => ['purchase-date' => 'record_date', 'order-date' => 'record_date', 'product-name' => 'product_name', 'quantity-purchased' => 'quantity_sold', 'item-price' => 'monthly_revenue', 'order-id' => 'memo']],
+            ];
+            $mapping = [];
+            if ($templateKey && isset($ERP_TEMPLATES[$templateKey]['auto_map'])) {
+                $autoMap = $ERP_TEMPLATES[$templateKey]['auto_map'];
+                foreach ($headers as $idx => $header) {
+                    $hc = trim($header);
+                    if (isset($autoMap[$hc]))
+                        $mapping[$idx] = $autoMap[$hc];
+                }
             }
+            foreach ($headers as $idx => $header) {
+                if (isset($mapping[$idx]))
+                    continue;
+                $hl = mb_strtolower(trim($header));
+                $bestM = null;
+                $bestL = 0;
+                foreach ($COLUMN_KEYWORDS as $field => $kws) {
+                    if (in_array($field, $mapping))
+                        continue;
+                    foreach ($kws as $kw) {
+                        $kwl = mb_strtolower($kw);
+                        if (mb_strpos($hl, $kwl) !== false) {
+                            $l = mb_strlen($kwl);
+                            if ($l > $bestL) {
+                                $bestM = $field;
+                                $bestL = $l;
+                            }
+                        }
+                    }
+                }
+                if ($bestM)
+                    $mapping[$idx] = $bestM;
+            }
+            echo json_encode(["success" => true, "mapping" => $mapping]);
+            break;
+
+        // ── IMPORT ──
+        case 'import':
+            @ini_set('max_execution_time', 600);
+            @ini_set('memory_limit', '1024M');
+            $rows = $input['rows'] ?? [];
+            $currency = trim($input['currency'] ?? 'KRW');
+            $recordType = $input['record_type'] ?? 'daily';
+            $salesChannel = trim($input['sales_channel'] ?? '');
+            $countryCode = trim($input['country_code'] ?? 'KR');
+            if (empty($rows)) {
+                echo json_encode(["success" => false, "message" => "No data"]);
+                break;
+            }
+            if (count($rows) > 50000) {
+                echo json_encode(["success" => false, "message" => "Max 50000 rows"]);
+                break;
+            }
+            if (!in_array($recordType, ['daily', 'monthly', 'annual']))
+                $recordType = 'daily';
+
+            $batchId = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000, mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+
+            $istmt = $conn->prepare("INSERT INTO seller_stats
+                (user_id,country_code,record_type,record_date,monthly_revenue,customer_count,transaction_count,
+                 avg_unit_price,best_selling_item,product_name,quantity_sold,cost_price,profit_margin,
+                 discount_amount,tax_amount,shipping_cost,refund_amount,commission_fee,net_revenue,
+                 payment_method,order_number,sku,brand,option_info,return_qty,profit_amount,
+                 points_used,payment_status,customer_name,staff_name,store_name,platform,supplier,
+                 currency,source,import_batch_id,sales_channel,region,venue_type,satisfaction,memo)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+
+            $inserted = 0;
+            $skipped = 0;
+            $errors = [];
+            foreach ($rows as $i => $row) {
+                $date = trim($row['record_date'] ?? '');
+                if (empty($date)) {
+                    $skipped++;
+                    continue;
+                }
+                $date = _normDate($date, $recordType);
+                if (!$date) {
+                    $errors[] = ['row' => $i + 1, 'error' => 'Invalid date'];
+                    $skipped++;
+                    continue;
+                }
+
+                $rev = _pn($row['monthly_revenue'] ?? 0);
+                $cust = _cc(_pn($row['customer_count'] ?? 0));
+                $txn = _cc(_pn($row['transaction_count'] ?? 0));
+                $qty = _cc(_pn($row['quantity_sold'] ?? 0));
+                $cp = _pn($row['cost_price'] ?? 0);
+                $cat = trim($row['best_selling_item'] ?? '');
+                $pn = trim($row['product_name'] ?? '');
+                $memo = trim($row['memo'] ?? '');
+                $mup = _pn($row['avg_unit_price'] ?? 0);
+                $up = ($mup > 0) ? $mup : (($txn > 0 && $rev > 0) ? round($rev / $txn) : 0);
+                $pm = ($rev > 0 && $cp > 0) ? round((($rev - $cp) / $rev) * 100, 2) : null;
+                if ($txn === 0 && $qty > 0) {
+                    $txn = $qty;
+                    if ($mup <= 0 && $qty > 0)
+                        $up = round($rev / $qty);
+                }
+
+                $da = _pn($row['discount_amount'] ?? 0);
+                $ta = _pn($row['tax_amount'] ?? 0);
+                $sc = _pn($row['shipping_cost'] ?? 0);
+                $ra = _pn($row['refund_amount'] ?? 0);
+                $cf = _pn($row['commission_fee'] ?? 0);
+                $nr = _pn($row['net_revenue'] ?? 0);
+                if ($nr === 0 && $rev > 0)
+                    $nr = $rev - $da - $ta - $cf - $ra;
+                $pamt = _pn($row['profit_amount'] ?? 0);
+                if ($pamt === 0 && $rev > 0 && $cp > 0)
+                    $pamt = $rev - $cp;
+                $pymth = trim($row['payment_method'] ?? '');
+                $onum = trim($row['order_number'] ?? '');
+                $skuv = trim($row['sku'] ?? '');
+                $brv = trim($row['brand'] ?? '');
+                $optv = trim($row['option_info'] ?? '');
+                $rqty = _cc(_pn($row['return_qty'] ?? 0));
+                $pusd = _pn($row['points_used'] ?? 0);
+                $pyst = trim($row['payment_status'] ?? '');
+                $cnm = trim($row['customer_name'] ?? '');
+                $sfn = trim($row['staff_name'] ?? '');
+                $stn = trim($row['store_name'] ?? '');
+                $plf = trim($row['platform'] ?? '');
+                $sup = trim($row['supplier'] ?? '');
+                $rgn = trim($row['region'] ?? '');
+                $vt = trim($row['venue_type'] ?? '');
+                $sat = _pn($row['satisfaction'] ?? 0);
+                if ($sat < 0 || $sat > 5)
+                    $sat = 0;
+
+                try {
+                    $istmt->execute([$userId, $countryCode, $recordType, $date, $rev, $cust, $txn, $up, $cat, $pn, $qty, $cp, $pm, $da, $ta, $sc, $ra, $cf, $nr, $pymth, $onum, $skuv, $brv, $optv, $rqty, $pamt, $pusd, $pyst, $cnm, $sfn, $stn, $plf, $sup, $currency, 'excel', $batchId, $salesChannel ?: $plf, $rgn, $vt, $sat ?: null, $memo]);
+                    $inserted++;
+                } catch (PDOException $e) {
+                    $skipped++;
+                    $errors[] = ['row' => $i + 1, 'error' => $e->getMessage()];
+                }
+            }
+            echo json_encode(["success" => true, "message" => "Import complete.", "batch_id" => $batchId, "inserted" => $inserted, "skipped" => $skipped, "total" => count($rows), "errors" => array_slice($errors, 0, 10)]);
+            break;
+
+        // ── HISTORY ──
+        case 'history':
+            $hstmt = $conn->prepare("SELECT import_batch_id, source, sales_channel, currency, COUNT(*) as record_count, SUM(monthly_revenue) as total_revenue, MIN(record_date) as date_from, MAX(record_date) as date_to, MIN(created_at) as imported_at FROM seller_stats WHERE user_id = ? AND import_batch_id IS NOT NULL GROUP BY import_batch_id, source, sales_channel, currency ORDER BY MIN(created_at) DESC LIMIT 20");
+            $hstmt->execute([$userId]);
+            echo json_encode(["success" => true, "batches" => $hstmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
+
+        // ── UNDO_BATCH ──
+        case 'undo_batch':
+            $batchId = trim($input['batch_id'] ?? '');
+            if (empty($batchId)) {
+                echo json_encode(["success" => false, "message" => "Batch ID required."]);
+                break;
+            }
+            $ustmt = $conn->prepare("DELETE FROM seller_stats WHERE user_id = ? AND import_batch_id = ?");
+            $ustmt->execute([$userId, $batchId]);
+            $deleted = $ustmt->rowCount();
+            echo json_encode(["success" => true, "message" => "$deleted records deleted.", "deleted" => $deleted]);
             break;
 
         default:
-            echo json_encode(["success" => false, "message" => "알 수 없는 액션입니다."]);
+            echo json_encode(["success" => false, "message" => "Unknown action."]);
     }
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+}
+
+// ── Helper functions ──
+function _normDate($ds, $rt)
+{
+    $ds = trim($ds);
+    if (preg_match('/^(\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2})/', $ds, $m))
+        $ds = $m[1];
+    $ds = str_replace(['/', '.'], '-', $ds);
+    if (is_numeric($ds) && intval($ds) > 30000 && intval($ds) < 60000) {
+        $ds = date('Y-m-d', ($ds - 25569) * 86400);
+    }
+    if (preg_match('/(\d{4})\s*[년年]\s*(\d{1,2})\s*[월月]\s*(\d{1,2})\s*[일日]/', $ds, $m))
+        $ds = sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+    if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/', $ds, $m))
+        $ds = sprintf('%04d-%02d-%02d', $m[3], $m[1], $m[2]);
+    if ($rt === 'daily' && preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $ds, $m))
+        return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+    if ($rt === 'monthly' && preg_match('/^(\d{4})-(\d{1,2})/', $ds, $m))
+        return sprintf('%04d-%02d', $m[1], $m[2]);
+    if ($rt === 'annual' && preg_match('/^(\d{4})/', $ds, $m))
+        return $m[1];
+    return null;
+}
+function _pn($v)
+{
+    if (is_numeric($v))
+        return intval($v);
+    return intval(preg_replace('/[^\d.\-]/', '', str_replace(',', '', (string) $v)));
+}
+function _cc($v)
+{
+    $v = intval($v);
+    return ($v < 0 || $v > 2000000000) ? 0 : $v;
 }
 ?>

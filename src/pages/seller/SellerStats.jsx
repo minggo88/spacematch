@@ -6,7 +6,7 @@ import {
     ChevronDown, ChevronRight, ArrowUp, ArrowDown, Target, Zap,
     Upload, FolderUp, CheckCircle, AlertCircle, AlertTriangle, RotateCcw, Download, Loader2,
     Wallet, Receipt, PieChart, CreditCard, Banknote, Truck, Megaphone, Wrench, Coffee, Phone, Tag,
-    Globe, Trophy
+    Globe, Trophy, Layers
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
@@ -242,6 +242,10 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const [importing, setImporting] = useState(false);
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef(null);
+    // ── Multi-sheet support ──
+    const workbookRef = useRef(null);
+    const [sheetInfo, setSheetInfo] = useState([]); // [{name, rowCount}]
+    const [uploadDuplicateMode, setUploadDuplicateMode] = useState('overwrite'); // overwrite | skip | append
 
     const SYSTEM_FIELDS = [
         { key: '', label: t('statsPage.uploadSkip', '— 건너뛰기 —') },
@@ -1110,12 +1114,12 @@ ${productSection}
 
 
 
-    // ── Upload: Fetch ERP templates ──
+    // ── Upload: Fetch ERP templates (GET → seller_upload.php) ──
     const fetchTemplates = useCallback(async () => {
         if (Object.keys(erpTemplates).length > 0) return;
         setLoadingTemplates(true);
         try {
-            const res = await fetch(`${API_BASE}/seller_stats.php?action=templates`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/seller_upload.php?action=templates`, { credentials: 'include' });
             if (!res.ok) { console.warn('[Templates] HTTP', res.status); return; }
             const data = await res.json();
             if (data.success) {
@@ -1124,7 +1128,7 @@ ${productSection}
         } catch (err) { console.warn('[Templates] fetch error:', err); } finally { setLoadingTemplates(false); }
     }, [erpTemplates]);
 
-    // ── Upload: Parse file with SheetJS ──
+    // ── Upload: Parse file with SheetJS (multi-sheet support) ──
     const handleFileParse = useCallback((file) => {
         console.log('[Upload] Parsing file:', file.name, file.size, 'bytes');
         setUploadFile(file);
@@ -1132,27 +1136,43 @@ ${productSection}
         reader.onload = (e) => {
             try {
                 const workbook = XLSX.read(e.target.result, { type: 'array', cellDates: true });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                if (jsonData.length < 2) {
+                workbookRef.current = workbook;
+
+                // Analyze all sheets
+                const sheets = workbook.SheetNames.map(name => {
+                    const sheet = workbook.Sheets[name];
+                    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    const rowCount = data.filter(row => row.some(c => c !== '')).length;
+                    return { name, rowCount };
+                }).filter(s => s.rowCount >= 2);
+
+                console.log('[Upload] Found sheets:', sheets.map(s => `${s.name}(${s.rowCount}rows)`).join(', '));
+
+                if (sheets.length === 0) {
                     showToast(t('statsPage.uploadNoData', '데이터가 없습니다.'), 'error');
                     return;
                 }
-                // Find header row (first non-empty row)
-                let headerIdx = 0;
-                for (let i = 0; i < Math.min(jsonData.length, 5); i++) {
-                    const row = jsonData[i];
-                    const nonEmpty = row.filter(c => c !== '').length;
-                    if (nonEmpty >= 2) { headerIdx = i; break; }
+
+                setSheetInfo(sheets);
+
+                // If only 1 sheet, auto-select it
+                if (sheets.length === 1) {
+                    const sh = workbook.Sheets[sheets[0].name];
+                    const jd = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
+                    let hIdx = 0;
+                    for (let i = 0; i < Math.min(jd.length, 5); i++) {
+                        if (jd[i].filter(c => c !== '').length >= 2) { hIdx = i; break; }
+                    }
+                    const hdrs = jd[hIdx].map(h => String(h).trim());
+                    const dRows = jd.slice(hIdx + 1).filter(r => r.some(c => c !== ''));
+                    setParsedHeaders(hdrs);
+                    setParsedRows(dRows);
+                    setUploadStep('mapping');
+                    autoMapColumns(hdrs);
+                } else {
+                    // Multiple sheets → show sheet picker
+                    setUploadStep('sheet_select');
                 }
-                const headers = jsonData[headerIdx].map(h => String(h).trim());
-                const dataRows = jsonData.slice(headerIdx + 1).filter(row => row.some(c => c !== ''));
-                console.log('[Upload] Parsed:', headers.length, 'columns,', dataRows.length, 'rows');
-                setParsedHeaders(headers);
-                setParsedRows(dataRows);
-                setUploadStep('mapping');
-                // Auto-map columns via API
-                autoMapColumns(headers);
             } catch (err) {
                 console.error('[Upload] Parse error:', err);
                 showToast(t('statsPage.uploadParseError', '파일 파싱 에러: ') + err.message, 'error');
@@ -1160,18 +1180,98 @@ ${productSection}
         };
         reader.onerror = () => {
             console.error('[Upload] FileReader error:', reader.error);
-            showToast(t('statsPage.uploadReadError', '파일 읽기에 실패했습니다. 파일이 손상되었거나 접근할 수 없습니다.'), 'error');
+            showToast(t('statsPage.uploadReadError', '파일 읽기에 실패했습니다.'), 'error');
         };
         reader.readAsArrayBuffer(file);
     }, [showToast, t]);
 
+    // ── Load data from a specific sheet ──
+    const loadSheetData = useCallback((workbook, sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        let headerIdx = 0;
+        for (let i = 0; i < Math.min(jsonData.length, 5); i++) {
+            const row = jsonData[i];
+            const nonEmpty = row.filter(c => c !== '').length;
+            if (nonEmpty >= 2) { headerIdx = i; break; }
+        }
+        const headers = jsonData[headerIdx].map(h => String(h).trim());
+        const dataRows = jsonData.slice(headerIdx + 1).filter(row => row.some(c => c !== ''));
+        return { headers, dataRows };
+    }, []);
+
+    // ── Select a single sheet or merge all sheets ──
+    const selectSheet = useCallback((mode) => {
+        const workbook = workbookRef.current;
+        if (!workbook) return;
+
+        if (mode === 'all') {
+            // Merge all sheets: use headers from first sheet, append rows from others
+            let mergedHeaders = null;
+            let mergedRows = [];
+            sheetInfo.forEach(si => {
+                const { headers, dataRows } = loadSheetData(workbook, si.name);
+                if (!mergedHeaders) {
+                    mergedHeaders = headers;
+                    mergedRows = [...dataRows];
+                } else {
+                    // Map columns from this sheet to the merged headers
+                    const colMap = headers.map(h => mergedHeaders.indexOf(h));
+                    const hasNewCols = headers.some(h => !mergedHeaders.includes(h));
+
+                    if (hasNewCols) {
+                        // Add new columns to merged headers
+                        headers.forEach(h => {
+                            if (!mergedHeaders.includes(h)) mergedHeaders.push(h);
+                        });
+                    }
+
+                    // Re-map after adding new columns
+                    const finalMap = headers.map(h => mergedHeaders.indexOf(h));
+                    dataRows.forEach(row => {
+                        const mapped = new Array(mergedHeaders.length).fill('');
+                        row.forEach((val, idx) => {
+                            if (finalMap[idx] >= 0) mapped[finalMap[idx]] = val;
+                        });
+                        mergedRows.push(mapped);
+                    });
+                }
+            });
+
+            if (mergedHeaders && mergedRows.length > 0) {
+                console.log('[Upload] Merged all sheets:', mergedHeaders.length, 'columns,', mergedRows.length, 'rows');
+                setParsedHeaders(mergedHeaders);
+                setParsedRows(mergedRows);
+                setUploadStep('mapping');
+                autoMapColumns(mergedHeaders);
+            } else {
+                showToast(t('statsPage.uploadNoData', '데이터가 없습니다.'), 'error');
+            }
+        } else {
+            // Single sheet selection
+            const { headers, dataRows } = loadSheetData(workbook, mode);
+            if (dataRows.length === 0) {
+                showToast(t('statsPage.uploadNoData', '데이터가 없습니다.'), 'error');
+                return;
+            }
+            console.log('[Upload] Selected sheet:', mode, headers.length, 'columns,', dataRows.length, 'rows');
+            setParsedHeaders(headers);
+            setParsedRows(dataRows);
+            setUploadStep('mapping');
+            autoMapColumns(headers);
+        }
+    }, [sheetInfo, loadSheetData, showToast, t]);
+
     const autoMapColumns = async (headers) => {
         try {
-            const res = await fetch(`${API_BASE}/seller_stats.php`, {
+            const fd = new FormData();
+            fd.append('action', 'auto_map');
+            fd.append('headers', JSON.stringify(headers));
+            fd.append('template', selectedTemplate || '');
+            const res = await fetch(`${API_BASE}/seller_upload.php`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ action: 'auto_map', headers, template: selectedTemplate }),
+                body: fd,
             });
             const data = await res.json();
             if (data.success && data.mapping) {
@@ -1213,8 +1313,8 @@ ${productSection}
         setImporting(true);
         setUploadStep('importing');
 
-        // ── 대용량 데이터 분할 전송 (5000행씩 chunk) ──
-        const CHUNK_SIZE = 5000;
+        // ── FormData + File upload 방식 (WAF 호환) ──
+        const CHUNK_SIZE = 500;
         let totalInserted = 0;
         let totalSkipped = 0;
         let allErrors = [];
@@ -1225,43 +1325,47 @@ ${productSection}
             for (let i = 0; i < totalChunks; i++) {
                 const chunk = rows.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
 
-                // 최대 2회 시도 (네트워크 일시 장애 대비)
+                // JSON 데이터를 Blob 파일로 변환하여 FormData에 첨부
+                const jsonPayload = JSON.stringify({
+                    rows: chunk,
+                    currency: uploadCurrency,
+                    record_type: uploadRecordType,
+                    sales_channel: uploadChannel,
+                    country_code: selectedCountry,
+                    duplicate_mode: uploadDuplicateMode,
+                });
+                const blob = new Blob([jsonPayload], { type: 'application/json' });
+                const fd = new FormData();
+                fd.append('action', 'import');
+                fd.append('data_file', blob, 'import_data.json');
+
+                // 최대 2회 시도
                 let res = null;
                 let retryCount = 0;
                 while (retryCount < 2) {
                     try {
-                        res = await fetch(`${API_BASE}/seller_stats.php`, {
+                        res = await fetch(`${API_BASE}/seller_upload.php`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
                             credentials: 'include',
-                            body: JSON.stringify({
-                                action: 'import',
-                                rows: chunk,
-                                currency: uploadCurrency,
-                                record_type: uploadRecordType,
-                                sales_channel: uploadChannel,
-                                template: selectedTemplate,
-                            }),
+                            body: fd,
                         });
-                        break; // 성공 시 루프 종료
+                        break;
                     } catch (fetchErr) {
                         retryCount++;
                         if (retryCount >= 2) throw fetchErr;
-                        await new Promise(r => setTimeout(r, 1000)); // 1초 대기 후 재시도
+                        await new Promise(r => setTimeout(r, 1000));
                     }
                 }
 
                 // HTTP 상태 코드 확인
                 if (!res.ok) {
-                    if (res.status === 404) {
-                        showToast(t('statsPage.uploadApiNotFound', '서버 API 파일을 찾을 수 없습니다. 관리자에게 문의하세요. (404)'), 'error');
-                    } else if (res.status === 403) {
-                        showToast(t('statsPage.uploadAuthError', '로그인이 필요합니다. 다시 로그인해주세요.'), 'error');
-                    } else if (res.status >= 500) {
-                        showToast(t('statsPage.uploadServerError', `서버 내부 오류가 발생했습니다. (${res.status})`), 'error');
-                    } else {
-                        showToast(t('statsPage.uploadHttpError', `서버 오류: HTTP ${res.status}`), 'error');
-                    }
+                    const errMsg = res.status === 404
+                        ? t('statsPage.uploadApiNotFound', '서버 API 파일을 찾을 수 없습니다. (404)')
+                        : res.status === 403
+                            ? t('statsPage.uploadAuthError', '로그인이 필요합니다.')
+                            : t('statsPage.uploadServerError', `서버 오류: HTTP ${res.status}`);
+                    console.error('[Import] HTTP Error:', res.status, res.url);
+                    showToast(errMsg, 'error');
                     setUploadStep('mapping');
                     setImporting(false);
                     return;
@@ -1271,8 +1375,8 @@ ${productSection}
                 try {
                     data = await res.json();
                 } catch (jsonErr) {
-                    console.error('[Import] JSON parse error:', jsonErr, 'Response status:', res.status);
-                    showToast(t('statsPage.uploadJsonError', '서버 응답을 처리할 수 없습니다. 서버 설정을 확인해주세요.'), 'error');
+                    console.error('[Import] JSON parse error:', jsonErr);
+                    showToast(t('statsPage.uploadJsonError', '서버 응답을 처리할 수 없습니다.'), 'error');
                     setUploadStep('mapping');
                     setImporting(false);
                     return;
@@ -1304,21 +1408,21 @@ ${productSection}
             showToast(t('statsPage.uploadSuccess', `${totalInserted}건 임포트 완료!`), 'success');
         } catch (err) {
             console.error('[Import] Network/fetch error:', err);
-            showToast(t('statsPage.serverError', '서버 연결에 실패했습니다. 네트워크 상태를 확인해주세요.'), 'error');
+            showToast(t('statsPage.serverError', '서버 연결에 실패했습니다.'), 'error');
             setUploadStep('mapping');
         } finally { setImporting(false); }
     };
 
-    // ── Upload: Fetch import history ──
+    // ── Upload: Fetch import history (GET → seller_upload.php) ──
     const fetchImportHistory = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/seller_stats.php?action=history`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/seller_upload.php?action=history`, { credentials: 'include' });
             const data = await res.json();
             if (data.success) setImportHistory(data.batches || []);
         } catch { /* ignore */ }
     }, []);
 
-    // ── Upload: Undo batch ──
+    // ── Upload: Undo batch (FormData → seller_upload.php) ──
     const undoBatch = (batchId) => {
         setConfirmModal({
             title: t('statsPage.uploadUndoTitle', '임포트 취소'),
@@ -1328,11 +1432,13 @@ ${productSection}
             onConfirm: async () => {
                 setConfirmModal(null);
                 try {
-                    const res = await fetch(`${API_BASE}/seller_stats.php`, {
+                    const fd = new FormData();
+                    fd.append('action', 'undo_batch');
+                    fd.append('batch_id', batchId);
+                    const res = await fetch(`${API_BASE}/seller_upload.php`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({ action: 'undo_batch', batch_id: batchId }),
+                        body: fd,
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -1353,13 +1459,15 @@ ${productSection}
         setParsedRows([]);
         setColumnMapping({});
         setImportResult(null);
+        workbookRef.current = null;
+        setSheetInfo([]);
     };
 
     // Auto-fetch templates and history when upload tab is active
     // + 이전 실패 상태('preview' 등) 초기화
     useEffect(() => {
         if (activeTab === 'upload') {
-            if (uploadStep !== 'select' && uploadStep !== 'mapping' && uploadStep !== 'importing') {
+            if (uploadStep !== 'select' && uploadStep !== 'sheet_select' && uploadStep !== 'mapping' && uploadStep !== 'importing') {
                 setUploadStep('select');
             }
             fetchTemplates();
@@ -3329,6 +3437,57 @@ ${productSection}
                                     </>
                                 )}
 
+                                {/* Step: Sheet Select (multi-sheet Excel) */}
+                                {uploadStep === 'sheet_select' && sheetInfo.length > 1 && (
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <FileText size={16} className="text-emerald-600" />
+                                                {t('statsPage.sheetSelectTitle', '시트 선택')}
+                                            </h3>
+                                            <button onClick={resetUpload} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                                                <X size={12} /> {t('statsPage.cancel')}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                            {t('statsPage.sheetSelectDesc', '이 엑셀 파일에 여러 시트가 감지되었습니다. 임포트할 시트를 선택하세요.')}
+                                        </p>
+
+                                        {/* Merge all sheets button */}
+                                        <button
+                                            onClick={() => selectSheet('all')}
+                                            className="w-full mb-3 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Layers size={16} />
+                                            {t('statsPage.sheetMergeAll', `전체 시트 병합 (${sheetInfo.reduce((s, si) => s + si.rowCount, 0)}행)`)}
+                                        </button>
+
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center mb-3">
+                                            {t('statsPage.sheetOrSelect', '── 또는 개별 시트 선택 ──')}
+                                        </p>
+
+                                        {/* Individual sheet buttons */}
+                                        <div className="space-y-2">
+                                            {sheetInfo.map((si, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => selectSheet(si.name)}
+                                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all text-left flex items-center gap-3"
+                                                >
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{si.name}</p>
+                                                        <p className="text-[10px] text-gray-400">{si.rowCount}{t('statsPage.uploadRows', '행 감지')}</p>
+                                                    </div>
+                                                    <ChevronRight size={16} className="text-gray-300" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Step: Column Mapping */}
                                 {uploadStep === 'mapping' && (
                                     <div className="space-y-4">
@@ -3347,7 +3506,7 @@ ${productSection}
                                             </p>
 
                                             {/* Upload settings */}
-                                            <div className="grid grid-cols-3 gap-3 mb-2.5">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2.5">
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
                                                         {t('statsPage.uploadRecordType', '기록 유형')}
@@ -3376,6 +3535,17 @@ ${productSection}
                                                         onChange={(e) => setUploadChannel(e.target.value)}
                                                         placeholder={t('statsPage.uploadChannelPh', '예: 네이버 스마트스토어')}
                                                         className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                                                        {t('statsPage.uploadDuplicateMode', '중복 처리')}
+                                                    </label>
+                                                    <select value={uploadDuplicateMode} onChange={(e) => setUploadDuplicateMode(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 text-xs font-medium">
+                                                        <option value="overwrite">{t('statsPage.duplicateOverwrite', '덮어쓰기')}</option>
+                                                        <option value="skip">{t('statsPage.duplicateSkip', '건너뛰기')}</option>
+                                                        <option value="append">{t('statsPage.duplicateAppend', '추가')}</option>
+                                                    </select>
                                                 </div>
                                             </div>
 

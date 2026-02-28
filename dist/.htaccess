@@ -4,6 +4,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+
+    # ── API 요청은 SPA 라우팅에서 완전 제외 (.php 파일 직접 실행) ──
+    RewriteRule ^api/ - [L]
+
     RewriteRule ^index\.html$ - [L]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -25,8 +29,15 @@
     </FilesMatch>
 </IfModule>
 
-# ── PHP: 대용량 업로드 설정 ──
+# ── PHP: 대용량 업로드 설정 (mod_php / mod_php7 호환) ──
 <IfModule mod_php.c>
+    php_value upload_max_filesize 200M
+    php_value post_max_size 200M
+    php_value max_execution_time 600
+    php_value max_input_time 600
+    php_value memory_limit 1024M
+</IfModule>
+<IfModule mod_php7.c>
     php_value upload_max_filesize 200M
     php_value post_max_size 200M
     php_value max_execution_time 600

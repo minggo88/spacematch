@@ -11,35 +11,38 @@
  *   - history     : List import batches for this user
  *   - undo_batch  : Delete all records from a specific import batch
  */
-include_once '../db_connect.php';
-session_start();
-header('Content-Type: application/json');
-error_reporting(E_ERROR);
 
-// 대량 임포트를 위한 PHP 제한 확장
-@ini_set('max_execution_time', 600);  // 10분
+// Guard: skip init if already included from seller_stats.php
+if (!isset($conn) || !isset($userId)) {
+    include_once '../db_connect.php';
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    header('Content-Type: application/json');
+    error_reporting(E_ERROR);
+
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "Login required."]);
+        exit;
+    }
+
+    $userId = $_SESSION['user_id'];
+    $role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? '';
+
+    if ($role !== 'seller') {
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "Seller only."]);
+        exit;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $action = $input['action'] ?? $_GET['action'] ?? '';
+}
+
+// Extend limits for bulk import
+@ini_set('max_execution_time', 600);
 @ini_set('memory_limit', '1024M');
-@ini_set('post_max_size', '200M');
-@ini_set('upload_max_filesize', '200M');
-
-// Require login + seller role
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(403);
-    echo json_encode(["success" => false, "message" => "Login required."]);
-    exit;
-}
-
-$userId = $_SESSION['user_id'];
-$role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? '';
-
-if ($role !== 'seller') {
-    http_response_code(403);
-    echo json_encode(["success" => false, "message" => "Seller only."]);
-    exit;
-}
-
-$input = json_decode(file_get_contents('php://input'), true);
-$action = $input['action'] ?? $_GET['action'] ?? '';
 
 // ── SUPPORTED CURRENCIES ──
 $SUPPORTED_CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY', 'CNY', 'GBP', 'THB', 'VND', 'CAD', 'AUD', 'SGD', 'HKD', 'TWD', 'MYR', 'PHP', 'IDR', 'INR', 'BRL', 'MXN', 'CHF'];
