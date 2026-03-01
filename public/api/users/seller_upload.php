@@ -537,6 +537,29 @@ try {
             echo json_encode(["success" => true, "message" => "$deleted records deleted.", "deleted" => $deleted]);
             break;
 
+        // ══════════════════════════════════
+        //  POST: BULK_UNDO_BATCHES (via $_POST)
+        // ══════════════════════════════════
+        case 'bulk_undo_batches':
+            $batchIdsRaw = trim($_POST['batch_ids'] ?? '');
+            if (empty($batchIdsRaw)) {
+                echo json_encode(["success" => false, "message" => "Batch IDs required."]);
+                break;
+            }
+            $batchIds = array_filter(array_map('trim', explode(',', $batchIdsRaw)));
+            if (count($batchIds) === 0) {
+                echo json_encode(["success" => false, "message" => "No valid batch IDs."]);
+                break;
+            }
+            $placeholders = implode(',', array_fill(0, count($batchIds), '?'));
+            $params = $batchIds;
+            array_unshift($params, $userId);
+            $ustmt = $conn->prepare("DELETE FROM seller_stats WHERE user_id = ? AND import_batch_id IN ($placeholders)");
+            $ustmt->execute($params);
+            $deleted = $ustmt->rowCount();
+            echo json_encode(["success" => true, "message" => "{$deleted}개 데이터가 삭제되었습니다.", "deleted" => $deleted]);
+            break;
+
         default:
             echo json_encode(["success" => false, "message" => "Unknown action: $action"]);
     }

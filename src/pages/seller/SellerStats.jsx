@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, startTransition } from 'react';
 import {
     TrendingUp, Plus, X, Edit3, Trash2, Calendar, DollarSign,
     Users, ShoppingCart, Star, MapPin, Store, FileText, Save,
@@ -6,7 +6,7 @@ import {
     ChevronDown, ChevronRight, ArrowUp, ArrowDown, Target, Zap,
     Upload, FolderUp, CheckCircle, AlertCircle, AlertTriangle, RotateCcw, Download, Loader2,
     Wallet, Receipt, PieChart, CreditCard, Banknote, Truck, Megaphone, Wrench, Coffee, Phone, Tag,
-    Globe, Trophy, Layers
+    Globe, Trophy, Layers, Check
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
@@ -131,7 +131,9 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const [selectedCountry, setSelectedCountry] = useState('KR');
     const [countryBreakdown, setCountryBreakdown] = useState([]);
     const [showCountryPicker, setShowCountryPicker] = useState(false);
+    const [showTabPicker, setShowTabPicker] = useState(false);
     const countryPickerRef = useRef(null);
+    const tabPickerRef = useRef(null);
 
     // ── Country-specific currency symbol ──
     const countryCurrency = COUNTRY_CURRENCY[selectedCountry] || COUNTRY_CURRENCY.KR;
@@ -205,11 +207,9 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const PERIOD_TABS = [
         { key: 'dashboard', label: t('statsPage.tabDashboard'), icon: BarChart3 },
         { key: 'analytics', label: t('statsPage.tabAnalytics', '📊 분석'), icon: TrendingUp },
-        { key: 'daily', label: t('statsPage.tabDaily'), icon: Clock },
-        { key: 'monthly', label: t('statsPage.tabMonthly'), icon: CalendarDays },
-        { key: 'annual', label: t('statsPage.tabAnnual'), icon: CalendarRange },
-        { key: 'upload', label: t('statsPage.tabUpload', '📁 업로드'), icon: Upload },
+        { key: 'sales', label: t('statsPage.tabSales', '💰 매출'), icon: TrendingUp },
         { key: 'expense', label: t('statsPage.tabExpense', '💸 지출'), icon: Wallet },
+        { key: 'upload', label: t('statsPage.tabUpload', '📁 업로드'), icon: Upload },
         { key: 'tax', label: t('statsPage.tabTax', '💰 세무'), icon: DollarSign },
         { key: 'customers', label: t('statsPage.tabCustomers', '👤 고객'), icon: Users },
     ];
@@ -218,12 +218,34 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
     // ── Chart Period Filter ──
-    const [chartRange, setChartRange] = useState(14); // 7, 14, 30, 90
+    const [chartRange, setChartRange] = useState(14); // 7, 14, 30
     const [chartOffset, setChartOffset] = useState(0); // 0 = latest, 1 = previous period, etc.
+    const [dashboardYear, setDashboardYear] = useState(new Date().getFullYear());
+    const [customDateStart, setCustomDateStart] = useState('');
+    const [customDateEnd, setCustomDateEnd] = useState('');
+    const [recordsPage, setRecordsPage] = useState(1); // pagination for records list
+    const RECORDS_PER_PAGE = 20;
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [sortField, setSortField] = useState('record_date');
+    const [sortDir, setSortDir] = useState('desc');
+    const [salesDateStart, setSalesDateStart] = useState('');
+    const [salesDateEnd, setSalesDateEnd] = useState('');
+    const [showSalesDatePicker, setShowSalesDatePicker] = useState(false);
+    const [expDateStart, setExpDateStart] = useState('');
+    const [expDateEnd, setExpDateEnd] = useState('');
+    const [showExpDatePicker, setShowExpDatePicker] = useState(false);
+    const [chartViewMode, setChartViewMode] = useState('both'); // 'chart' | 'table' | 'both'
+    const [trendSortField, setTrendSortField] = useState('label'); // 'label' | 'revenue'
+    const [trendSortDir, setTrendSortDir] = useState('asc');
     const [showForm, setShowForm] = useState(false);
     const [editingRecord, setEditingRecord] = useState(null);
     const [confirmModal, setConfirmModal] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    // ── Sales Tab Internal State ──
+    const [salesView, setSalesView] = useState('daily'); // 'daily' | 'monthly' | 'annual'
+    const [salesChartRange, setSalesChartRange] = useState(14);
+    const [salesChartOffset, setSalesChartOffset] = useState(0);
+    const [salesChartMode, setSalesChartMode] = useState('chart'); // 'chart' | 'table' | 'both'
 
     // ── Upload Tab State ──
     const [uploadStep, setUploadStep] = useState('select'); // select | mapping | preview | importing | done
@@ -238,6 +260,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const [uploadRecordType, setUploadRecordType] = useState('daily');
     const [importResult, setImportResult] = useState(null);
     const [importHistory, setImportHistory] = useState([]);
+    const [selectedBatchIds, setSelectedBatchIds] = useState(new Set());
     const [loadingTemplates, setLoadingTemplates] = useState(false);
     const [importing, setImporting] = useState(false);
     const [dragOver, setDragOver] = useState(false);
@@ -246,6 +269,224 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const workbookRef = useRef(null);
     const [sheetInfo, setSheetInfo] = useState([]); // [{name, rowCount}]
     const [uploadDuplicateMode, setUploadDuplicateMode] = useState('overwrite'); // overwrite | skip | append
+    const [uploadDataType, setUploadDataType] = useState('sales'); // 'sales' | 'expense'
+
+    // ── Auto-detect: Sales vs Expense ──
+    const EXPENSE_KEYWORDS = /지출|비용|expense|cost|경비|rent|임대|수수료|commission|교통|통신|식비|유지보수|maintenance|세금|insurance|보험|광고|마케팅|복리후생|소모품|수도|전기|가스|공급가|부가세|단가|거래처|지출분류|지출항목|계정과목/i;
+    const SALES_KEYWORDS = /매출|revenue|sales|주문|order|판매|고객|customer|상품|product|sku|환불|refund|정산|settlement/i;
+
+    const detectDataType = (headers) => {
+        let salesScore = 0, expenseScore = 0;
+        const combined = headers.join(' ');
+
+        // Check each header
+        headers.forEach(h => {
+            const hl = h.toLowerCase().trim();
+            if (EXPENSE_KEYWORDS.test(hl)) expenseScore += 2;
+            if (SALES_KEYWORDS.test(hl)) salesScore += 2;
+        });
+
+        // Check combined text for broader patterns
+        if (EXPENSE_KEYWORDS.test(combined)) expenseScore += 1;
+        if (SALES_KEYWORDS.test(combined)) salesScore += 1;
+
+        // Expense-specific column patterns
+        const hasDate = headers.some(h => /date|날짜|일자|일시/i.test(h));
+        const hasAmount = headers.some(h => /amount|금액|지출|비용|가격|price|cost|expense|합계/i.test(h));
+        const hasCategory = headers.some(h => /category|카테고리|분류|항목|type/i.test(h));
+        const hasPayment = headers.some(h => /payment|method|결제|수단/i.test(h));
+        const hasMemo = headers.some(h => /memo|메모|비고|note|description|설명|내용/i.test(h));
+
+        // Expense-specific unique columns (supply amount, VAT, unit price, vendor)
+        const hasSupplyAmount = headers.some(h => /공급가|공급금|supply/i.test(h));
+        const hasVat = headers.some(h => /부가세|부가가치세|vat|세액/i.test(h));
+        const hasUnitPrice = headers.some(h => /단가|unit.*price/i.test(h));
+        const hasVendor = headers.some(h => /거래처|업체|상호|사용처|이용처|가맹점|vendor|supplier|merchant/i.test(h));
+        const hasExpenseClass = headers.some(h => /지출분류|지출구분|비용분류|비용구분|계정과목/i.test(h));
+        const hasExpenseItem = headers.some(h => /지출항목|비용항목|지출내역/i.test(h));
+
+        // Strong expense signals
+        if (hasSupplyAmount) expenseScore += 3;
+        if (hasVat) expenseScore += 3;
+        if (hasUnitPrice) expenseScore += 2;
+        if (hasVendor) expenseScore += 3;
+        if (hasExpenseClass) expenseScore += 4;
+        if (hasExpenseItem) expenseScore += 4;
+
+        // Expense pattern: date + amount + (category or payment or memo or vendor)
+        if (hasDate && hasAmount && (hasCategory || hasPayment || hasMemo || hasVendor)) {
+            expenseScore += 3;
+        }
+
+        // Sales-specific: needs revenue/order/product fields (not just quantity)
+        const hasRevenue = headers.some(h => /매출|revenue|sales|정산/i.test(h));
+        const hasOrder = headers.some(h => /주문|order/i.test(h));
+        const hasProduct = headers.some(h => /상품|product|sku/i.test(h));
+        if (hasRevenue) salesScore += 3;
+        if (hasOrder) salesScore += 2;
+        // Quantity only counts as sales if combined with product/order context
+        const hasQty = headers.some(h => /수량|quantity|qty/i.test(h));
+        if (hasQty && (hasProduct || hasOrder || hasRevenue)) salesScore += 2;
+
+        console.log(`[Upload] Data type detection — Sales: ${salesScore}, Expense: ${expenseScore}`);
+        return expenseScore > salesScore ? 'expense' : 'sales';
+    };
+
+    // ── Expense fields for upload mapping ──
+    const UPLOAD_EXPENSE_FIELDS = [
+        { key: '', label: t('statsPage.uploadSkip', '— 건너뛰기 —') },
+        { key: 'expense_date', label: t('statsPage.expFieldDate', '지출 날짜') },
+        { key: 'transaction_no', label: t('statsPage.expFieldTxNo', '거래 번호') },
+        { key: 'expense_class', label: t('statsPage.expFieldClass', '지출 분류') },
+        { key: 'expense_item', label: t('statsPage.expFieldItem', '지출 항목') },
+        { key: 'vendor', label: t('statsPage.expFieldVendor', '거래처') },
+        { key: 'quantity', label: t('statsPage.expFieldQty', '수량') },
+        { key: 'unit', label: t('statsPage.expFieldUnit', '단위') },
+        { key: 'unit_price', label: t('statsPage.expFieldUnitPrice', '단가') },
+        { key: 'supply_amount', label: t('statsPage.expFieldSupply', '공급가액') },
+        { key: 'vat', label: t('statsPage.expFieldVat', '부가세') },
+        { key: 'amount', label: t('statsPage.expFieldAmount', '합계금액') },
+        { key: 'category', label: t('statsPage.expFieldCategory', '카테고리') },
+        { key: 'payment_method', label: t('statsPage.expFieldPayment', '결제수단') },
+        { key: 'memo', label: t('statsPage.expFieldMemo', '비고') },
+    ];
+
+    // ── Comprehensive expense column auto-mapping with fuzzy keyword matching ──
+    const EXPENSE_FIELD_KEYWORDS = {
+        expense_date: {
+            exact: ['date', '날짜', '일자', '일시', '지출일', '지출일자', '사용일', '사용일자', '거래일', '거래일자', '결제일', '결제일자', '발생일', '이용일', '이용일자', '승인일', '승인일자', '매입일'],
+            partial: ['date', '날짜', '일자', '일시'],
+            exclude: ['업데이트', 'update'],
+        },
+        transaction_no: {
+            exact: ['거래번호', '전표번호', '승인번호', '카드승인번호', '영수증번호', 'transaction_no', 'tx_no', 'receipt_no', 'approval_no'],
+            partial: ['거래번호', '전표', '승인번호', '영수증', 'transaction', 'receipt', 'approval.*no'],
+            exclude: [],
+        },
+        expense_class: {
+            exact: ['분류', '지출분류', '비용분류', '대분류', '중분류', 'class', 'classification', 'type', '유형', '구분', '지출구분', '비용구분'],
+            partial: ['분류', 'class', 'type', '유형'],
+            exclude: ['항목', 'item', '품목'],
+        },
+        expense_item: {
+            exact: ['항목', '지출항목', '비용항목', '품목', '품명', '상품명', '물품명', '내역', '거래내역', '지출내역', '사용내역', '적요', 'item', 'description', 'particular', '세부내역', '세부항목'],
+            partial: ['항목', '품목', '품명', '내역', '적요', 'item', 'particular', 'description'],
+            exclude: [],
+        },
+        vendor: {
+            exact: ['거래처', '거래처명', '업체', '업체명', '상호', '상호명', '사용처', '이용처', '가맹점', '가맹점명', '매장', '매장명', 'vendor', 'supplier', 'merchant', 'store', '점포', '점포명'],
+            partial: ['거래처', '업체', '상호', '사용처', '이용처', '가맹점', 'vendor', 'supplier', 'merchant'],
+            exclude: [],
+        },
+        quantity: {
+            exact: ['수량', 'qty', 'quantity', '건수', '매수', '개수'],
+            partial: ['수량', 'qty', 'quantity'],
+            exclude: ['단가', 'price', '금액'],
+        },
+        unit: {
+            exact: ['단위', 'unit'],
+            partial: ['단위'],
+            exclude: ['단가', 'price', '금액'],
+        },
+        unit_price: {
+            exact: ['단가', '개당가격', 'unit_price', 'unitprice'],
+            partial: ['단가', 'unit.*price'],
+            exclude: [],
+        },
+        supply_amount: {
+            exact: ['공급가액', '공급가', '공급금액', 'supply_amount', 'net_amount', '과세표준'],
+            partial: ['공급가', 'supply', 'net.*amount'],
+            exclude: [],
+        },
+        vat: {
+            exact: ['부가세', '부가가치세', 'vat', '세액', 'tax', '세금'],
+            partial: ['부가세', 'vat', '세액'],
+            exclude: ['공급'],
+        },
+        amount: {
+            exact: ['합계', '합계금액', '총액', '총금액', '금액', '결제금액', '이용금액', '사용금액', '지출금액', '결제액', '청구금액', '출금액', 'total', 'amount', '원화금액', '원화', '매입금액', '승인금액', '지급액', '비용', '지출액', 'price', 'cost', 'expense', 'total_amount', '카드사용금액', '카드이용금액'],
+            partial: ['합계', '총액', '금액', '결제금', '이용금', '사용금', '지출금', '출금', '청구금', 'total', 'amount', '비용', 'price', 'cost', 'expense'],
+            exclude: ['공급가', '부가세', '단가', '할인', 'discount', '수량'],
+        },
+        category: {
+            exact: ['카테고리', 'category', '비용카테고리', '지출카테고리', '계정과목', '계정', '과목'],
+            partial: ['카테고리', 'category', '계정.*과목', '계정'],
+            exclude: [],
+        },
+        payment_method: {
+            exact: ['결제수단', '결제방법', '지불방법', '지불수단', 'payment_method', 'payment', '카드종류', '카드사', '결제유형', '지급방법', '출금수단'],
+            partial: ['결제수단', '결제방법', '지불', 'payment', '카드종류', '카드사'],
+            exclude: ['금액', 'amount', '일자', 'date'],
+        },
+        memo: {
+            exact: ['메모', '비고', '비고사항', '참고', '참고사항', 'memo', 'note', 'notes', 'remark', 'remarks', '설명', '기타', '코멘트', 'comment'],
+            partial: ['메모', '비고', '참고', 'memo', 'note', 'remark', '코멘트', 'comment'],
+            exclude: [],
+        },
+    };
+
+    const autoMapExpenseColumnsUpload = (headers) => {
+        const mapping = {};
+        const usedFields = new Set();
+
+        // Phase 1: Exact match
+        headers.forEach((h, idx) => {
+            if (mapping[idx]) return;
+            const hl = h.toLowerCase().trim().replace(/[\s_\-]+/g, '');
+            for (const [field, kw] of Object.entries(EXPENSE_FIELD_KEYWORDS)) {
+                if (usedFields.has(field)) continue;
+                const matched = kw.exact.some(k => {
+                    const kn = k.toLowerCase().replace(/[\s_\-]+/g, '');
+                    return hl === kn;
+                });
+                if (matched) {
+                    // Check exclusion
+                    const excluded = kw.exclude.some(ex => hl.includes(ex.toLowerCase()));
+                    if (!excluded) {
+                        mapping[idx] = field;
+                        usedFields.add(field);
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Phase 2: Partial / contains match
+        headers.forEach((h, idx) => {
+            if (mapping[idx]) return;
+            const hl = h.toLowerCase().trim();
+            let bestField = null;
+            let bestScore = 0;
+            for (const [field, kw] of Object.entries(EXPENSE_FIELD_KEYWORDS)) {
+                if (usedFields.has(field)) continue;
+                // Check exclusion first
+                const excluded = kw.exclude.some(ex => hl.includes(ex.toLowerCase()));
+                if (excluded) continue;
+                let score = 0;
+                for (const pattern of kw.partial) {
+                    try {
+                        if (new RegExp(pattern.toLowerCase(), 'i').test(hl)) {
+                            score = Math.max(score, pattern.length);
+                        }
+                    } catch {
+                        if (hl.includes(pattern.toLowerCase())) {
+                            score = Math.max(score, pattern.length);
+                        }
+                    }
+                }
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestField = field;
+                }
+            }
+            if (bestField) {
+                mapping[idx] = bestField;
+                usedFields.add(bestField);
+            }
+        });
+
+        return mapping;
+    };
 
     const SYSTEM_FIELDS = [
         { key: '', label: t('statsPage.uploadSkip', '— 건너뛰기 —') },
@@ -301,6 +542,15 @@ const SellerStats = ({ userRole = 'seller' }) => {
     const [showExpenseForm, setShowExpenseForm] = useState(false);
     const [editingExpense, setEditingExpense] = useState(null);
     const [expenseYear, setExpenseYear] = useState(new Date().getFullYear());
+    const [expSortField, setExpSortField] = useState('expense_date');
+    const [expSortDir, setExpSortDir] = useState('desc');
+    const [expSelectedIds, setExpSelectedIds] = useState(new Set());
+    const [expPage, setExpPage] = useState(1);
+    const EXP_PER_PAGE = 10;
+    const [expChartView, setExpChartView] = useState('daily'); // 'daily' | 'monthly' | 'annual'
+    const [expChartRange, setExpChartRange] = useState(14); // days for daily, months for monthly, years for annual
+    const [expChartOffset, setExpChartOffset] = useState(0); // page offset for past data
+    const [expChartMode, setExpChartMode] = useState('chart'); // 'chart' | 'table' | 'both'
 
     const EXPENSE_CATEGORIES = [
         { key: 'materials', icon: Package, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', text: 'text-orange-600' },
@@ -316,6 +566,21 @@ const SellerStats = ({ userRole = 'seller' }) => {
         { key: 'communication', icon: Phone, color: 'from-cyan-400 to-cyan-600', bg: 'bg-cyan-50', text: 'text-cyan-600' },
         { key: 'other', icon: FileText, color: 'from-slate-400 to-slate-600', bg: 'bg-slate-50', text: 'text-slate-600' },
     ];
+
+    // ── Category keyword dictionary for auto-classification (used by Upload tab) ──
+    const CATEGORY_KEYWORDS = {
+        materials: ['재료', '원재료', '원두', '식자재', '부자재', '원료', '소재', '자재', '커피콩', '우유', '시럽', '설탕', '밀가루', '쌀', '고기', '야채', '과일', '생수', '종이컵', '빨대', '리드', '냅킨', '티슈', '세제', '세정제', '일회용', '원자재', '재고', '매입', '입고', '도매', 'material', 'ingredient', 'raw', 'supplies', 'wholesale'],
+        packaging: ['포장', '박스', '봉투', '용기', '팩', '패킹', '포장재', '포장비', '비닐', '랩', '테이프', '스티커', '라벨', '태그', '쇼핑백', '종이백', '에어캡', '택배박스', 'packaging', 'package', 'wrapping', 'box', 'container', 'bag', 'label'],
+        shipping: ['배송', '택배', '배달', '운송', '운반', '발송', '우편', '퀵', '화물', '물류', '해외배송', '배송대행', '풀필먼트', '배달대행', '배민', '요기요', '쿠팡이츠', '배달비', 'shipping', 'delivery', 'freight', 'postage', 'courier', 'logistics'],
+        booth_rental: ['임대', '부스', '매장', '월세', '임차', '렌탈', '공간', '사무실', '보증금', '관리비', '플리마켓', '팝업', '팝업스토어', '전시', '행사장', '공유주방', '공유오피스', '창고', 'rent', 'booth', 'lease', 'rental', 'office', 'warehouse'],
+        transport: ['교통', '주차', '유류', '기름', '주유', '톨게이트', '택시', '버스', '지하철', 'KTX', 'SRT', '기차', '항공', '비행기', '하이패스', '주차비', '차량유지', '렌트카', '대리운전', 'transport', 'parking', 'fuel', 'gas', 'taxi', 'fare', 'travel'],
+        advertising: ['광고', '마케팅', '홍보', '프로모션', '전단', '블로그', '인스타', '페이스북', '구글', '네이버', '카카오', 'SNS', '현수막', '배너', '간판', '전단지', '명함', '인쇄', '이벤트', '쿠폰', '판촉', 'advertising', 'marketing', 'ad', 'promo', 'promotion', 'campaign'],
+        commission: ['수수료', '플랫폼', '중개', '카드수수료', '결제수수료', 'PG수수료', '배달앱수수료', '마켓수수료', '판매수수료', '은행수수료', '송금수수료', '환전수수료', 'commission', 'fee', 'platform', 'VAN'],
+        labor: ['인건', '급여', '임금', '아르바이트', '알바', '직원', '근로', '용역', '일용직', '파트타임', '시급', '월급', '상여', '보너스', '퇴직금', '4대보험', '프리랜서', '외주', 'labor', 'wage', 'salary', 'payroll', 'staff', 'employee', 'worker'],
+        equipment: ['장비', '소모품', '비품', '도구', '공구', '기계', '수리', '유지', '설비', '시설', '인테리어', '집기', '가구', 'POS', '컴퓨터', '노트북', '프린터', '에어컨', '냉장고', '냉동고', '오븐', '커피머신', '그라인더', '정수기', '제빙기', 'CCTV', 'equipment', 'tool', 'maintenance', 'repair'],
+        food: ['식비', '식대', '점심', '저녁', '간식', '음료', '커피', '다과', '회식', '야식', '직원식대', '배달음식', '음식점', '식당', '카페', '편의점', '마트', '외식', '접대비', '경조사', 'food', 'meal', 'lunch', 'dinner', 'snack', 'beverage', 'catering'],
+        communication: ['통신', '전화', '인터넷', '문자', 'SMS', '데이터', '와이파이', 'WiFi', '핸드폰', '휴대폰', '서버', '호스팅', '도메인', '클라우드', '소프트웨어', '구독', '라이선스', '전기', '전기요금', '수도', '수도요금', '가스', '가스요금', '공과금', 'telecom', 'phone', 'internet', 'communication', 'utility', 'SaaS'],
+    };
 
     const PAYMENT_METHODS = [
         { key: 'cash', icon: Banknote, label: t('statsPage.expPayCash', '현금') },
@@ -345,10 +610,10 @@ const SellerStats = ({ userRole = 'seller' }) => {
         setExpenseLoading(false);
     }, [expenseYear]);
 
-    useEffect(() => { if (activeTab === 'expense') fetchExpenses(); }, [activeTab, fetchExpenses]);
+    useEffect(() => { if (activeTab === 'expense') { fetchExpenses(); if (allStats.length === 0) fetchStats(); } }, [activeTab, fetchExpenses]);
 
     // ── Expense: Save ──
-    const handleSaveExpense = async (formData) => {
+    const handleSaveExpense = async (formData, isBulk = false) => {
         try {
             const res = await fetch(`${API_BASE}/seller_expenses.php`, {
                 method: 'POST',
@@ -358,14 +623,20 @@ const SellerStats = ({ userRole = 'seller' }) => {
             });
             const data = await res.json();
             if (data.success) {
-                showToast(t('statsPage.expSaved', '지출 저장 완료'), 'success');
+                if (!isBulk) {
+                    showToast(t('statsPage.expSaved', '지출 저장 완료'), 'success');
+                    setShowExpenseForm(false);
+                    setEditingExpense(null);
+                }
                 fetchExpenses();
-                setShowExpenseForm(false);
-                setEditingExpense(null);
             } else {
-                showToast(data.message || 'Error', 'error');
+                if (!isBulk) showToast(data.message || 'Error', 'error');
+                throw new Error(data.message || 'Error');
             }
-        } catch { showToast(t('statsPage.serverError'), 'error'); }
+        } catch (err) {
+            if (!isBulk) showToast(t('statsPage.serverError'), 'error');
+            throw err;
+        }
     };
 
     // ── Expense: Delete ──
@@ -390,6 +661,38 @@ const SellerStats = ({ userRole = 'seller' }) => {
                         fetchExpenses();
                     } else showToast(data.message, 'error');
                 } catch { showToast(t('statsPage.serverError'), 'error'); }
+            }
+        });
+    };
+
+    // ── Expense: Bulk Delete ──
+    const handleBulkDeleteExpenses = () => {
+        if (expSelectedIds.size === 0) return;
+        setConfirmModal({
+            title: t('statsPage.expDeleteTitle', '지출 삭제'),
+            message: t('statsPage.expBulkDeleteMsg', `선택된 ${expSelectedIds.size}건의 지출을 삭제하시겠습니까?`),
+            type: 'danger',
+            confirmLabel: t('statsPage.expDelete', '삭제'),
+            onConfirm: async () => {
+                setConfirmModal(null);
+                try {
+                    const res = await fetch(`${API_BASE}/seller_expenses.php`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ action: 'bulk_delete', ids: [...expSelectedIds] }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || `${data.deleted}${t('statsPage.units', '건')} ${t('statsPage.expDeleted', '삭제 완료')}`, 'success');
+                        setExpSelectedIds(new Set());
+                        fetchExpenses();
+                    } else {
+                        showToast(data.message || t('statsPage.deleteFail', '삭제 실패'), 'error');
+                    }
+                } catch {
+                    showToast(t('statsPage.serverError'), 'error');
+                }
             }
         });
     };
@@ -464,19 +767,78 @@ const SellerStats = ({ userRole = 'seller' }) => {
         setShowGoalForm(false);
     };
 
+    // ── Export Period State ──
+    const [exportPeriod, setExportPeriod] = useState('1y'); // '1m','3m','6m','1y','custom'
+    const [exportCustomStart, setExportCustomStart] = useState('');
+    const [exportCustomEnd, setExportCustomEnd] = useState('');
+
+    // Helper: get date range from export period
+    const getExportDateRange = useCallback(() => {
+        const now = new Date();
+        let start, end;
+        end = now.toISOString().slice(0, 10);
+        switch (exportPeriod) {
+            case '1m': {
+                const d = new Date(now); d.setMonth(d.getMonth() - 1);
+                start = d.toISOString().slice(0, 10); break;
+            }
+            case '3m': {
+                const d = new Date(now); d.setMonth(d.getMonth() - 3);
+                start = d.toISOString().slice(0, 10); break;
+            }
+            case '6m': {
+                const d = new Date(now); d.setMonth(d.getMonth() - 6);
+                start = d.toISOString().slice(0, 10); break;
+            }
+            case '1y': {
+                const d = new Date(now); d.setFullYear(d.getFullYear() - 1);
+                start = d.toISOString().slice(0, 10); break;
+            }
+            case 'custom':
+                start = exportCustomStart || '2000-01-01';
+                end = exportCustomEnd || now.toISOString().slice(0, 10);
+                break;
+            default:
+                start = '2000-01-01';
+        }
+        return { start, end };
+    }, [exportPeriod, exportCustomStart, exportCustomEnd]);
+
+    // Filter allStats by export period
+    const getExportFilteredStats = useCallback(() => {
+        const { start, end } = getExportDateRange();
+        return allStats.filter(s => {
+            const d = s.record_date || s.period_start || '';
+            return d >= start && d <= end;
+        });
+    }, [allStats, getExportDateRange]);
+
+    // Filter expenses by export period
+    const getExportFilteredExpenses = useCallback(() => {
+        const { start, end } = getExportDateRange();
+        return expenses.filter(e => {
+            const d = e.expense_date || '';
+            return d >= start && d <= end;
+        });
+    }, [expenses, getExportDateRange]);
+
     // ── Export Functions ──
     const exportToExcel = () => {
         if (!analyticsData) return;
+        const filteredSales = getExportFilteredStats();
+        const filteredExpenses = getExportFilteredExpenses();
+        const { start, end } = getExportDateRange();
         const wb = XLSX.utils.book_new();
 
-        // Sheet 1: P&L Statement
-        const totalRevenue = analyticsData.totalRevenue || 0;
-        const totalCost = analyticsData.totalCost || 0;
+        // Recalculate from filtered data
+        const totalRevenue = filteredSales.reduce((s, r) => s + (parseInt(r.monthly_revenue) || 0), 0);
+        const totalCost = filteredSales.reduce((s, r) => s + (parseInt(r.cost_price) || 0), 0);
         const grossProfit = totalRevenue - totalCost;
-        const totalExpense = parseInt(expenseSummary?.totals?.total_expense || 0);
+        const totalExpense = filteredExpenses.reduce((s, e) => s + (parseInt(e.amount) || 0), 0);
         const operatingProfit = grossProfit - totalExpense;
         const plData = [
             [t('statsPage.plStatement', '손익계산서'), ''],
+            [`${t('statsPage.period', '기간')}: ${start} ~ ${end}`, ''],
             ['', ''],
             [t('statsPage.plRevenue', '매출액'), totalRevenue],
             [t('statsPage.plCost', '매출원가'), totalCost],
@@ -485,8 +847,14 @@ const SellerStats = ({ userRole = 'seller' }) => {
             ['', ''],
             [t('statsPage.plExpenses', '판매관리비'), totalExpense],
         ];
-        (expenseSummary?.categoryBreakdown || []).forEach(cat => {
-            plData.push([`  • ${getExpenseCatLabel(cat.category)}`, parseInt(cat.total)]);
+        // Category breakdown from filtered expenses
+        const catMap = {};
+        filteredExpenses.forEach(e => {
+            const cat = e.category || 'etc';
+            catMap[cat] = (catMap[cat] || 0) + (parseInt(e.amount) || 0);
+        });
+        Object.entries(catMap).forEach(([cat, total]) => {
+            plData.push([`  • ${getExpenseCatLabel(cat)}`, total]);
         });
         plData.push(['', '']);
         plData.push([t('statsPage.plOperatingProfit', '영업이익'), operatingProfit]);
@@ -495,43 +863,47 @@ const SellerStats = ({ userRole = 'seller' }) => {
         ws1['!cols'] = [{ wch: 25 }, { wch: 18 }];
         XLSX.utils.book_append_sheet(wb, ws1, t('statsPage.plStatement', '손익계산서'));
 
-        // Sheet 2: Monthly Trend
-        const trendHeader = [t('statsPage.analyticsTrend', '매출 트렌드')];
-        const trendData = [[t('statsPage.month', '월'), t('statsPage.plRevenue', '매출액')]];
-        analyticsData.monthlyTrend.forEach(m => {
-            trendData.push([m.month, m.revenue]);
+        // Sheet 2: Monthly Trend (from filtered)
+        const monthMap = {};
+        filteredSales.forEach(s => {
+            const m = (s.record_date || '').substring(0, 7);
+            if (m) monthMap[m] = (monthMap[m] || 0) + (parseInt(s.monthly_revenue) || 0);
         });
-        const ws2 = XLSX.utils.aoa_to_sheet([trendHeader, ...trendData]);
+        const trendData = [[t('statsPage.month', '월'), t('statsPage.plRevenue', '매출액')]];
+        Object.keys(monthMap).sort().forEach(m => trendData.push([m, monthMap[m]]));
+        const ws2 = XLSX.utils.aoa_to_sheet([[t('statsPage.analyticsTrend', '매출 트렌드')], ...trendData]);
         XLSX.utils.book_append_sheet(wb, ws2, t('statsPage.analyticsTrend', '매출트렌드'));
 
-        // Sheet 3: Expense List
-        if (expenses.length > 0) {
+        // Sheet 3: Expense List (filtered)
+        if (filteredExpenses.length > 0) {
             const expHeader = [[t('statsPage.expDate', '날짜'), t('statsPage.expAmount', '금액'), t('statsPage.expCategory', '카테고리'), t('statsPage.expPayMethod', '결제수단'), t('statsPage.expMemo', '메모')]];
-            const expData = expenses.map(e => [e.expense_date, parseInt(e.amount), getExpenseCatLabel(e.category), e.payment_method, e.memo || '']);
+            const expData = filteredExpenses.map(e => [e.expense_date, parseInt(e.amount), getExpenseCatLabel(e.category), e.payment_method, e.memo || '']);
             const ws3 = XLSX.utils.aoa_to_sheet([...expHeader, ...expData]);
             ws3['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 25 }];
             XLSX.utils.book_append_sheet(wb, ws3, t('statsPage.tabExpense', '지출내역'));
         }
 
-        // Sheet 4: Sales Raw Data
-        if (allStats.length > 0) {
+        // Sheet 4: Sales Raw Data (filtered)
+        if (filteredSales.length > 0) {
             const salesHeader = [[t('statsPage.period', '기간'), t('statsPage.plRevenue', '매출'), t('statsPage.totalCustomers', '고객수'), t('statsPage.totalTransactions', '거래건수'), t('statsPage.channel', '채널'), t('statsPage.category', '카테고리')]];
-            const salesData = allStats.map(s => [s.period_start, parseInt(s.revenue || 0), parseInt(s.customer_count || 0), parseInt(s.transaction_count || 0), s.sales_channel || '', s.product_category || '']);
+            const salesData = filteredSales.map(s => [s.record_date || '', parseInt(s.monthly_revenue || 0), parseInt(s.customer_count || 0), parseInt(s.transaction_count || 0), s.sales_channel || '', s.product_category || '']);
             const ws4 = XLSX.utils.aoa_to_sheet([...salesHeader, ...salesData]);
             XLSX.utils.book_append_sheet(wb, ws4, t('statsPage.salesData', '매출데이터'));
         }
 
         const now = new Date();
-        const fileName = `Sales_Report_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.xlsx`;
+        const fileName = `Sales_Report_${start}_${end}.xlsx`;
         XLSX.writeFile(wb, fileName);
         showToast(t('statsPage.exportSuccess', '리포트가 다운로드되었습니다'), 'success');
     };
 
     const exportToCSV = () => {
-        if (!allStats.length) return;
+        const filteredSales = getExportFilteredStats();
+        if (!filteredSales.length) return;
+        const { start, end } = getExportDateRange();
         const headers = ['Period', 'Revenue', 'Cost', 'Customers', 'Transactions', 'Channel', 'Category'];
-        const rows = allStats.map(s => [
-            s.period_start, s.revenue || 0, s.cost_of_goods || 0,
+        const rows = filteredSales.map(s => [
+            s.record_date || '', s.monthly_revenue || 0, s.cost_price || 0,
             s.customer_count || 0, s.transaction_count || 0,
             `"${(s.sales_channel || '').replace(/"/g, '""')}"`,
             `"${(s.product_category || '').replace(/"/g, '""')}"`
@@ -541,7 +913,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Sales_Data_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `Sales_Data_${start}_${end}.csv`;
         a.click();
         URL.revokeObjectURL(url);
         showToast(t('statsPage.exportSuccess', '리포트가 다운로드되었습니다'), 'success');
@@ -549,43 +921,248 @@ const SellerStats = ({ userRole = 'seller' }) => {
 
     const exportToPrint = () => {
         if (!analyticsData) return;
+        const filteredSales = getExportFilteredStats();
+        const filteredExpenses = getExportFilteredExpenses();
+        const { start, end } = getExportDateRange();
 
         const now = new Date();
-        const reportDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+        const reportDate = `${start} ~ ${end}`;
 
-        // Calculate P&L values
-        const totalRevenue = analyticsData.totalRevenue || 0;
-        const totalCost = analyticsData.totalCost || 0;
+        // Calculate P&L values from filtered data
+        const totalRevenue = filteredSales.reduce((s, r) => s + (parseInt(r.monthly_revenue) || 0), 0);
+        const totalCost = filteredSales.reduce((s, r) => s + (parseInt(r.cost_price) || 0), 0);
         const grossProfit = totalRevenue - totalCost;
         const grossMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0.0';
-        const totalExpense = parseInt(expenseSummary?.totals?.total_expense || 0);
+        const totalExpense = filteredExpenses.reduce((s, e) => s + (parseInt(e.amount) || 0), 0);
         const operatingProfit = grossProfit - totalExpense;
         const operatingMargin = totalRevenue > 0 ? ((operatingProfit / totalRevenue) * 100).toFixed(1) : '0.0';
 
         // Format number helper
         const fmt = (n) => Number(n || 0).toLocaleString();
+        const fmtPct = (n) => n !== null && n !== undefined ? `${n > 0 ? '+' : ''}${Number(n).toFixed(1)}%` : '-';
 
-        // Build monthly trend rows
-        const trendRows = analyticsData.monthlyTrend?.map(m =>
-            `<tr><td>${m.month}</td><td style="text-align:right;font-weight:600;">${fmt(m.revenue)}</td></tr>`
-        ).join('') || '';
+        // ── Build Monthly Trend from filteredSales (period-filtered) ──
+        const trendMonthMap = {};
+        const trendCostMap = {};
+        const trendTxMap = {};
+        const trendCustMap = {};
+        filteredSales.forEach(s => {
+            const m = (s.record_date || '').substring(0, 7);
+            if (m) {
+                trendMonthMap[m] = (trendMonthMap[m] || 0) + (parseInt(s.monthly_revenue) || 0);
+                trendCostMap[m] = (trendCostMap[m] || 0) + (parseInt(s.cost_price) || 0);
+                trendTxMap[m] = (trendTxMap[m] || 0) + (parseInt(s.transaction_count) || 0);
+                trendCustMap[m] = (trendCustMap[m] || 0) + (parseInt(s.customer_count) || 0);
+            }
+        });
+        const trendData = Object.keys(trendMonthMap).sort().map(m => ({
+            month: m, revenue: trendMonthMap[m], cost: trendCostMap[m] || 0,
+            transactions: trendTxMap[m] || 0, customers: trendCustMap[m] || 0,
+        }));
+        const trendRows = trendData.map((m, idx) => {
+            const cost = m.cost || 0;
+            const grossP = m.revenue - cost;
+            const exp = m.expense || 0;
+            const netP = m.revenue - cost - exp;
+            const prevRev = idx > 0 ? trendData[idx - 1].revenue : null;
+            const mom = prevRev && prevRev > 0 ? ((m.revenue - prevRev) / prevRev * 100).toFixed(1) : null;
+            const customers = m.customers || m.customer_count || '-';
+            const transactions = m.transactions || m.transaction_count || '-';
+            return `<tr>
+                <td>${m.month}</td>
+                <td style="text-align:right;font-weight:600;">${fmt(m.revenue)}</td>
+                <td style="text-align:right;color:#dc2626;">${fmt(cost)}</td>
+                <td style="text-align:right;color:${grossP >= 0 ? '#059669' : '#dc2626'};font-weight:600;">${fmt(grossP)}</td>
+                <td style="text-align:right;color:#f97316;">${fmt(exp)}</td>
+                <td style="text-align:right;color:${netP >= 0 ? '#059669' : '#dc2626'};font-weight:700;">${fmt(netP)}</td>
+                <td style="text-align:right;">${mom !== null ? `<span style="color:${parseFloat(mom) >= 0 ? '#059669' : '#dc2626'};font-weight:600;">${parseFloat(mom) > 0 ? '+' : ''}${mom}%</span>` : '<span style="color:#9ca3af;">-</span>'}</td>
+                <td style="text-align:right;">${customers}</td>
+                <td style="text-align:right;">${transactions}</td>
+            </tr>`;
+        }).join('');
+        // Trend totals row
+        const trendTotalRev = trendData.reduce((s, m) => s + (m.revenue || 0), 0);
+        const trendTotalCost = trendData.reduce((s, m) => s + (m.cost || 0), 0);
+        const trendTotalProfit = trendTotalRev - trendTotalCost;
+        const trendTotalExp = trendData.reduce((s, m) => s + (m.expense || 0), 0);
+        const trendTotalNet = trendTotalRev - trendTotalCost - trendTotalExp;
+        const trendAvgRev = trendData.length > 0 ? Math.round(trendTotalRev / trendData.length) : 0;
+        const trendMaxRev = trendData.length > 0 ? Math.max(...trendData.map(m => m.revenue || 0)) : 0;
+        const trendMinRev = trendData.length > 0 ? Math.min(...trendData.map(m => m.revenue || 0)) : 0;
 
-        // Build channels rows
-        const channelRows = analyticsData.topChannels?.map(([name, rev]) => {
+        // Build channels rows from filteredSales (period-filtered)
+        const chMap = {};
+        filteredSales.forEach(s => {
+            const ch = s.sales_channel || t('statsPage.directSales', '직접판매');
+            chMap[ch] = (chMap[ch] || 0) + (parseInt(s.monthly_revenue) || 0);
+        });
+        const sortedChannels = Object.entries(chMap).sort((a, b) => b[1] - a[1]);
+        const channelRows = sortedChannels.map(([name, rev]) => {
             const pct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
-            return `<tr><td>${name}</td><td style="text-align:right;">${fmt(rev)}</td><td style="text-align:right;">${pct}%</td></tr>`;
+            const bar = `<div style="background:#e5e7eb;border-radius:4px;height:6px;width:100%;margin-top:2px;"><div style="background:#059669;border-radius:4px;height:6px;width:${Math.min(parseFloat(pct), 100)}%;"></div></div>`;
+            return `<tr><td>${name}${bar}</td><td style="text-align:right;font-weight:600;">${fmt(rev)}</td><td style="text-align:right;">${pct}%</td></tr>`;
         }).join('') || '';
 
-        // Build categories rows
-        const categoryRows = analyticsData.topCategories?.map(([name, rev]) => {
+        // Build categories rows from filteredSales (period-filtered)
+        const catRevMap = {};
+        filteredSales.forEach(s => {
+            const cat = s.product_category || s.product_name || t('statsPage.etcCategory', '기타');
+            catRevMap[cat] = (catRevMap[cat] || 0) + (parseInt(s.monthly_revenue) || 0);
+        });
+        const sortedCats = Object.entries(catRevMap).sort((a, b) => b[1] - a[1]);
+        const categoryRows = sortedCats.map(([name, rev]) => {
             const pct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
-            return `<tr><td>${name}</td><td style="text-align:right;">${fmt(rev)}</td><td style="text-align:right;">${pct}%</td></tr>`;
+            const bar = `<div style="background:#e5e7eb;border-radius:4px;height:6px;width:100%;margin-top:2px;"><div style="background:#7c3aed;border-radius:4px;height:6px;width:${Math.min(parseFloat(pct), 100)}%;"></div></div>`;
+            return `<tr><td>${name}${bar}</td><td style="text-align:right;font-weight:600;">${fmt(rev)}</td><td style="text-align:right;">${pct}%</td></tr>`;
         }).join('') || '';
 
-        // Build expense breakdown
-        const expenseRows = expenseSummary?.categoryBreakdown?.map(cat =>
-            `<tr><td style="padding-left:24px;">• ${getExpenseCatLabel(cat.category)}</td><td style="text-align:right;">${fmt(cat.total)}</td></tr>`
-        ).join('') || '';
+        // ── Expense Grouping ──
+        const EXPENSE_GROUPS = [
+            { key: 'direct', label: t('statsPage.expGroupDirect', '매출직접비'), cats: ['materials', 'packaging', 'shipping', 'commission'], color: '#f97316' },
+            { key: 'sales', label: t('statsPage.expGroupSales', '영업비'), cats: ['advertising', 'booth_rental', 'transport'], color: '#8b5cf6' },
+            { key: 'admin', label: t('statsPage.expGroupAdmin', '관리비'), cats: ['labor', 'equipment', 'communication', 'food'], color: '#3b82f6' },
+            { key: 'misc', label: t('statsPage.expGroupMisc', '기타경비'), cats: ['other'], color: '#6b7280' },
+        ];
+
+        // Build expense category map from filteredExpenses
+        const expCatMap = {};
+        const expCatCount = {};
+        filteredExpenses.forEach(e => {
+            const cat = e.category || 'other';
+            expCatMap[cat] = (expCatMap[cat] || 0) + (parseInt(e.amount) || 0);
+            expCatCount[cat] = (expCatCount[cat] || 0) + 1;
+        });
+
+        // Build grouped P&L expense rows
+        const expenseRows = EXPENSE_GROUPS.map(g => {
+            const groupCats = g.cats.filter(c => expCatMap[c]);
+            if (groupCats.length === 0) return '';
+            const groupTotal = groupCats.reduce((s, c) => s + (expCatMap[c] || 0), 0);
+            const groupPct = totalExpense > 0 ? ((groupTotal / totalExpense) * 100).toFixed(1) : '0.0';
+            const catRows = groupCats.map(c => {
+                const amt = expCatMap[c] || 0;
+                const pct = totalExpense > 0 ? ((amt / totalExpense) * 100).toFixed(1) : '0.0';
+                return `<tr><td style="padding-left:40px;color:#6b7280;font-size:10px;">└ ${getExpenseCatLabel(c)}</td><td style="text-align:right;font-size:10px;color:#6b7280;">${fmt(amt)}</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${pct}%</td></tr>`;
+            }).join('');
+            return `<tr><td style="padding-left:24px;font-weight:600;color:${g.color};">■ ${g.label}</td><td style="text-align:right;font-weight:600;">${fmt(groupTotal)}</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${groupPct}%</td></tr>${catRows}`;
+        }).join('') || '';
+
+        // ── Monthly expense map for trend integration ──
+        const monthExpMap = {};
+        const monthExpCount = {};
+        filteredExpenses.forEach(e => {
+            const m = (e.expense_date || '').substring(0, 7);
+            if (m) {
+                monthExpMap[m] = (monthExpMap[m] || 0) + (parseInt(e.amount) || 0);
+                monthExpCount[m] = (monthExpCount[m] || 0) + 1;
+            }
+        });
+        // Merge expense into trendData
+        trendData.forEach(td => { td.expense = monthExpMap[td.month] || 0; td.netProfit = td.revenue - td.cost - td.expense; });
+
+        // ── Payment method breakdown ──
+        const pmMap = {};
+        const pmCount = {};
+        filteredExpenses.forEach(e => {
+            const pm = e.payment_method || 'other';
+            pmMap[pm] = (pmMap[pm] || 0) + (parseInt(e.amount) || 0);
+            pmCount[pm] = (pmCount[pm] || 0) + 1;
+        });
+        const pmLabels = { cash: t('statsPage.expPayCash', '현금'), card: t('statsPage.expPayCard', '카드'), transfer: t('statsPage.expPayTransfer', '이체'), other: t('statsPage.expPayOther', '기타') };
+
+        // ── TOP 5 expenses ──
+        const top5Expenses = [...filteredExpenses].sort((a, b) => (parseInt(b.amount) || 0) - (parseInt(a.amount) || 0)).slice(0, 5);
+
+        // ── Build new sections HTML ──
+        // Section: Expense Detail Analysis
+        const expDetailSection = filteredExpenses.length > 0 ? `
+        <div class="section">
+            <h2>💸 ${t('statsPage.rptExpDetail', '지출 상세 분석')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Expense Analysis</span></h2>
+            <table>
+                <thead><tr><th>${t('statsPage.expCategory', '카테고리')}</th><th style="text-align:right;">${t('statsPage.plAmount', '금액')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th><th style="text-align:right;">${t('statsPage.rptRevPercent', '매출 대비')}</th><th style="text-align:right;">${t('statsPage.rptExpCount', '건수')}</th></tr></thead>
+                <tbody>
+                    ${EXPENSE_GROUPS.map(g => {
+            const groupCats = g.cats.filter(c => expCatMap[c]);
+            if (groupCats.length === 0) return '';
+            const groupTotal = groupCats.reduce((s, c) => s + (expCatMap[c] || 0), 0);
+            const groupCount = groupCats.reduce((s, c) => s + (expCatCount[c] || 0), 0);
+            const gPct = totalExpense > 0 ? ((groupTotal / totalExpense) * 100).toFixed(1) : '0.0';
+            const gRevPct = totalRevenue > 0 ? ((groupTotal / totalRevenue) * 100).toFixed(1) : '0.0';
+            const catRows = groupCats.map(c => {
+                const amt = expCatMap[c] || 0;
+                const cnt = expCatCount[c] || 0;
+                const pct = totalExpense > 0 ? ((amt / totalExpense) * 100).toFixed(1) : '0.0';
+                const revPct = totalRevenue > 0 ? ((amt / totalRevenue) * 100).toFixed(1) : '0.0';
+                return `<tr><td style="padding-left:28px;font-size:10px;color:#6b7280;">└ ${getExpenseCatLabel(c)}</td><td style="text-align:right;font-size:10px;">${fmt(amt)}</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${pct}%</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${revPct}%</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${cnt}${t('statsPage.units', '건')}</td></tr>`;
+            }).join('');
+            const bar = `<div style="background:#e5e7eb;border-radius:4px;height:5px;width:100%;margin-top:2px;"><div style="background:${g.color};border-radius:4px;height:5px;width:${Math.min(parseFloat(gPct), 100)}%;"></div></div>`;
+            return `<tr class="subtotal-row"><td style="font-weight:700;color:${g.color};">■ ${g.label}${bar}</td><td style="text-align:right;font-weight:700;">${fmt(groupTotal)}</td><td style="text-align:right;font-weight:600;">${gPct}%</td><td style="text-align:right;font-weight:600;">${gRevPct}%</td><td style="text-align:right;font-weight:600;">${groupCount}${t('statsPage.units', '건')}</td></tr>${catRows}`;
+        }).join('')}
+                    <tr class="total-row"><td style="font-weight:800;">${t('statsPage.rptTotal', '합계')}</td><td style="text-align:right;font-weight:800;color:#dc2626;">${fmt(totalExpense)}</td><td style="text-align:right;font-weight:700;">100%</td><td style="text-align:right;font-weight:700;">${totalRevenue > 0 ? ((totalExpense / totalRevenue) * 100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-weight:700;">${filteredExpenses.length}${t('statsPage.units', '건')}</td></tr>
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // Section: Monthly Expense Trend
+        const allExpMonths = Object.keys(monthExpMap).sort();
+        const expTrendSection = allExpMonths.length > 0 ? `
+        <div class="section">
+            <h2>📅 ${t('statsPage.rptExpTrend', '월별 지출 추이')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Monthly Expense Trend</span></h2>
+            <table>
+                <thead><tr><th>${t('statsPage.month', '월')}</th><th style="text-align:right;">${t('statsPage.rptExpTotal', '총 지출')}</th><th style="text-align:right;">MoM</th><th style="text-align:right;">${t('statsPage.rptRevPercent', '매출 대비')}</th><th style="text-align:right;">${t('statsPage.rptExpCount', '건수')}</th></tr></thead>
+                <tbody>
+                    ${allExpMonths.map((m, idx) => {
+            const amt = monthExpMap[m];
+            const cnt = monthExpCount[m] || 0;
+            const prev = idx > 0 ? monthExpMap[allExpMonths[idx - 1]] : null;
+            const mom = prev && prev > 0 ? ((amt - prev) / prev * 100).toFixed(1) : null;
+            const monthRev = trendData.find(td => td.month === m)?.revenue || 0;
+            const revPct = monthRev > 0 ? ((amt / monthRev) * 100).toFixed(1) : '-';
+            return `<tr><td>${m}</td><td style="text-align:right;font-weight:600;color:#dc2626;">${fmt(amt)}</td><td style="text-align:right;">${mom !== null ? `<span style="color:${parseFloat(mom) >= 0 ? '#dc2626' : '#059669'};font-weight:600;">${parseFloat(mom) > 0 ? '+' : ''}${mom}%</span>` : '<span style="color:#9ca3af;">-</span>'}</td><td style="text-align:right;">${revPct}%</td><td style="text-align:right;">${cnt}${t('statsPage.units', '건')}</td></tr>`;
+        }).join('')}
+                    <tr class="total-row"><td style="font-weight:800;">${t('statsPage.rptTotal', '합계')}</td><td style="text-align:right;font-weight:800;color:#dc2626;">${fmt(totalExpense)}</td><td></td><td style="text-align:right;font-weight:700;">${totalRevenue > 0 ? ((totalExpense / totalRevenue) * 100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-weight:700;">${filteredExpenses.length}${t('statsPage.units', '건')}</td></tr>
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // Section: Payment Method Breakdown
+        const pmEntries = Object.entries(pmMap).sort((a, b) => b[1] - a[1]);
+        const pmSection = pmEntries.length > 0 ? `
+        <div class="section">
+            <h2>💳 ${t('statsPage.rptPmBreakdown', '결제수단별 분석')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Payment Method</span></h2>
+            <table>
+                <thead><tr><th>${t('statsPage.expPayment', '결제수단')}</th><th style="text-align:right;">${t('statsPage.plAmount', '금액')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th><th style="text-align:right;">${t('statsPage.rptExpCount', '건수')}</th></tr></thead>
+                <tbody>
+                    ${pmEntries.map(([pm, amt]) => {
+            const pct = totalExpense > 0 ? ((amt / totalExpense) * 100).toFixed(1) : '0.0';
+            const cnt = pmCount[pm] || 0;
+            const bar = `<div style="background:#e5e7eb;border-radius:4px;height:5px;width:100%;margin-top:2px;"><div style="background:#6366f1;border-radius:4px;height:5px;width:${Math.min(parseFloat(pct), 100)}%;"></div></div>`;
+            return `<tr><td>${pmLabels[pm] || pm}${bar}</td><td style="text-align:right;font-weight:600;">${fmt(amt)}</td><td style="text-align:right;">${pct}%</td><td style="text-align:right;">${cnt}${t('statsPage.units', '건')}</td></tr>`;
+        }).join('')}
+                    <tr class="total-row"><td style="font-weight:800;">${t('statsPage.rptTotal', '합계')}</td><td style="text-align:right;font-weight:800;">${fmt(totalExpense)}</td><td style="text-align:right;font-weight:700;">100%</td><td style="text-align:right;font-weight:700;">${filteredExpenses.length}${t('statsPage.units', '건')}</td></tr>
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // Section: TOP 5 High Expenses
+        const top5Section = top5Expenses.length > 0 ? `
+        <div class="section">
+            <h2>🏆 ${t('statsPage.rptTop5Exp', 'TOP 5 고액 지출')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Top Expenses</span></h2>
+            <table>
+                <thead><tr><th style="width:30px;">#</th><th>${t('statsPage.expDate', '날짜')}</th><th style="text-align:right;">${t('statsPage.plAmount', '금액')}</th><th>${t('statsPage.expCategory', '카테고리')}</th><th>${t('statsPage.expMemo', '메모')}</th></tr></thead>
+                <tbody>
+                    ${top5Expenses.map((e, i) => {
+            const medals = ['🥇', '🥈', '🥉', '4', '5'];
+            return `<tr><td style="text-align:center;">${medals[i]}</td><td>${e.expense_date || '-'}</td><td style="text-align:right;font-weight:700;color:#dc2626;">${fmt(parseInt(e.amount) || 0)}</td><td>${getExpenseCatLabel(e.category || 'other')}</td><td style="color:#6b7280;font-size:10px;">${e.memo || '-'}</td></tr>`;
+        }).join('')}
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // Net Income calculation
+        const otherIncome = 0; // placeholder for future
+        const otherExpense = 0;
+        const ebt = operatingProfit + otherIncome - otherExpense;
 
         // Build sales goal section
         let goalSection = '';
@@ -594,7 +1171,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
             const goalPeriodLabel = goalPeriodKey === 'monthly' ? t('statsPage.tabMonthly', '월별') : t('statsPage.tabAnnual', '연간');
             const goalAmt = salesGoal.amount || 0;
             const currentRevenue = goalPeriodKey === 'monthly'
-                ? (analyticsData.monthlyTrend?.[analyticsData.monthlyTrend.length - 1]?.revenue || 0)
+                ? (trendData.length > 0 ? trendData[trendData.length - 1].revenue : 0)
                 : totalRevenue;
             const progress = goalAmt > 0 ? Math.min((currentRevenue / goalAmt) * 100, 999) : 0;
             goalSection = `
@@ -807,7 +1384,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
         <div class="report-title">📊 ${t('statsPage.plStatement', '손익계산서')} · ${t('statsPage.analyticsTrend', '매출 트렌드')}</div>
         <div class="report-meta">
             <span>📅 ${t('statsPage.reportDate', '보고서 날짜')}: ${reportDate}</span>
-            <span>📈 ${t('statsPage.recordCount', '데이터')}: ${analyticsData.recordCount || 0} ${t('statsPage.records', '건')}</span>
+            <span>📈 ${t('statsPage.recordCount', '데이터')}: ${filteredSales.length} ${t('statsPage.records', '건')}</span>
         </div>
     </div>
 
@@ -820,46 +1397,162 @@ const SellerStats = ({ userRole = 'seller' }) => {
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">${t('statsPage.analyticsProfit', '이익률')}</div>
-                <div class="kpi-value blue">${analyticsData.profitMargin || 0}%</div>
+                <div class="kpi-value blue">${grossMargin}%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">${t('statsPage.analyticsGrowth', '성장률')}</div>
-                <div class="kpi-value ${analyticsData.growth >= 0 ? 'green' : 'red'}">${analyticsData.growth !== null ? `${analyticsData.growth > 0 ? '+' : ''}${analyticsData.growth}%` : '-'}</div>
+                <div class="kpi-value ${trendData.length >= 2 && trendData[trendData.length - 1].revenue >= trendData[trendData.length - 2].revenue ? 'green' : 'red'}">${trendData.length >= 2 ? (() => { const cur = trendData[trendData.length - 1].revenue; const prev = trendData[trendData.length - 2].revenue; return prev > 0 ? `${cur >= prev ? '+' : ''}${((cur - prev) / prev * 100).toFixed(1)}%` : '-'; })() : '-'}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">${t('statsPage.analyticsForecast', '예상 매출')}</div>
-                <div class="kpi-value violet">${analyticsData.forecast ? fmt(analyticsData.forecast) : '-'}</div>
+                <div class="kpi-value violet">${trendData.length > 0 ? fmt(Math.round(trendTotalRev / trendData.length * 12)) : '-'}</div>
             </div>
         </div>
 
-        <!-- P&L Statement -->
+        <!-- P&L Statement — Corporate Format -->
         <div class="section">
-            <h2>📋 ${t('statsPage.plStatement', '손익계산서')}</h2>
+            <h2>📋 ${t('statsPage.plStatement', '손익계산서')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Income Statement</span></h2>
             <table>
-                <tr class="subtotal-row"><td>${t('statsPage.plRevenue', '매출액')}</td><td style="text-align:right;color:#059669;font-weight:700;">${fmt(totalRevenue)}</td></tr>
-                <tr><td class="indent">${t('statsPage.plCost', '(-) 매출원가')}</td><td style="text-align:right;" class="negative">${fmt(totalCost)}</td></tr>
-                <tr class="subtotal-row"><td>${t('statsPage.plGrossProfit', '매출총이익')}</td><td style="text-align:right;color:${grossProfit >= 0 ? '#059669' : '#dc2626'};font-weight:700;">${fmt(grossProfit)}</td></tr>
-                <tr><td style="padding-left:24px;color:#9ca3af;font-size:10px;">${t('statsPage.plGrossMargin', '매출총이익률')}</td><td style="text-align:right;color:#9ca3af;font-size:10px;">${grossMargin}%</td></tr>
-                <tr><td colspan="2" style="padding:4px;"></td></tr>
-                <tr class="subtotal-row"><td>${t('statsPage.plExpenses', '(-) 판매관리비')}</td><td style="text-align:right;" class="negative">${fmt(totalExpense)}</td></tr>
-                ${expenseRows}
-                <tr class="total-row">
-                    <td>${t('statsPage.plOperatingProfit', '영업이익')}</td>
-                    <td style="text-align:right;color:${operatingProfit >= 0 ? '#059669' : '#dc2626'};">${operatingProfit >= 0 ? '+' : ''}${fmt(operatingProfit)}</td>
-                </tr>
-                <tr><td style="color:#9ca3af;font-size:10px;">${t('statsPage.plOperatingMargin', '영업이익률')}</td><td style="text-align:right;color:#9ca3af;font-size:10px;">${operatingMargin}%</td></tr>
+                <thead>
+                    <tr>
+                        <th style="width:60%;">${t('statsPage.plItem', '계정과목')}</th>
+                        <th style="text-align:right;width:25%;">${t('statsPage.plAmount', '금액')}</th>
+                        <th style="text-align:right;width:15%;">${t('statsPage.plPercent', '비율')}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- I. Revenue -->
+                    <tr class="subtotal-row">
+                        <td style="font-weight:700;">Ⅰ. ${t('statsPage.plRevenue', '매출액')}</td>
+                        <td style="text-align:right;color:#059669;font-weight:700;">${fmt(totalRevenue)}</td>
+                        <td style="text-align:right;color:#059669;font-weight:600;">100.0%</td>
+                    </tr>
+                    ${sortedChannels.length > 0 ? sortedChannels.map(([name, rev]) => {
+            const chPct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
+            return `<tr><td class="indent" style="color:#6b7280;font-size:10px;">└ ${name}</td><td style="text-align:right;font-size:10px;color:#6b7280;">${fmt(rev)}</td><td style="text-align:right;font-size:10px;color:#6b7280;">${chPct}%</td></tr>`;
+        }).join('') : ''}
+
+                    <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                    <!-- II. COGS -->
+                    <tr>
+                        <td style="font-weight:600;">Ⅱ. ${t('statsPage.plCost', '매출원가')}</td>
+                        <td style="text-align:right;" class="negative">(${fmt(totalCost)})</td>
+                        <td style="text-align:right;color:#dc2626;">${totalRevenue > 0 ? ((totalCost / totalRevenue) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+
+                    <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                    <!-- III. Gross Profit -->
+                    <tr class="subtotal-row" style="background:#ecfdf5;">
+                        <td style="font-weight:700;">Ⅲ. ${t('statsPage.plGrossProfit', '매출총이익')}</td>
+                        <td style="text-align:right;color:${grossProfit >= 0 ? '#059669' : '#dc2626'};font-weight:700;">${fmt(grossProfit)}</td>
+                        <td style="text-align:right;font-weight:600;">${grossMargin}%</td>
+                    </tr>
+
+                    <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                    <!-- IV. SG&A -->
+                    <tr>
+                        <td style="font-weight:600;">Ⅳ. ${t('statsPage.plExpenses', '판매비와관리비')}</td>
+                        <td style="text-align:right;" class="negative">(${fmt(totalExpense)})</td>
+                        <td style="text-align:right;color:#dc2626;">${totalRevenue > 0 ? ((totalExpense / totalRevenue) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    ${expenseRows}
+
+                    <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                    <!-- V. Operating Income -->
+                    <tr class="total-row" style="background:${operatingProfit >= 0 ? '#ecfdf5' : '#fef2f2'};">
+                        <td style="font-weight:800;font-size:12px;">Ⅴ. ${t('statsPage.plOperatingProfit', '영업이익')}</td>
+                        <td style="text-align:right;color:${operatingProfit >= 0 ? '#059669' : '#dc2626'};font-weight:800;font-size:13px;">${fmt(operatingProfit)}</td>
+                        <td style="text-align:right;font-weight:700;">${operatingMargin}%</td>
+                    </tr>
+
+                    <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                    <!-- VI. Non-operating -->
+                    <tr>
+                        <td style="font-weight:600;">Ⅵ. ${t('statsPage.plNonOperating', '영업외수익(비용)')}</td>
+                        <td style="text-align:right;font-weight:600;">${fmt(otherIncome - otherExpense)}</td>
+                        <td style="text-align:right;color:#9ca3af;">-</td>
+                    </tr>
+
+                    <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                    <!-- VII. EBT -->
+                    <tr class="total-row" style="background:${ebt >= 0 ? '#eff6ff' : '#fef2f2'};border-top:3px double #1f2937;">
+                        <td style="font-weight:800;font-size:13px;">Ⅶ. ${t('statsPage.plEBT', '세전이익 (EBT)')}</td>
+                        <td style="text-align:right;color:${ebt >= 0 ? '#2563eb' : '#dc2626'};font-weight:800;font-size:14px;">${fmt(ebt)}</td>
+                        <td style="text-align:right;font-weight:700;">${totalRevenue > 0 ? ((ebt / totalRevenue) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
 
-        <!-- Monthly Trend -->
+        <!-- Profitability Summary -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px;">
+            <div class="kpi-card"><div class="kpi-label">${t('statsPage.plGrossMargin', '매출총이익률')}</div><div class="kpi-value ${parseFloat(grossMargin) >= 0 ? 'green' : 'red'}">${grossMargin}%</div></div>
+            <div class="kpi-card"><div class="kpi-label">${t('statsPage.plOperatingMargin', '영업이익률')}</div><div class="kpi-value ${parseFloat(operatingMargin) >= 0 ? 'blue' : 'red'}">${operatingMargin}%</div></div>
+            <div class="kpi-card"><div class="kpi-label">${t('statsPage.plSgaRatio', '판관비율')}</div><div class="kpi-value violet">${totalRevenue > 0 ? ((totalExpense / totalRevenue) * 100).toFixed(1) : '0.0'}%</div></div>
+            <div class="kpi-card"><div class="kpi-label">${t('statsPage.plCostRatio', '원가율')}</div><div class="kpi-value red">${totalRevenue > 0 ? ((totalCost / totalRevenue) * 100).toFixed(1) : '0.0'}%</div></div>
+            <div class="kpi-card"><div class="kpi-label">${t('statsPage.plEBTMargin', '세전이익률')}</div><div class="kpi-value ${ebt >= 0 ? 'blue' : 'red'}">${totalRevenue > 0 ? ((ebt / totalRevenue) * 100).toFixed(1) : '0.0'}%</div></div>
+        </div>
+
+        <!-- Monthly Trend — Enhanced with Expense -->
         ${trendRows ? `
         <div class="section">
-            <h2>📈 ${t('statsPage.analyticsTrend', '매출 트렌드')}</h2>
+            <h2>📈 ${t('statsPage.analyticsTrend', '매출 트렌드')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Monthly Trend Analysis</span></h2>
             <table>
-                <thead><tr><th>${t('statsPage.month', '월')}</th><th style="text-align:right;">${t('statsPage.plRevenue', '매출액')}</th></tr></thead>
-                <tbody>${trendRows}</tbody>
+                <thead>
+                    <tr>
+                        <th>${t('statsPage.month', '월')}</th>
+                        <th style="text-align:right;">${t('statsPage.plRevenue', '매출')}</th>
+                        <th style="text-align:right;">${t('statsPage.plCost', '원가')}</th>
+                        <th style="text-align:right;">${t('statsPage.plGrossProfit', '총이익')}</th>
+                        <th style="text-align:right;">${t('statsPage.plExpenses', '판관비')}</th>
+                        <th style="text-align:right;">${t('statsPage.rptNetProfit', '순이익')}</th>
+                        <th style="text-align:right;">MoM</th>
+                        <th style="text-align:right;">${t('statsPage.customersLabel', '고객')}</th>
+                        <th style="text-align:right;">${t('statsPage.transactionsLabel', '거래')}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${trendRows}
+                    <tr class="total-row" style="background:#f0fdf4;">
+                        <td style="font-weight:800;">📊 ${t('statsPage.rptTotal', '합계')}</td>
+                        <td style="text-align:right;font-weight:800;color:#059669;">${fmt(trendTotalRev)}</td>
+                        <td style="text-align:right;font-weight:700;color:#dc2626;">${fmt(trendTotalCost)}</td>
+                        <td style="text-align:right;font-weight:800;color:${trendTotalProfit >= 0 ? '#059669' : '#dc2626'};">${fmt(trendTotalProfit)}</td>
+                        <td style="text-align:right;font-weight:700;color:#f97316;">${fmt(trendTotalExp)}</td>
+                        <td style="text-align:right;font-weight:800;color:${trendTotalNet >= 0 ? '#059669' : '#dc2626'};">${fmt(trendTotalNet)}</td>
+                        <td colspan="3"></td>
+                    </tr>
+                    <tr style="background:#f9fafb;">
+                        <td style="color:#6b7280;font-size:10px;">📉 ${t('statsPage.rptAvg', '월 평균')}</td>
+                        <td style="text-align:right;color:#6b7280;font-size:10px;font-weight:600;">${fmt(trendAvgRev)}</td>
+                        <td colspan="7"></td>
+                    </tr>
+                    <tr style="background:#f9fafb;">
+                        <td style="color:#6b7280;font-size:10px;">📈 ${t('statsPage.rptMax', '최고 매출')}</td>
+                        <td style="text-align:right;color:#059669;font-size:10px;font-weight:600;">${fmt(trendMaxRev)}</td>
+                        <td style="color:#6b7280;font-size:10px;">📉 ${t('statsPage.rptMin', '최저 매출')}</td>
+                        <td style="text-align:right;color:#dc2626;font-size:10px;font-weight:600;">${fmt(trendMinRev)}</td>
+                        <td colspan="5"></td>
+                    </tr>
+                </tbody>
             </table>
         </div>` : ''}
+
+        <!-- Expense Sections -->
+        ${expDetailSection}
+
+        <div class="two-col">
+            ${expTrendSection ? `<div>${expTrendSection}</div>` : ''}
+            ${pmSection ? `<div>${pmSection}</div>` : ''}
+        </div>
+
+        ${top5Section}
 
         <!-- Channels & Categories -->
         <div class="two-col">
@@ -867,7 +1560,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
             <div class="section" style="margin-bottom:0;">
                 <h2>📡 ${t('statsPage.analyticsChannels', '채널별 매출')}</h2>
                 <table>
-                    <thead><tr><th>${t('statsPage.channel', '채널')}</th><th style="text-align:right;">${t('statsPage.plRevenue', '매출')}</th><th style="text-align:right;">%</th></tr></thead>
+                    <thead><tr><th>${t('statsPage.channel', '채널')}</th><th style="text-align:right;">${t('statsPage.plRevenue', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th></tr></thead>
                     <tbody>${channelRows}</tbody>
                 </table>
             </div>` : ''}
@@ -876,7 +1569,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
             <div class="section" style="margin-bottom:0;">
                 <h2>🏷️ ${t('statsPage.analyticsCategories', '카테고리 분석')}</h2>
                 <table>
-                    <thead><tr><th>${t('statsPage.category', '카테고리')}</th><th style="text-align:right;">${t('statsPage.plRevenue', '매출')}</th><th style="text-align:right;">%</th></tr></thead>
+                    <thead><tr><th>${t('statsPage.category', '카테고리')}</th><th style="text-align:right;">${t('statsPage.plRevenue', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th></tr></thead>
                     <tbody>${categoryRows}</tbody>
                 </table>
             </div>` : ''}
@@ -925,32 +1618,243 @@ const SellerStats = ({ userRole = 'seller' }) => {
     // ── CRM Comprehensive Report ──
     const generateCRMReport = () => {
         if (!analyticsData) return;
+        const filteredSales = getExportFilteredStats();
+        const filteredExpenses = getExportFilteredExpenses();
+        const { start, end } = getExportDateRange();
 
         const now = new Date();
-        const reportDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+        const reportDate = `${start} ~ ${end}`;
         const fmt = (v) => typeof v === 'number' ? v.toLocaleString() : (v || '-');
-        const totalRevenue = analyticsData.totalRevenue || 0;
-        const totalCost = analyticsData.totalCost || 0;
+        const totalRevenue = filteredSales.reduce((s, r) => s + (parseInt(r.monthly_revenue) || 0), 0);
+        const totalCost = filteredSales.reduce((s, r) => s + (parseInt(r.cost_price) || 0), 0);
         const grossProfit = totalRevenue - totalCost;
         const grossMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0.0';
+        const totalExp = filteredExpenses.reduce((s, e) => s + (parseInt(e.amount) || 0), 0);
+        const opProfit = grossProfit - totalExp;
+        const opMargin = totalRevenue > 0 ? ((opProfit / totalRevenue) * 100).toFixed(1) : '0.0';
 
-        // RFM section
+        // ── Build Monthly Trend from filteredSales (period-filtered) ──
+        const crmMonthMap = {};
+        const crmCostMap = {};
+        const crmTxMap = {};
+        const crmCustMap = {};
+        filteredSales.forEach(s => {
+            const m = (s.record_date || '').substring(0, 7);
+            if (m) {
+                crmMonthMap[m] = (crmMonthMap[m] || 0) + (parseInt(s.monthly_revenue) || 0);
+                crmCostMap[m] = (crmCostMap[m] || 0) + (parseInt(s.cost_price) || 0);
+                crmTxMap[m] = (crmTxMap[m] || 0) + (parseInt(s.transaction_count) || 0);
+                crmCustMap[m] = (crmCustMap[m] || 0) + (parseInt(s.customer_count) || 0);
+            }
+        });
+        // Monthly expense map
+        const crmMonthExpMap = {};
+        const crmMonthExpCount = {};
+        filteredExpenses.forEach(e => {
+            const m = (e.expense_date || '').substring(0, 7);
+            if (m) {
+                crmMonthExpMap[m] = (crmMonthExpMap[m] || 0) + (parseInt(e.amount) || 0);
+                crmMonthExpCount[m] = (crmMonthExpCount[m] || 0) + 1;
+            }
+        });
+        const trendData = Object.keys(crmMonthMap).sort().map(m => ({
+            month: m, revenue: crmMonthMap[m], cost: crmCostMap[m] || 0,
+            transactions: crmTxMap[m] || 0, customers: crmCustMap[m] || 0,
+            expense: crmMonthExpMap[m] || 0,
+        }));
+        trendData.forEach(td => { td.grossP = td.revenue - td.cost; td.netProfit = td.revenue - td.cost - td.expense; });
+
+        const trendRows = trendData.map((m, idx) => {
+            const prev = idx > 0 ? trendData[idx - 1].revenue : null;
+            const mom = prev && prev > 0 ? ((m.revenue - prev) / prev * 100).toFixed(1) : null;
+            return `<tr>
+                <td>${m.month}</td>
+                <td style="text-align:right;font-weight:600;">${fmt(m.revenue)}</td>
+                <td style="text-align:right;color:#dc2626;">${fmt(m.cost)}</td>
+                <td style="text-align:right;color:${m.grossP >= 0 ? '#059669' : '#dc2626'};font-weight:600;">${fmt(m.grossP)}</td>
+                <td style="text-align:right;color:#f97316;">${fmt(m.expense)}</td>
+                <td style="text-align:right;color:${m.netProfit >= 0 ? '#059669' : '#dc2626'};font-weight:700;">${fmt(m.netProfit)}</td>
+                <td style="text-align:right;">${mom !== null ? `<span style="color:${parseFloat(mom) >= 0 ? '#059669' : '#dc2626'};font-weight:600;">${parseFloat(mom) > 0 ? '+' : ''}${mom}%</span>` : '-'}</td>
+                <td style="text-align:right;">${m.customers || '-'}</td>
+                <td style="text-align:right;">${m.transactions || '-'}</td>
+            </tr>`;
+        }).join('');
+        const trendTotalRev = trendData.reduce((s, m) => s + (m.revenue || 0), 0);
+        const trendTotalCost = trendData.reduce((s, m) => s + (m.cost || 0), 0);
+        const trendTotalExp = trendData.reduce((s, m) => s + (m.expense || 0), 0);
+        const trendTotalNet = trendTotalRev - trendTotalCost - trendTotalExp;
+
+        // ── Channel & Category Rows (from filteredSales, period-filtered) ──
+        const crmChMap = {};
+        filteredSales.forEach(s => {
+            const ch = s.sales_channel || t('statsPage.directSales', '직접판매');
+            crmChMap[ch] = (crmChMap[ch] || 0) + (parseInt(s.monthly_revenue) || 0);
+        });
+        const crmSortedChannels = Object.entries(crmChMap).sort((a, b) => b[1] - a[1]);
+        const channelRows = crmSortedChannels.map(([name, rev]) => {
+            const pct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
+            const bar = `<div style="background:#e5e7eb;border-radius:4px;height:6px;width:100%;margin-top:3px;"><div style="background:#059669;border-radius:4px;height:6px;width:${Math.min(parseFloat(pct), 100)}%;"></div></div>`;
+            return `<tr><td>${name}${bar}</td><td style="text-align:right;font-weight:600;">${fmt(rev)}</td><td style="text-align:right;">${pct}%</td></tr>`;
+        }).join('') || '';
+
+        const crmCatMap = {};
+        filteredSales.forEach(s => {
+            const cat = s.product_category || s.product_name || t('statsPage.etcCategory', '기타');
+            crmCatMap[cat] = (crmCatMap[cat] || 0) + (parseInt(s.monthly_revenue) || 0);
+        });
+        const categoryRows = Object.entries(crmCatMap).sort((a, b) => b[1] - a[1]).map(([name, rev]) => {
+            const pct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
+            const bar = `<div style="background:#e5e7eb;border-radius:4px;height:6px;width:100%;margin-top:3px;"><div style="background:#7c3aed;border-radius:4px;height:6px;width:${Math.min(parseFloat(pct), 100)}%;"></div></div>`;
+            return `<tr><td>${name}${bar}</td><td style="text-align:right;font-weight:600;">${fmt(rev)}</td><td style="text-align:right;">${pct}%</td></tr>`;
+        }).join('') || '';
+
+        // ── Expense Grouping (same as Print) ──
+        const CRM_EXP_GROUPS = [
+            { key: 'direct', label: t('statsPage.expGroupDirect', '매출직접비'), cats: ['materials', 'packaging', 'shipping', 'commission'], color: '#f97316' },
+            { key: 'sales', label: t('statsPage.expGroupSales', '영업비'), cats: ['advertising', 'booth_rental', 'transport'], color: '#8b5cf6' },
+            { key: 'admin', label: t('statsPage.expGroupAdmin', '관리비'), cats: ['labor', 'equipment', 'communication', 'food'], color: '#3b82f6' },
+            { key: 'misc', label: t('statsPage.expGroupMisc', '기타경비'), cats: ['other'], color: '#6b7280' },
+        ];
+        const crmExpCatMap = {};
+        const crmExpCatCount = {};
+        filteredExpenses.forEach(e => {
+            const cat = e.category || 'other';
+            crmExpCatMap[cat] = (crmExpCatMap[cat] || 0) + (parseInt(e.amount) || 0);
+            crmExpCatCount[cat] = (crmExpCatCount[cat] || 0) + 1;
+        });
+
+        // Grouped P&L expense rows
+        const crmExpGroupedRows = CRM_EXP_GROUPS.map(g => {
+            const gc = g.cats.filter(c => crmExpCatMap[c]);
+            if (gc.length === 0) return '';
+            const gt = gc.reduce((s, c) => s + (crmExpCatMap[c] || 0), 0);
+            const gP = totalExp > 0 ? ((gt / totalExp) * 100).toFixed(1) : '0.0';
+            const cr = gc.map(c => {
+                const a2 = crmExpCatMap[c] || 0;
+                const p2 = totalExp > 0 ? ((a2 / totalExp) * 100).toFixed(1) : '0.0';
+                return `<tr><td style="padding-left:40px;color:#6b7280;font-size:10px;">└ ${getExpenseCatLabel(c)}</td><td style="text-align:right;font-size:10px;color:#6b7280;">${fmt(a2)}</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${p2}%</td></tr>`;
+            }).join('');
+            return `<tr><td style="padding-left:24px;font-weight:600;color:${g.color};">■ ${g.label}</td><td style="text-align:right;font-weight:600;">${fmt(gt)}</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${gP}%</td></tr>${cr}`;
+        }).join('');
+
+        // EBT
+        const otherIncome = 0;
+        const otherExpense2 = 0;
+        const ebt = opProfit + otherIncome - otherExpense2;
+        const operatingMargin = opMargin;
+
+        // ── Payment method breakdown ──
+        const crmPmMap = {};
+        const crmPmCount = {};
+        filteredExpenses.forEach(e => {
+            const pm = e.payment_method || 'other';
+            crmPmMap[pm] = (crmPmMap[pm] || 0) + (parseInt(e.amount) || 0);
+            crmPmCount[pm] = (crmPmCount[pm] || 0) + 1;
+        });
+        const crmPmLabels = { cash: t('statsPage.expPayCash', '현금'), card: t('statsPage.expPayCard', '카드'), transfer: t('statsPage.expPayTransfer', '이체'), other: t('statsPage.expPayOther', '기타') };
+
+        // ── TOP 5 expenses ──
+        const crmTop5 = [...filteredExpenses].sort((a, b) => (parseInt(b.amount) || 0) - (parseInt(a.amount) || 0)).slice(0, 5);
+
+        // ── Expense Detail Section (grouped) ──
+        const crmExpDetailSection = filteredExpenses.length > 0 ? `
+        <div class="section">
+            <h2>💸 ${t('statsPage.rptExpDetail', '지출 상세 분석')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Expense Analysis</span></h2>
+            <table>
+                <thead><tr><th>${t('statsPage.expCategory', '카테고리')}</th><th style="text-align:right;">${t('statsPage.plAmount', '금액')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th><th style="text-align:right;">${t('statsPage.rptRevPercent', '매출 대비')}</th><th style="text-align:right;">${t('statsPage.rptExpCount', '건수')}</th></tr></thead>
+                <tbody>
+                    ${CRM_EXP_GROUPS.map(g => {
+            const gc = g.cats.filter(c => crmExpCatMap[c]);
+            if (gc.length === 0) return '';
+            const gt = gc.reduce((s, c) => s + (crmExpCatMap[c] || 0), 0);
+            const gCnt = gc.reduce((s, c) => s + (crmExpCatCount[c] || 0), 0);
+            const gP = totalExp > 0 ? ((gt / totalExp) * 100).toFixed(1) : '0.0';
+            const gR = totalRevenue > 0 ? ((gt / totalRevenue) * 100).toFixed(1) : '0.0';
+            const cr = gc.map(c => {
+                const a2 = crmExpCatMap[c] || 0; const cn = crmExpCatCount[c] || 0;
+                const p2 = totalExp > 0 ? ((a2 / totalExp) * 100).toFixed(1) : '0.0';
+                const r2 = totalRevenue > 0 ? ((a2 / totalRevenue) * 100).toFixed(1) : '0.0';
+                return `<tr><td style="padding-left:28px;font-size:10px;color:#6b7280;">└ ${getExpenseCatLabel(c)}</td><td style="text-align:right;font-size:10px;">${fmt(a2)}</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${p2}%</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${r2}%</td><td style="text-align:right;font-size:10px;color:#9ca3af;">${cn}${t('statsPage.units', '건')}</td></tr>`;
+            }).join('');
+            const bar2 = `<div style="background:#e5e7eb;border-radius:4px;height:5px;width:100%;margin-top:2px;"><div style="background:${g.color};border-radius:4px;height:5px;width:${Math.min(parseFloat(gP), 100)}%;"></div></div>`;
+            return `<tr class="subtotal-row"><td style="font-weight:700;color:${g.color};">■ ${g.label}${bar2}</td><td style="text-align:right;font-weight:700;">${fmt(gt)}</td><td style="text-align:right;font-weight:600;">${gP}%</td><td style="text-align:right;font-weight:600;">${gR}%</td><td style="text-align:right;font-weight:600;">${gCnt}${t('statsPage.units', '건')}</td></tr>${cr}`;
+        }).join('')}
+                    <tr class="total-row"><td style="font-weight:800;">${t('statsPage.rptTotal', '합계')}</td><td style="text-align:right;font-weight:800;color:#dc2626;">${fmt(totalExp)}</td><td style="text-align:right;font-weight:700;">100%</td><td style="text-align:right;font-weight:700;">${totalRevenue > 0 ? ((totalExp / totalRevenue) * 100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-weight:700;">${filteredExpenses.length}${t('statsPage.units', '건')}</td></tr>
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // ── Monthly Expense Trend ──
+        const crmAllExpMonths = Object.keys(crmMonthExpMap).sort();
+        const crmExpTrendSection = crmAllExpMonths.length > 0 ? `
+        <div class="section">
+            <h2>📅 ${t('statsPage.rptExpTrend', '월별 지출 추이')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Monthly Expense Trend</span></h2>
+            <table>
+                <thead><tr><th>${t('statsPage.month', '월')}</th><th style="text-align:right;">${t('statsPage.rptExpTotal', '총 지출')}</th><th style="text-align:right;">MoM</th><th style="text-align:right;">${t('statsPage.rptRevPercent', '매출 대비')}</th><th style="text-align:right;">${t('statsPage.rptExpCount', '건수')}</th></tr></thead>
+                <tbody>
+                    ${crmAllExpMonths.map((m, idx) => {
+            const a3 = crmMonthExpMap[m]; const cn3 = crmMonthExpCount[m] || 0;
+            const pv = idx > 0 ? crmMonthExpMap[crmAllExpMonths[idx - 1]] : null;
+            const mm = pv && pv > 0 ? ((a3 - pv) / pv * 100).toFixed(1) : null;
+            const mr = trendData.find(td => td.month === m)?.revenue || 0;
+            const rp = mr > 0 ? ((a3 / mr) * 100).toFixed(1) : '-';
+            return `<tr><td>${m}</td><td style="text-align:right;font-weight:600;color:#dc2626;">${fmt(a3)}</td><td style="text-align:right;">${mm !== null ? `<span style="color:${parseFloat(mm) >= 0 ? '#dc2626' : '#059669'};font-weight:600;">${parseFloat(mm) > 0 ? '+' : ''}${mm}%</span>` : '<span style="color:#9ca3af;">-</span>'}</td><td style="text-align:right;">${rp}%</td><td style="text-align:right;">${cn3}${t('statsPage.units', '건')}</td></tr>`;
+        }).join('')}
+                    <tr class="total-row"><td style="font-weight:800;">${t('statsPage.rptTotal', '합계')}</td><td style="text-align:right;font-weight:800;color:#dc2626;">${fmt(totalExp)}</td><td></td><td style="text-align:right;font-weight:700;">${totalRevenue > 0 ? ((totalExp / totalRevenue) * 100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-weight:700;">${filteredExpenses.length}${t('statsPage.units', '건')}</td></tr>
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // ── Payment Method Section ──
+        const crmPmEntries = Object.entries(crmPmMap).sort((a, b) => b[1] - a[1]);
+        const crmPmSection = crmPmEntries.length > 0 ? `
+        <div class="section">
+            <h2>💳 ${t('statsPage.rptPmBreakdown', '결제수단별 분석')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Payment Method</span></h2>
+            <table>
+                <thead><tr><th>${t('statsPage.expPayment', '결제수단')}</th><th style="text-align:right;">${t('statsPage.plAmount', '금액')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th><th style="text-align:right;">${t('statsPage.rptExpCount', '건수')}</th></tr></thead>
+                <tbody>
+                    ${crmPmEntries.map(([pm, amt]) => {
+            const pp = totalExp > 0 ? ((amt / totalExp) * 100).toFixed(1) : '0.0';
+            const bar3 = `<div style="background:#e5e7eb;border-radius:4px;height:5px;width:100%;margin-top:2px;"><div style="background:#6366f1;border-radius:4px;height:5px;width:${Math.min(parseFloat(pp), 100)}%;"></div></div>`;
+            return `<tr><td>${crmPmLabels[pm] || pm}${bar3}</td><td style="text-align:right;font-weight:600;">${fmt(amt)}</td><td style="text-align:right;">${pp}%</td><td style="text-align:right;">${crmPmCount[pm] || 0}${t('statsPage.units', '건')}</td></tr>`;
+        }).join('')}
+                    <tr class="total-row"><td style="font-weight:800;">${t('statsPage.rptTotal', '합계')}</td><td style="text-align:right;font-weight:800;">${fmt(totalExp)}</td><td style="text-align:right;font-weight:700;">100%</td><td style="text-align:right;font-weight:700;">${filteredExpenses.length}${t('statsPage.units', '건')}</td></tr>
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // ── TOP 5 Section ──
+        const crmTop5Section = crmTop5.length > 0 ? `
+        <div class="section">
+            <h2>🏆 ${t('statsPage.rptTop5Exp', 'TOP 5 고액 지출')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Top Expenses</span></h2>
+            <table>
+                <thead><tr><th style="width:30px;">#</th><th>${t('statsPage.expDate', '날짜')}</th><th style="text-align:right;">${t('statsPage.plAmount', '금액')}</th><th>${t('statsPage.expCategory', '카테고리')}</th><th>${t('statsPage.expMemo', '메모')}</th></tr></thead>
+                <tbody>
+                    ${crmTop5.map((e, i) => {
+            const medals = ['🥇', '🥈', '🥉', '4', '5'];
+            return `<tr><td style="text-align:center;">${medals[i]}</td><td>${e.expense_date || '-'}</td><td style="text-align:right;font-weight:700;color:#dc2626;">${fmt(parseInt(e.amount) || 0)}</td><td>${getExpenseCatLabel(e.category || 'other')}</td><td style="color:#6b7280;font-size:10px;">${e.memo || '-'}</td></tr>`;
+        }).join('')}
+                </tbody>
+            </table>
+        </div>` : '';
+
+        // ── RFM section ──
         const rfmSection = rfmData && rfmData.segments ? `
         <div class="section">
-            <h2>🎯 고객 세분화 (RFM 분석)</h2>
+            <h2>🎯 ${t('statsPage.rptRfmTitle', '고객 세분화 (RFM 분석)')}</h2>
             <table>
-                <thead><tr><th>세그먼트</th><th style="text-align:right;">고객 수</th><th style="text-align:right;">비율</th><th style="text-align:right;">매출</th><th style="text-align:right;">매출 비중</th></tr></thead>
+                <thead><tr><th>${t('statsPage.rptSegment', '세그먼트')}</th><th style="text-align:right;">${t('statsPage.rptCustomerCount', '고객 수')}</th><th style="text-align:right;">${t('statsPage.rptRatio', '비율')}</th><th style="text-align:right;">${t('statsPage.salesLabel', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '매출 비중')}</th></tr></thead>
                 <tbody>
                     ${Object.entries(rfmData.segments).map(([key, seg]) => {
-            const icons = { vip: '👑 VIP', excellent: '⭐ 우수 고객', normal: '👤 일반 고객', attention: '⚠️ 관심 필요', churn_risk: '🚨 이탈 위험' };
-            return `<tr><td>${icons[key] || key}</td><td style="text-align:right;">${seg.count}명</td><td style="text-align:right;">${seg.count_pct}%</td><td style="text-align:right;">${fmt(seg.revenue)}</td><td style="text-align:right;">${seg.revenue_pct}%</td></tr>`;
+            const icons = { vip: '👑 VIP', excellent: `⭐ ${t('statsPage.rptExcellent', '우수 고객')}`, normal: `👤 ${t('statsPage.rptNormal', '일반 고객')}`, attention: `⚠️ ${t('statsPage.rptAttention', '관심 필요')}`, churn_risk: `🚨 ${t('statsPage.rptChurnRisk', '이탈 위험')}` };
+            return `<tr><td>${icons[key] || key}</td><td style="text-align:right;">${seg.count}${t('statsPage.peopleSuffix', '명')}</td><td style="text-align:right;">${seg.count_pct}%</td><td style="text-align:right;">${fmt(seg.revenue)}</td><td style="text-align:right;">${seg.revenue_pct}%</td></tr>`;
         }).join('')}
                 </tbody>
             </table>
             ${rfmData.customers?.length > 0 ? `
-            <h3 style="margin-top:16px;font-size:12px;">Top 10 고객 RFM</h3>
+            <h3 style="margin-top:16px;font-size:12px;">Top 10 ${t('statsPage.rptCustomerRfm', '고객 RFM')}</h3>
             <table>
-                <thead><tr><th>이름</th><th>기업</th><th style="text-align:center;">R</th><th style="text-align:center;">F</th><th style="text-align:center;">M</th><th style="text-align:right;">RFM</th><th style="text-align:right;">세그먼트</th></tr></thead>
+                <thead><tr><th>${t('statsPage.rptName', '이름')}</th><th>${t('statsPage.rptCompany', '기업')}</th><th style="text-align:center;">R</th><th style="text-align:center;">F</th><th style="text-align:center;">M</th><th style="text-align:right;">RFM</th><th style="text-align:right;">${t('statsPage.rptSegment', '세그먼트')}</th></tr></thead>
                 <tbody>
                     ${rfmData.customers.slice(0, 10).map(c => {
             const icons = { vip: '👑', excellent: '⭐', normal: '👤', attention: '⚠️', churn_risk: '🚨' };
@@ -960,14 +1864,14 @@ const SellerStats = ({ userRole = 'seller' }) => {
             </table>` : ''}
         </div>` : '';
 
-        // Forecast section
+        // ── Forecast section ──
         const forecastSection = analyticsData.forecastMonths?.length > 0 ? `
         <div class="section">
-            <h2>🔮 매출 예측</h2>
+            <h2>🔮 ${t('statsPage.rptForecast', '매출 예측')}</h2>
             <div class="two-col">
                 <div>
                     <table>
-                        <thead><tr><th>예측 월</th><th style="text-align:right;">예측 매출</th></tr></thead>
+                        <thead><tr><th>${t('statsPage.rptForecastMonth', '예측 월')}</th><th style="text-align:right;">${t('statsPage.rptForecastSales', '예측 매출')}</th></tr></thead>
                         <tbody>
                             ${analyticsData.forecastMonths.map(f => `<tr><td>${f.month}</td><td style="text-align:right;color:#0891b2;font-weight:700;">${fmt(f.value)}</td></tr>`).join('')}
                         </tbody>
@@ -975,81 +1879,278 @@ const SellerStats = ({ userRole = 'seller' }) => {
                 </div>
                 <div>
                     <table>
-                        <tr><td>YTD 매출</td><td style="text-align:right;font-weight:700;">${fmt(analyticsData.ytdRevenue || 0)}</td></tr>
-                        <tr><td>연간 전망</td><td style="text-align:right;font-weight:700;color:#0891b2;">${fmt(analyticsData.annualRunRate || 0)}</td></tr>
-                        <tr><td>분기 예측</td><td style="text-align:right;font-weight:700;">${fmt(analyticsData.quarterForecast || 0)}</td></tr>
-                        ${analyticsData.goalProbability !== null ? `<tr><td>목표 달성 확률</td><td style="text-align:right;font-weight:700;color:${analyticsData.goalProbability >= 70 ? '#059669' : analyticsData.goalProbability >= 40 ? '#d97706' : '#dc2626'};">${analyticsData.goalProbability}%</td></tr>` : ''}
+                        <tr><td>YTD ${t('statsPage.salesLabel', '매출')}</td><td style="text-align:right;font-weight:700;">${fmt(analyticsData.ytdRevenue || 0)}</td></tr>
+                        <tr><td>${t('statsPage.rptAnnualOutlook', '연간 전망')}</td><td style="text-align:right;font-weight:700;color:#0891b2;">${fmt(analyticsData.annualRunRate || 0)}</td></tr>
+                        <tr><td>${t('statsPage.rptQuarterForecast', '분기 예측')}</td><td style="text-align:right;font-weight:700;">${fmt(analyticsData.quarterForecast || 0)}</td></tr>
+                        ${analyticsData.goalProbability !== null ? `<tr><td>${t('statsPage.rptGoalProb', '목표 달성 확률')}</td><td style="text-align:right;font-weight:700;color:${analyticsData.goalProbability >= 70 ? '#059669' : analyticsData.goalProbability >= 40 ? '#d97706' : '#dc2626'};">${analyticsData.goalProbability}%</td></tr>` : ''}
                     </table>
                 </div>
             </div>
         </div>` : '';
 
-        // Region section
+        // ── Region section ──
         const regionSection = analyticsData.topRegions?.length > 0 ? `
         <div class="section">
-            <h2>📍 지역별 매출</h2>
+            <h2>📍 ${t('statsPage.rptRegionSales', '지역별 매출')}</h2>
             <table>
-                <thead><tr><th>지역</th><th style="text-align:right;">매출</th><th style="text-align:right;">건수</th></tr></thead>
-                <tbody>${analyticsData.topRegions.map(r => `<tr><td>${r.name}</td><td style="text-align:right;">${fmt(r.revenue)}</td><td style="text-align:right;">${r.count}</td></tr>`).join('')}</tbody>
-            </table>
-        </div>` : '';
-
-        // Top products section
-        const productSection = analyticsData.topProducts?.length > 0 ? `
-        <div class="section">
-            <h2>🏆 상위 상품</h2>
-            <table>
-                <thead><tr><th>#</th><th>상품명</th><th style="text-align:right;">매출</th><th style="text-align:right;">수량</th></tr></thead>
-                <tbody>${analyticsData.topProducts.map((p, i) => {
-            const medals = ['🥇', '🥈', '🥉'];
-            return `<tr><td>${medals[i] || (i + 1)}</td><td>${p.name}</td><td style="text-align:right;">${fmt(p.revenue)}</td><td style="text-align:right;">${p.qty}</td></tr>`;
+                <thead><tr><th>${t('statsPage.rptRegion', '지역')}</th><th style="text-align:right;">${t('statsPage.salesLabel', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th><th style="text-align:right;">${t('statsPage.rptCount', '건수')}</th></tr></thead>
+                <tbody>${analyticsData.topRegions.map(r => {
+            const rPct = totalRevenue > 0 ? ((r.revenue / totalRevenue) * 100).toFixed(1) : '0.0';
+            return `<tr><td>${r.name}</td><td style="text-align:right;">${fmt(r.revenue)}</td><td style="text-align:right;">${rPct}%</td><td style="text-align:right;">${r.count}</td></tr>`;
         }).join('')}</tbody>
             </table>
         </div>` : '';
 
+        // ── Top Products section ──
+        const productSection = analyticsData.topProducts?.length > 0 ? `
+        <div class="section">
+            <h2>🏆 ${t('statsPage.rptTopProducts', '상위 상품')}</h2>
+            <table>
+                <thead><tr><th>#</th><th>${t('statsPage.productNameLabel', '상품명')}</th><th style="text-align:right;">${t('statsPage.salesLabel', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th><th style="text-align:right;">${t('statsPage.quantityLabel', '수량')}</th></tr></thead>
+                <tbody>${analyticsData.topProducts.map((p, i) => {
+            const medals = ['🥇', '🥈', '🥉'];
+            const pPct = totalRevenue > 0 ? ((p.revenue / totalRevenue) * 100).toFixed(1) : '0.0';
+            return `<tr><td>${medals[i] || (i + 1)}</td><td>${p.name}</td><td style="text-align:right;font-weight:600;">${fmt(p.revenue)}</td><td style="text-align:right;">${pPct}%</td><td style="text-align:right;">${p.qty}</td></tr>`;
+        }).join('')}</tbody>
+            </table>
+        </div>` : '';
+
+        // ── Auto Insights (Enhanced) ──
+        const insights = [];
+        const crmGrowth = trendData.length >= 2 ? (() => { const cur = trendData[trendData.length - 1].revenue; const prev = trendData[trendData.length - 2].revenue; return prev > 0 ? parseFloat(((cur - prev) / prev * 100).toFixed(1)) : null; })() : null;
+        if (crmGrowth !== null && crmGrowth > 10) insights.push(`📈 ${t('statsPage.insightGrowth', '전월 대비 매출이 크게 성장했습니다')} (+${crmGrowth}%)`);
+        if (crmGrowth !== null && crmGrowth < -10) insights.push(`📉 ${t('statsPage.insightDecline', '전월 대비 매출이 감소했습니다')} (${crmGrowth}%)`);
+        if (parseFloat(grossMargin) > 50) insights.push(`💰 ${t('statsPage.insightHighMargin', '높은 매출총이익률을 유지하고 있습니다')} (${grossMargin}%)`);
+        if (parseFloat(grossMargin) < 20) insights.push(`⚠️ ${t('statsPage.insightLowMargin', '매출총이익률이 낮은 수준입니다')} (${grossMargin}%)`);
+        if (totalExp > 0 && totalRevenue > 0 && (totalExp / totalRevenue) > 0.3) insights.push(`🔍 ${t('statsPage.insightHighExpense', '판관비 비율이 높습니다. 비용 최적화를 검토하세요')} (${((totalExp / totalRevenue) * 100).toFixed(1)}%)`);
+        if (crmSortedChannels.length > 0) {
+            const topCh = crmSortedChannels[0];
+            const topChPct = totalRevenue > 0 ? ((topCh[1] / totalRevenue) * 100).toFixed(1) : '0';
+            if (parseFloat(topChPct) > 60) insights.push(`📡 ${t('statsPage.insightChannelConc', '채널 집중도가 높습니다')} (${topCh[0]}: ${topChPct}%)`);
+        }
+        if (rfmData?.segments?.churn_risk?.count > 0) insights.push(`🚨 ${t('statsPage.insightChurn', '이탈 위험 고객이 있습니다')} (${rfmData.segments.churn_risk.count}${t('statsPage.peopleSuffix', '명')})`);
+        if (opProfit < 0) insights.push(`❌ ${t('statsPage.insightLoss', '영업손실이 발생하고 있습니다. 수익 구조 개선이 필요합니다.')}`);
+        // Enhanced insights
+        if (trendData.length >= 2) {
+            const curExp = trendData[trendData.length - 1].expense;
+            const prevExp = trendData[trendData.length - 2].expense;
+            if (prevExp > 0) {
+                const expGrowth = ((curExp - prevExp) / prevExp * 100).toFixed(1);
+                if (parseFloat(expGrowth) > 20) insights.push(`💸 ${t('statsPage.insightExpIncrease', '지출이 전월 대비 크게 증가했습니다')} (+${expGrowth}%)`);
+            }
+        }
+        if (ebt < 0 && totalRevenue > 0) insights.push(`🔻 ${t('statsPage.insightNetLoss', '세전 순손실이 발생하고 있습니다. 비용 구조 점검이 시급합니다.')}`);
+
+        const insightsSection = insights.length > 0 ? `
+        <div class="section" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;">
+            <h2>💡 ${t('statsPage.rptInsights', 'AI 인사이트')}</h2>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                ${insights.map(i => `<div style="background:rgba(255,255,255,0.7);padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;">${i}</div>`).join('')}
+            </div>
+        </div>` : '';
+
         const printHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>CRM Report - ${reportDate}</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#1f2937;padding:32px;max-width:900px;margin:auto}
-.header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #6366f1}
-.header h1{font-size:22px;font-weight:900;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.header .subtitle{font-size:11px;color:#6b7280;margin-top:4px}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.kpi-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center}
-.kpi-label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:4px}
-.kpi-value{font-size:18px;font-weight:900;color:#1f2937}
-.kpi-value.green{color:#059669} .kpi-value.red{color:#dc2626} .kpi-value.blue{color:#2563eb} .kpi-value.violet{color:#7c3aed}
-.section{background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:16px}
-.section h2{font-size:14px;font-weight:800;color:#374151;margin-bottom:12px}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1f2937;max-width:900px;margin:auto;font-size:11px;line-height:1.5}
+.report-header{background:linear-gradient(135deg,#4f46e5,#7c3aed,#6d28d9);color:white;padding:32px 40px;position:relative;overflow:hidden}
+.report-header::after{content:'';position:absolute;top:-50%;right:-10%;width:300px;height:300px;background:rgba(255,255,255,0.06);border-radius:50%}
+.brand-name{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:2px}
+.brand-sub{font-size:10px;opacity:0.7;letter-spacing:2px;text-transform:uppercase;font-weight:500}
+.report-title{font-size:16px;font-weight:700;margin-top:16px}
+.report-meta{display:flex;gap:20px;margin-top:8px;font-size:10px;opacity:0.85}
+.content{padding:30px 40px}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+.kpi-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;text-align:center}
+.kpi-label{font-size:9px;font-weight:600;text-transform:uppercase;color:#6b7280;letter-spacing:0.5px;margin-bottom:5px}
+.kpi-value{font-size:16px;font-weight:800}
+.kpi-value.green{color:#059669} .kpi-value.red{color:#dc2626} .kpi-value.blue{color:#2563eb} .kpi-value.violet{color:#7c3aed} .kpi-value.amber{color:#d97706} .kpi-value.cyan{color:#0891b2}
+.section{margin-bottom:20px;break-inside:avoid}
+.section h2{font-size:13px;font-weight:700;color:#1f2937;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e5e7eb}
 .section h3{font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px}
 table{width:100%;border-collapse:collapse;font-size:11px}
-th{background:#e5e7eb;padding:6px 8px;text-align:left;font-weight:700;font-size:10px;color:#374151}
-td{padding:6px 8px;border-bottom:1px solid #f3f4f6}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.report-footer{margin-top:32px;padding-top:16px;border-top:2px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af}
-.footer-brand{font-weight:800;color:#6366f1}
-@media print{body{padding:16px}}
+th{background:#f3f4f6;padding:7px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e5e7eb}
+td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
+tr:last-child td{border-bottom:none}
+.total-row td{font-weight:700;border-top:2px solid #d1d5db;border-bottom:none;padding-top:8px}
+.subtotal-row td{font-weight:600;background:#f9fafb}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.report-footer{border-top:1px solid #e5e7eb;padding:16px 40px;display:flex;justify-content:space-between;align-items:center;color:#9ca3af;font-size:9px}
+.footer-brand{font-weight:700;color:#6b7280}
+.confidential{background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:8px;text-transform:uppercase;letter-spacing:0.5px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0;size:A4}}
 </style></head><body>
-<div class="header">
-    <h1>📊 CRM 종합 분석 보고서</h1>
-    <div class="subtitle">SpaceMatch · ${reportDate} · ${selectedCountry}</div>
+
+<!-- Header -->
+<div class="report-header">
+    <div class="brand-name">SpaceMatch</div>
+    <div class="brand-sub">CRM Analytics Platform</div>
+    <div class="report-title">📊 CRM ${t('statsPage.rptMainTitle', '종합 분석 보고서')}</div>
+    <div class="report-meta">
+        <span>📅 ${reportDate}</span>
+        <span>🌍 ${selectedCountry}</span>
+        <span>📈 ${filteredSales.length} ${t('statsPage.records', '건')}</span>
+    </div>
 </div>
 
-<div class="kpi-grid">
-    <div class="kpi-card"><div class="kpi-label">총 매출</div><div class="kpi-value green">${fmt(totalRevenue)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">매출총이익률</div><div class="kpi-value blue">${grossMargin}%</div></div>
-    <div class="kpi-card"><div class="kpi-label">전월 대비</div><div class="kpi-value ${analyticsData.growth >= 0 ? 'green' : 'red'}">${analyticsData.growth !== null ? `${analyticsData.growth > 0 ? '+' : ''}${analyticsData.growth}%` : '-'}</div></div>
-    <div class="kpi-card"><div class="kpi-label">평균 주문가</div><div class="kpi-value violet">${fmt(analyticsData.avgOrderValue || 0)}</div></div>
+<div class="content">
+
+    <!-- Executive Summary KPIs — 8 cards -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.totalSales', '총 매출')}</div><div class="kpi-value green">${fmt(totalRevenue)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.rptGrossMargin', '매출총이익률')}</div><div class="kpi-value blue">${grossMargin}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.rptMoM', '전월 대비')}</div><div class="kpi-value ${crmGrowth !== null && crmGrowth >= 0 ? 'green' : 'red'}">${crmGrowth !== null ? `${crmGrowth > 0 ? '+' : ''}${crmGrowth}%` : '-'}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.plOperatingMargin', '영업이익률')}</div><div class="kpi-value ${parseFloat(opMargin) >= 0 ? 'blue' : 'red'}">${opMargin}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.rptAvgOrder', '평균 주문가')}</div><div class="kpi-value violet">${(() => { const totalTx = filteredSales.reduce((s, r) => s + (parseInt(r.transaction_count) || 0), 0); return totalTx > 0 ? fmt(Math.round(totalRevenue / totalTx)) : '-'; })()}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.rptTotalCustomers', '총 고객 수')}</div><div class="kpi-value cyan">${fmt(filteredSales.reduce((s, r) => s + (parseInt(r.customer_count) || 0), 0))}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.rptTotalExpense', '총 지출')}</div><div class="kpi-value red">${fmt(totalExp)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.rptNetProfit', '순이익')}</div><div class="kpi-value ${ebt >= 0 ? 'green' : 'red'}">${fmt(ebt)}</div></div>
+    </div>
+
+    <!-- AI Insights -->
+    ${insightsSection}
+
+    <!-- Detailed P&L Statement (7-step) -->
+    <div class="section">
+        <h2>📋 ${t('statsPage.plStatement', '손익계산서')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Profit & Loss</span></h2>
+        <table>
+            <thead><tr><th style="width:55%;">${t('statsPage.plItem', '계정과목')}</th><th style="text-align:right;width:30%;">${t('statsPage.plAmount', '금액')}</th><th style="text-align:right;width:15%;">${t('statsPage.plPercent', '비율')}</th></tr></thead>
+            <tbody>
+                <tr class="subtotal-row">
+                    <td style="font-weight:700;">Ⅰ. ${t('statsPage.plRevenue', '매출액')}</td>
+                    <td style="text-align:right;color:#059669;font-weight:700;">${fmt(totalRevenue)}</td>
+                    <td style="text-align:right;color:#059669;font-weight:600;">100.0%</td>
+                </tr>
+                ${crmSortedChannels.length > 0 ? crmSortedChannels.map(([name, rev]) => {
+            const chPct = totalRevenue > 0 ? ((rev / totalRevenue) * 100).toFixed(1) : '0.0';
+            return `<tr><td class="indent" style="color:#6b7280;font-size:10px;padding-left:24px;">└ ${name}</td><td style="text-align:right;font-size:10px;color:#6b7280;">${fmt(rev)}</td><td style="text-align:right;font-size:10px;color:#6b7280;">${chPct}%</td></tr>`;
+        }).join('') : ''}
+
+                <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                <tr>
+                    <td style="font-weight:600;">Ⅱ. ${t('statsPage.plCost', '매출원가')}</td>
+                    <td style="text-align:right;" class="negative">(${fmt(totalCost)})</td>
+                    <td style="text-align:right;color:#dc2626;">${totalRevenue > 0 ? ((totalCost / totalRevenue) * 100).toFixed(1) : '0.0'}%</td>
+                </tr>
+
+                <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                <tr class="subtotal-row" style="background:#ecfdf5;">
+                    <td style="font-weight:700;">Ⅲ. ${t('statsPage.plGrossProfit', '매출총이익')}</td>
+                    <td style="text-align:right;color:${grossProfit >= 0 ? '#059669' : '#dc2626'};font-weight:700;">${fmt(grossProfit)}</td>
+                    <td style="text-align:right;font-weight:600;">${grossMargin}%</td>
+                </tr>
+
+                <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                <tr>
+                    <td style="font-weight:600;">Ⅳ. ${t('statsPage.plExpenses', '판매비와관리비')}</td>
+                    <td style="text-align:right;" class="negative">(${fmt(totalExp)})</td>
+                    <td style="text-align:right;color:#dc2626;">${totalRevenue > 0 ? ((totalExp / totalRevenue) * 100).toFixed(1) : '0.0'}%</td>
+                </tr>
+                ${crmExpGroupedRows}
+
+                <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                <tr class="total-row" style="background:${opProfit >= 0 ? '#ecfdf5' : '#fef2f2'};">
+                    <td style="font-weight:800;font-size:12px;">Ⅴ. ${t('statsPage.plOperatingProfit', '영업이익')}</td>
+                    <td style="text-align:right;color:${opProfit >= 0 ? '#059669' : '#dc2626'};font-weight:800;font-size:13px;">${fmt(opProfit)}</td>
+                    <td style="text-align:right;font-weight:700;">${operatingMargin}%</td>
+                </tr>
+
+                <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                <tr>
+                    <td style="font-weight:600;">Ⅵ. ${t('statsPage.plNonOperating', '영업외수익(비용)')}</td>
+                    <td style="text-align:right;font-weight:600;">${fmt(otherIncome - otherExpense2)}</td>
+                    <td style="text-align:right;color:#9ca3af;">-</td>
+                </tr>
+
+                <tr><td colspan="3" style="padding:3px;"></td></tr>
+
+                <tr class="total-row" style="background:${ebt >= 0 ? '#eff6ff' : '#fef2f2'};border-top:3px double #1f2937;">
+                    <td style="font-weight:800;font-size:13px;">Ⅶ. ${t('statsPage.plEBT', '세전이익 (EBT)')}</td>
+                    <td style="text-align:right;color:${ebt >= 0 ? '#2563eb' : '#dc2626'};font-weight:800;font-size:14px;">${fmt(ebt)}</td>
+                    <td style="text-align:right;font-weight:700;">${totalRevenue > 0 ? ((ebt / totalRevenue) * 100).toFixed(1) : '0.0'}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Profitability Summary -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px;">
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.plGrossMargin', '매출총이익률')}</div><div class="kpi-value ${parseFloat(grossMargin) >= 0 ? 'green' : 'red'}">${grossMargin}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.plOperatingMargin', '영업이익률')}</div><div class="kpi-value ${parseFloat(operatingMargin) >= 0 ? 'blue' : 'red'}">${operatingMargin}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.plSgaRatio', '판관비율')}</div><div class="kpi-value violet">${totalRevenue > 0 ? ((totalExp / totalRevenue) * 100).toFixed(1) : '0.0'}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.plCostRatio', '원가율')}</div><div class="kpi-value red">${totalRevenue > 0 ? ((totalCost / totalRevenue) * 100).toFixed(1) : '0.0'}%</div></div>
+        <div class="kpi-card"><div class="kpi-label">${t('statsPage.plEBTMargin', '세전이익률')}</div><div class="kpi-value ${ebt >= 0 ? 'blue' : 'red'}">${totalRevenue > 0 ? ((ebt / totalRevenue) * 100).toFixed(1) : '0.0'}%</div></div>
+    </div>
+
+    <!-- Monthly Trend (with expense columns) -->
+    ${trendRows ? `
+    <div class="section">
+        <h2>📈 ${t('statsPage.analyticsTrend', '매출 트렌드')} <span style="font-size:10px;color:#9ca3af;font-weight:500;margin-left:8px;">Monthly Trend</span></h2>
+        <table>
+            <thead><tr><th>${t('statsPage.month', '월')}</th><th style="text-align:right;">${t('statsPage.plRevenue', '매출')}</th><th style="text-align:right;">${t('statsPage.plCost', '원가')}</th><th style="text-align:right;">${t('statsPage.plGrossProfit', '총이익')}</th><th style="text-align:right;">${t('statsPage.plExpenses', '판관비')}</th><th style="text-align:right;">${t('statsPage.rptNetProfit', '순이익')}</th><th style="text-align:right;">MoM</th><th style="text-align:right;">${t('statsPage.customersLabel', '고객')}</th><th style="text-align:right;">${t('statsPage.transactionsLabel', '거래')}</th></tr></thead>
+            <tbody>
+                ${trendRows}
+                <tr class="total-row" style="background:#f0fdf4;">
+                    <td style="font-weight:800;">📊 ${t('statsPage.rptTotal', '합계')}</td>
+                    <td style="text-align:right;font-weight:800;color:#059669;">${fmt(trendTotalRev)}</td>
+                    <td style="text-align:right;color:#dc2626;">${fmt(trendTotalCost)}</td>
+                    <td style="text-align:right;font-weight:800;color:${(trendTotalRev - trendTotalCost) >= 0 ? '#059669' : '#dc2626'};">${fmt(trendTotalRev - trendTotalCost)}</td>
+                    <td style="text-align:right;font-weight:700;color:#f97316;">${fmt(trendTotalExp)}</td>
+                    <td style="text-align:right;font-weight:800;color:${trendTotalNet >= 0 ? '#059669' : '#dc2626'};">${fmt(trendTotalNet)}</td>
+                    <td colspan="3"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>` : ''}
+
+    <!-- Channels & Categories -->
+    <div class="two-col">
+        ${channelRows ? `
+        <div class="section" style="margin-bottom:0;">
+            <h2>📡 ${t('statsPage.analyticsChannels', '채널별 매출')}</h2>
+            <table>
+                <thead><tr><th>${t('statsPage.channel', '채널')}</th><th style="text-align:right;">${t('statsPage.salesLabel', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th></tr></thead>
+                <tbody>${channelRows}</tbody>
+            </table>
+        </div>` : ''}
+
+        ${categoryRows ? `
+        <div class="section" style="margin-bottom:0;">
+            <h2>🏷️ ${t('statsPage.analyticsCategories', '카테고리 분석')}</h2>
+            <table>
+                <thead><tr><th>${t('statsPage.category', '카테고리')}</th><th style="text-align:right;">${t('statsPage.salesLabel', '매출')}</th><th style="text-align:right;">${t('statsPage.rptSalesShare', '비중')}</th></tr></thead>
+                <tbody>${categoryRows}</tbody>
+            </table>
+        </div>` : ''}
+    </div>
+
+    ${rfmSection}
+    ${forecastSection}
+    ${regionSection}
+    ${productSection}
+
+    <!-- Expense Sections -->
+    ${crmExpDetailSection}
+
+    <div class="two-col">
+        ${crmExpTrendSection ? `<div>${crmExpTrendSection}</div>` : ''}
+        ${crmPmSection ? `<div>${crmPmSection}</div>` : ''}
+    </div>
+
+    ${crmTop5Section}
+
 </div>
 
-${rfmSection}
-${forecastSection}
-${regionSection}
-${productSection}
-
+<!-- Footer -->
 <div class="report-footer">
-    <div><span class="footer-brand">SpaceMatch CRM</span> · 자동 생성된 종합 보고서 · ${reportDate}</div>
-    <div>CONFIDENTIAL</div>
+    <div><span class="footer-brand">SpaceMatch CRM</span> · ${t('statsPage.rptAutoGenerated', '자동 생성된 종합 보고서')} · ${reportDate}</div>
+    <div class="confidential">CONFIDENTIAL</div>
 </div>
 </body></html>`;
 
@@ -1089,6 +2190,27 @@ ${productSection}
         region_detail: '',
         satisfaction: 0,
         memo: '',
+        // Extended fields (same as Excel mapping)
+        product_name: '',
+        sku: '',
+        brand: '',
+        option_info: '',
+        quantity_sold: '',
+        cost_price: '',
+        discount_amount: '',
+        tax_amount: '',
+        shipping_cost: '',
+        refund_amount: '',
+        commission_fee: '',
+        net_revenue: '',
+        profit_amount: '',
+        payment_method: '',
+        order_number: '',
+        sales_channel: '',
+        platform: '',
+        store_name: '',
+        staff_name: '',
+        customer_name: '',
     };
 
     const [form, setForm] = useState(emptyForm);
@@ -1167,8 +2289,15 @@ ${productSection}
                     const dRows = jd.slice(hIdx + 1).filter(r => r.some(c => c !== ''));
                     setParsedHeaders(hdrs);
                     setParsedRows(dRows);
+                    // Auto-detect data type
+                    const detectedType = detectDataType(hdrs);
+                    setUploadDataType(detectedType);
                     setUploadStep('mapping');
-                    autoMapColumns(hdrs);
+                    if (detectedType === 'expense') {
+                        setColumnMapping(autoMapExpenseColumnsUpload(hdrs));
+                    } else {
+                        autoMapColumns(hdrs);
+                    }
                 } else {
                     // Multiple sheets → show sheet picker
                     setUploadStep('sheet_select');
@@ -1242,8 +2371,15 @@ ${productSection}
                 console.log('[Upload] Merged all sheets:', mergedHeaders.length, 'columns,', mergedRows.length, 'rows');
                 setParsedHeaders(mergedHeaders);
                 setParsedRows(mergedRows);
+                // Auto-detect data type and apply correct mapping
+                const detectedType = detectDataType(mergedHeaders);
+                setUploadDataType(detectedType);
                 setUploadStep('mapping');
-                autoMapColumns(mergedHeaders);
+                if (detectedType === 'expense') {
+                    setColumnMapping(autoMapExpenseColumnsUpload(mergedHeaders));
+                } else {
+                    autoMapColumns(mergedHeaders);
+                }
             } else {
                 showToast(t('statsPage.uploadNoData', '데이터가 없습니다.'), 'error');
             }
@@ -1257,8 +2393,15 @@ ${productSection}
             console.log('[Upload] Selected sheet:', mode, headers.length, 'columns,', dataRows.length, 'rows');
             setParsedHeaders(headers);
             setParsedRows(dataRows);
+            // Auto-detect data type
+            const detectedType = detectDataType(headers);
+            setUploadDataType(detectedType);
             setUploadStep('mapping');
-            autoMapColumns(headers);
+            if (detectedType === 'expense') {
+                setColumnMapping(autoMapExpenseColumnsUpload(headers));
+            } else {
+                autoMapColumns(headers);
+            }
         }
     }, [sheetInfo, loadSheetData, showToast, t]);
 
@@ -1282,6 +2425,106 @@ ${productSection}
 
     // ── Upload: Build mapped rows & import ──
     const handleImport = async () => {
+        // ═══ EXPENSE import path ═══
+        if (uploadDataType === 'expense') {
+            const mappedFields = Object.values(columnMapping);
+            if (!mappedFields.includes('expense_date')) {
+                showToast(t('statsPage.uploadNeedDate', '날짜 컬럼을 매핑해주세요.'), 'error');
+                return;
+            }
+            if (!mappedFields.includes('amount')) {
+                showToast(t('statsPage.expNeedAmount', '금액 컬럼을 매핑해주세요.'), 'error');
+                return;
+            }
+
+            // Build expense rows
+            const rows = parsedRows.map(row => {
+                const mapped = {};
+                Object.entries(columnMapping).forEach(([colIdx, field]) => {
+                    if (field) {
+                        let val = row[parseInt(colIdx)];
+                        if (val instanceof Date) val = val.toISOString().slice(0, 10);
+                        mapped[field] = val ?? '';
+                    }
+                });
+                return mapped;
+            }).filter(r => r.expense_date);
+
+            if (rows.length === 0) {
+                showToast(t('statsPage.uploadNoValid', '유효한 데이터가 없습니다.'), 'error');
+                return;
+            }
+
+            setImporting(true);
+            setUploadStep('importing');
+
+            let inserted = 0, skipped = 0, errors = [];
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i];
+                try {
+                    // Parse date
+                    let dateStr = String(r.expense_date).trim();
+                    if (typeof r.expense_date === 'number') {
+                        const d = new Date((r.expense_date - 25569) * 86400 * 1000);
+                        dateStr = d.toISOString().slice(0, 10);
+                    } else {
+                        const d = new Date(dateStr.replace(/\//g, '-'));
+                        if (!isNaN(d.getTime())) dateStr = d.toISOString().slice(0, 10);
+                    }
+                    const amount = parseInt(String(r.amount || '0').replace(/[^0-9-]/g, '')) || 0;
+                    if (amount <= 0) { skipped++; continue; }
+
+                    // Auto-classify category from expense_class, expense_item, or category text
+                    let category = 'other';
+                    const classifyText = (val) => {
+                        if (!val) return 'other';
+                        const vl = String(val).toLowerCase().trim();
+                        // Exact match on EXPENSE_CATEGORIES key or label
+                        const exactCat = EXPENSE_CATEGORIES.find(c => c.key === vl || getExpenseCatLabel(c.key).toLowerCase() === vl);
+                        if (exactCat) return exactCat.key;
+                        // Keyword-based match
+                        for (const [catKey, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+                            if (keywords.some(kw => vl.includes(kw.toLowerCase()))) return catKey;
+                        }
+                        return 'other';
+                    };
+                    // Try category field first, then expense_class, then expense_item
+                    if (r.category) category = classifyText(r.category);
+                    if (category === 'other' && r.expense_class) category = classifyText(r.expense_class);
+                    if (category === 'other' && r.expense_item) category = classifyText(r.expense_item);
+
+                    // Auto-classify payment method
+                    let payment = 'other';
+                    if (r.payment_method) {
+                        const pv = String(r.payment_method).toLowerCase().trim();
+                        if (/현금|cash/i.test(pv)) payment = 'cash';
+                        else if (/카드|card|신용|체크/i.test(pv)) payment = 'card';
+                        else if (/이체|transfer|송금|계좌|banking/i.test(pv)) payment = 'transfer';
+                    }
+                    const memo = r.memo || '';
+
+                    await handleSaveExpense({
+                        id: 0,
+                        expense_date: dateStr,
+                        amount,
+                        category,
+                        payment_method: payment,
+                        memo,
+                    }, true);
+                    inserted++;
+                } catch (err) {
+                    errors.push({ row: i + 1, error: err.message || 'Unknown error' });
+                }
+            }
+
+            setImportResult({ inserted, skipped, total: rows.length, errors });
+            setUploadStep('done');
+            setImporting(false);
+            fetchExpenses();
+            return;
+        }
+
+        // ═══ SALES import path (original) ═══
         // Validate: at least date and revenue mapped
         const mappedFields = Object.values(columnMapping);
         if (!mappedFields.includes('record_date')) {
@@ -1451,6 +2694,37 @@ ${productSection}
         });
     };
 
+    const handleBulkUndoBatches = () => {
+        if (selectedBatchIds.size === 0) return;
+        const totalRecords = importHistory.filter(b => selectedBatchIds.has(b.import_batch_id)).reduce((s, b) => s + parseInt(b.record_count || 0), 0);
+        setConfirmModal({
+            title: t('statsPage.bulkUndoTitle', `${selectedBatchIds.size}개 임포트 이력 삭제`),
+            message: t('statsPage.bulkUndoMsg', `선택한 ${selectedBatchIds.size}개 임포트의 모든 데이터(${totalRecords}건)를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`),
+            type: 'danger',
+            confirmLabel: t('statsPage.deleteCount', `${totalRecords}건 삭제`),
+            onConfirm: async () => {
+                setConfirmModal(null);
+                try {
+                    const fd = new FormData();
+                    fd.append('action', 'bulk_undo_batches');
+                    fd.append('batch_ids', [...selectedBatchIds].join(','));
+                    const res = await fetch(`${API_BASE}/seller_upload.php`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: fd,
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || t('statsPage.deleteSuccess', `${data.deleted}건 삭제 완료`), 'success');
+                        setSelectedBatchIds(new Set());
+                        fetchImportHistory();
+                        fetchStats();
+                    } else showToast(data.message, 'error');
+                } catch { showToast(t('statsPage.serverError'), 'error'); }
+            }
+        });
+    };
+
     // Reset upload state
     const resetUpload = () => {
         setUploadStep('select');
@@ -1459,6 +2733,7 @@ ${productSection}
         setParsedRows([]);
         setColumnMapping({});
         setImportResult(null);
+        setUploadDataType('sales');
         workbookRef.current = null;
         setSheetInfo([]);
     };
@@ -1581,7 +2856,31 @@ ${productSection}
             setAnalyticsData(null);
             return;
         }
-        // Monthly revenue trend (last 12 months)
+        // ── Filter by dashboardYear for KPI cards (except monthlyTrend which stays as last 12) ──
+        const yearStr = String(dashboardYear);
+        const prevYearStr = String(dashboardYear - 1);
+        const yearStats = dashboardYear ? allStats.filter(s => (s.record_date || '').startsWith(yearStr)) : allStats;
+        const prevYearStats = dashboardYear ? allStats.filter(s => (s.record_date || '').startsWith(prevYearStr)) : [];
+
+        // Use yearStats for KPI calculations
+        let totalRevenue = 0, totalCost = 0, totalTx = 0, totalQty = 0;
+        let totalCustomers = 0;
+        yearStats.forEach(s => {
+            const rev = parseInt(s.monthly_revenue || 0);
+            totalRevenue += rev;
+            totalCost += parseInt(s.cost_price || 0);
+            totalTx += parseInt(s.transaction_count || 0);
+            totalQty += parseInt(s.quantity_sold || 0);
+            totalCustomers += parseInt(s.customer_count || 0);
+        });
+
+        // Previous year totals for YoY growth
+        let prevYearRevenue = 0;
+        prevYearStats.forEach(s => {
+            prevYearRevenue += parseInt(s.monthly_revenue || 0);
+        });
+
+        // Monthly maps (full data for trend/chart)
         const monthlyMap = {};
         const channelMap = {};
         const categoryMap = {};
@@ -1589,8 +2888,6 @@ ${productSection}
         const productMap = {};
         const dayOfWeekMap = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
         const dayOfWeekCount = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-        let totalRevenue = 0, totalCost = 0, totalTx = 0, totalQty = 0;
-        let totalCustomers = 0;
 
         allStats.forEach(s => {
             const month = (s.record_date || '').substring(0, 7);
@@ -1598,23 +2895,21 @@ ${productSection}
             if (month) {
                 monthlyMap[month] = (monthlyMap[month] || 0) + rev;
             }
+        });
+
+        // Channel/category/region/product/dayOfWeek — from yearStats only
+        yearStats.forEach(s => {
+            const rev = parseInt(s.monthly_revenue || 0);
             const ch = s.sales_channel || s.source || 'manual';
             channelMap[ch] = (channelMap[ch] || 0) + rev;
             const cat = s.best_selling_item || 'N/A';
             categoryMap[cat] = (categoryMap[cat] || 0) + rev;
-            totalRevenue += rev;
-            totalCost += parseInt(s.cost_price || 0);
-            totalTx += parseInt(s.transaction_count || 0);
-            totalQty += parseInt(s.quantity_sold || 0);
-            totalCustomers += parseInt(s.customer_count || 0);
 
-            // Region analysis
             const rg = s.region || 'N/A';
             if (!regionMap[rg]) regionMap[rg] = { revenue: 0, count: 0 };
             regionMap[rg].revenue += rev;
             regionMap[rg].count += 1;
 
-            // Product analysis
             const pn = s.product_name || '';
             if (pn) {
                 if (!productMap[pn]) productMap[pn] = { revenue: 0, qty: 0, count: 0 };
@@ -1623,7 +2918,6 @@ ${productSection}
                 productMap[pn].count += 1;
             }
 
-            // Day of week pattern
             if (s.record_date) {
                 const d = new Date(s.record_date);
                 if (!isNaN(d.getTime())) {
@@ -1654,19 +2948,20 @@ ${productSection}
         }
         const maxMonthly12 = Math.max(...last12Filled.map(m => m.revenue), 1);
 
-        // Growth: compare last month to previous
+        // Growth: Year-over-Year (selected year vs previous year)
         let growth = null;
-        if (sortedMonths.length >= 2) {
-            const cur = monthlyMap[sortedMonths[sortedMonths.length - 1]] || 0;
-            const prev = monthlyMap[sortedMonths[sortedMonths.length - 2]] || 0;
-            growth = prev > 0 ? ((cur - prev) / prev * 100).toFixed(1) : null;
+        if (prevYearRevenue > 0) {
+            growth = ((totalRevenue - prevYearRevenue) / prevYearRevenue * 100).toFixed(1);
+        } else if (totalRevenue > 0) {
+            growth = '100.0'; // New year with data but no previous year
         }
 
-        // Forecast: 3-month moving average
+        // Forecast: project annual revenue from YTD data
         let forecast = null;
-        if (sortedMonths.length >= 3) {
-            const lastThree = sortedMonths.slice(-3).map(m => monthlyMap[m]);
-            forecast = Math.round(lastThree.reduce((a, b) => a + b, 0) / 3);
+        const yearMonths = dashboardYear ? sortedMonths.filter(m => m.startsWith(yearStr)) : sortedMonths;
+        if (yearMonths.length >= 1) {
+            const ytdRev = yearMonths.reduce((s, m) => s + (monthlyMap[m] || 0), 0);
+            forecast = Math.round(ytdRev / yearMonths.length * 12);
         }
 
         // Year-over-year comparison
@@ -1771,8 +3066,8 @@ ${productSection}
             : null;
 
         // Annual run rate
-        const monthsWithData = sortedMonths.filter(m => m.startsWith(thisYear.toString())).length;
-        const ytdRevenue = sortedMonths.filter(m => m.startsWith(thisYear.toString())).reduce((s, m) => s + monthlyMap[m], 0);
+        const monthsWithData = dashboardYear ? sortedMonths.filter(m => m.startsWith(yearStr)).length : sortedMonths.length;
+        const ytdRevenue = dashboardYear ? sortedMonths.filter(m => m.startsWith(yearStr)).reduce((s, m) => s + monthlyMap[m], 0) : sortedMonths.reduce((s, m) => s + monthlyMap[m], 0);
         const annualRunRate = monthsWithData > 0 ? Math.round(ytdRevenue / monthsWithData * 12) : null;
 
         setAnalyticsData({
@@ -1797,7 +3092,7 @@ ${productSection}
             ytdRevenue,
             recordCount: allStats.length,
         });
-    }, [allStats]);
+    }, [allStats, dashboardYear]);
 
     // ── RFM: Fetch RFM analysis from backend ──
     const fetchRfm = useCallback(async () => {
@@ -1831,11 +3126,11 @@ ${productSection}
 
     // ── Workflow Automation: Rule management ──
     const workflowPresets = useMemo(() => [
-        { id: 'churn_followup', name: '이탈 위험 팔로업', trigger: 'churn_risk', action: 'send_reminder', icon: '🚨', desc: '90일 이상 미구매 고객 자동 알림' },
-        { id: 'vip_promo', name: 'VIP 프로모션', trigger: 'vip_inactive', action: 'send_promo', icon: '👑', desc: 'VIP 고객 30일 미방문 시 프로모션 제안' },
-        { id: 'lead_welcome', name: '신규 리드 환영', trigger: 'new_lead', action: 'welcome_message', icon: '🎉', desc: '신규 리드 등록 7일 후 첫 구매 유도' },
-        { id: 'monthly_report', name: '월간 보고서 리마인더', trigger: 'month_end', action: 'generate_report', icon: '📊', desc: '매월 말 자동 보고서 생성 알림' },
-        { id: 'quarterly_tax', name: '분기 세금 리마인더', trigger: 'quarter_end', action: 'tax_reminder', icon: '🧾', desc: '분기 말 세금 신고 리마인더' },
+        { id: 'churn_followup', name: t('statsPage.wfChurnFollowup', '이탈 위험 팔로업'), trigger: 'churn_risk', action: 'send_reminder', icon: '🚨', desc: t('statsPage.wfChurnDesc', '90일 이상 미구매 고객 자동 알림') },
+        { id: 'vip_promo', name: t('statsPage.wfVipPromo', 'VIP 프로모션'), trigger: 'vip_inactive', action: 'send_promo', icon: '👑', desc: t('statsPage.wfVipDesc', 'VIP 고객 30일 미방문 시 프로모션 제안') },
+        { id: 'lead_welcome', name: t('statsPage.wfLeadWelcome', '신규 리드 환영'), trigger: 'new_lead', action: 'welcome_message', icon: '🎉', desc: t('statsPage.wfLeadDesc', '신규 리드 등록 7일 후 첫 구매 유도') },
+        { id: 'monthly_report', name: t('statsPage.wfMonthlyReport', '월간 보고서 리마인더'), trigger: 'month_end', action: 'generate_report', icon: '📊', desc: t('statsPage.wfMonthlyDesc', '매월 말 자동 보고서 생성 알림') },
+        { id: 'quarterly_tax', name: t('statsPage.wfQuarterlyTax', '분기 세금 리마인더'), trigger: 'quarter_end', action: 'tax_reminder', icon: '🧾', desc: t('statsPage.wfQuarterlyDesc', '분기 말 세금 신고 리마인더') },
     ], []);
 
     const addWorkflowRule = useCallback((preset) => {
@@ -1848,7 +3143,7 @@ ${productSection}
         setWorkflowRules(updated);
         localStorage.setItem('crm_workflow_rules', JSON.stringify(updated));
         // Add log entry
-        const log = { ruleId: preset.id, ruleName: preset.name, action: '규칙 활성화', timestamp: new Date().toISOString() };
+        const log = { ruleId: preset.id, ruleName: preset.name, action: t('statsPage.ruleActivated', '규칙 활성화'), timestamp: new Date().toISOString() };
         const updatedLog = [log, ...workflowLog].slice(0, 50);
         setWorkflowLog(updatedLog);
         localStorage.setItem('crm_workflow_log', JSON.stringify(updatedLog));
@@ -1873,7 +3168,7 @@ ${productSection}
         const updated = { ...integrations, [key]: !integrations[key] };
         setIntegrations(updated);
         localStorage.setItem('crm_integrations', JSON.stringify(updated));
-        showToast(updated[key] ? `${name} 연동이 활성화되었습니다` : `${name} 연동이 해제되었습니다`, updated[key] ? 'success' : 'info');
+        showToast(updated[key] ? t('statsPage.integrationEnabled', `${name} 연동이 활성화되었습니다`) : t('statsPage.integrationDisabled', `${name} 연동이 해제되었습니다`), updated[key] ? 'success' : 'info');
     }, [integrations, showToast]);
 
     // ── Format helpers ── (moved before useCallbacks that depend on it)
@@ -1904,7 +3199,7 @@ ${productSection}
             ? allStats.filter(s => s.record_type === activeTab)
             : allStats;
         if (data.length === 0) return showToast('현재 탭에 복사할 데이터가 없습니다', 'error');
-        const headers = ['날짜', '유형', '국가', '매출', '고객수', '거래수', '평균단가', '판매채널', '상품명', '수량', '인기상품', '메모'];
+        const headers = [t('statsPage.dateLabel', '날짜'), t('statsPage.typeLabel', '유형'), t('statsPage.countryLabel', '국가'), t('statsPage.salesLabel', '매출'), t('statsPage.customersLabel', '고객수'), t('statsPage.transactionsLabel', '거래수'), t('statsPage.avgPriceLabel', '평균단가'), t('statsPage.salesChannelLabel', '판매채널'), t('statsPage.productNameLabel', '상품명'), t('statsPage.quantityLabel', '수량'), t('statsPage.bestItemLabel', '인기상품'), t('statsPage.memoLabel', '메모')];
         const rows = data.map(s => [
             s.record_date || '',
             s.record_type || '',
@@ -1921,8 +3216,8 @@ ${productSection}
         ].join('\t'));
         const tsv = [headers.join('\t'), ...rows].join('\n');
         navigator.clipboard.writeText(tsv).then(() => {
-            showToast(`${data.length}건의 데이터가 복사됨 — Google Sheets에서 Ctrl+V로 붙여넣기`, 'success');
-        }).catch(() => showToast('클립보드 복사 실패', 'error'));
+            showToast(t('statsPage.dataCopied', `${data.length}건의 데이터가 복사됨`) + ' — Google Sheets에서 Ctrl+V로 붙여넣기', 'success');
+        }).catch(() => showToast(t('statsPage.clipboardFail', '클립보드 복사 실패'), 'error'));
     }, [allStats, activeTab, showToast]);
 
     // ── Integration Action: Email Report ──
@@ -1936,22 +3231,22 @@ ${productSection}
         const dateRange = allStats.length > 0
             ? `${allStats[allStats.length - 1]?.record_date || '?'} ~ ${allStats[0]?.record_date || '?'}`
             : '-';
-        const subject = encodeURIComponent(`SpaceMatch 매출 보고서 - ${new Date().toLocaleDateString()}`);
+        const subject = encodeURIComponent(`SpaceMatch ${t('statsPage.salesReport', '매출 보고서')} - ${new Date().toLocaleDateString()}`);
         const body = encodeURIComponent(
-            `📊 SpaceMatch 매출 보고서\n` +
-            `작성일: ${new Date().toLocaleDateString()}\n\n` +
+            `📊 SpaceMatch ${t('statsPage.salesReport', '매출 보고서')}\n` +
+            `${t('statsPage.reportDate', '작성일')}: ${new Date().toLocaleDateString()}\n\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `📅 조회 기간: ${dateRange}\n` +
-            `📋 총 기록 수: ${recordCount}건\n` +
-            `💰 총 매출: ${formatRevenue(totalRevenue)}\n` +
-            `👥 총 고객 수: ${totalCustomers.toLocaleString()}명\n` +
-            `🛒 총 거래 수: ${totalTransactions.toLocaleString()}건\n` +
-            `📈 평균 매출: ${formatRevenue(Math.round(totalRevenue / Math.max(recordCount, 1)))}\n` +
+            `📅 ${t('statsPage.reportPeriod', '조회 기간')}: ${dateRange}\n` +
+            `📋 ${t('statsPage.totalRecords', '총 기록 수')}: ${recordCount}${t('statsPage.countSuffix', '건')}\n` +
+            `💰 ${t('statsPage.totalSales', '총 매출')}: ${formatRevenue(totalRevenue)}\n` +
+            `👥 ${t('statsPage.totalCustomersLabel', '총 고객 수')}: ${totalCustomers.toLocaleString()}${t('statsPage.peopleSuffix', '명')}\n` +
+            `🛒 ${t('statsPage.totalTxLabel', '총 거래 수')}: ${totalTransactions.toLocaleString()}${t('statsPage.countSuffix', '건')}\n` +
+            `📈 ${t('statsPage.avgSales', '평균 매출')}: ${formatRevenue(Math.round(totalRevenue / Math.max(recordCount, 1)))}\n` +
             `━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `본 보고서는 SpaceMatch CRM에서 자동 생성되었습니다.`
+            t('statsPage.reportFooter', '본 보고서는 SpaceMatch CRM에서 자동 생성되었습니다.')
         );
         window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
-        showToast('이메일 작성 창이 열렸습니다', 'success');
+        showToast(t('statsPage.emailOpened', '이메일 작성 창이 열렸습니다'), 'success');
     }, [allStats, showToast, formatRevenue]);
 
     // Auto-trigger tax/analytics when tabs become active
@@ -1963,56 +3258,45 @@ ${productSection}
     // ── Filtered stats by period (with aggregation) ──
     const filteredStats = useMemo(() => {
         if (activeTab === 'dashboard') return allStats;
-        if (activeTab === 'daily') return allStats.filter(s => s.record_type === 'daily');
+        if (activeTab === 'sales') {
+            if (salesView === 'daily') return allStats.filter(s => s.record_type === 'daily');
+            // For monthly/annual: aggregate ALL records by period
+            const groupKey = salesView === 'monthly'
+                ? (date) => date?.slice(0, 7)    // YYYY-MM
+                : (date) => date?.slice(0, 4);   // YYYY
+            const groups = {};
+            allStats.forEach(s => {
+                const key = groupKey(s.record_date);
+                if (!key) return;
+                if (!groups[key]) {
+                    groups[key] = {
+                        record_date: salesView === 'monthly' ? `${key}-01` : `${key}-01-01`,
+                        record_type: salesView,
+                        country_code: s.country_code || 'KR',
+                        monthly_revenue: 0, customer_count: 0, transaction_count: 0,
+                        avg_unit_price: 0, best_selling_item: '', memo: '',
+                        _sources: 0, _bestItems: {},
+                    };
+                }
+                const g = groups[key];
+                g.monthly_revenue += parseInt(s.monthly_revenue) || 0;
+                g.customer_count += parseInt(s.customer_count) || 0;
+                g.transaction_count += parseInt(s.transaction_count) || 0;
+                g._sources += 1;
+                if (s.best_selling_item) {
+                    g._bestItems[s.best_selling_item] = (g._bestItems[s.best_selling_item] || 0) + 1;
+                }
+            });
+            return Object.values(groups).map(g => {
+                const bestItem = Object.entries(g._bestItems).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+                return { ...g, avg_unit_price: g.transaction_count > 0 ? Math.round(g.monthly_revenue / g.transaction_count) : 0, best_selling_item: bestItem, memo: t('statsPage.aggregatedMemo', `${g._sources}건의 데이터 집계`) };
+            }).sort((a, b) => a.record_date.localeCompare(b.record_date));
+        }
+        return allStats;
+    }, [allStats, activeTab, salesView]);
 
-        // For monthly/annual: aggregate ALL records (daily, monthly, annual) by period
-        const groupKey = activeTab === 'monthly'
-            ? (date) => date?.slice(0, 7)    // YYYY-MM
-            : (date) => date?.slice(0, 4);   // YYYY
-
-        const groups = {};
-        allStats.forEach(s => {
-            const key = groupKey(s.record_date);
-            if (!key) return;
-            if (!groups[key]) {
-                groups[key] = {
-                    record_date: activeTab === 'monthly' ? `${key}-01` : `${key}-01-01`,
-                    record_type: activeTab,
-                    country_code: s.country_code || 'KR',
-                    monthly_revenue: 0,
-                    customer_count: 0,
-                    transaction_count: 0,
-                    avg_unit_price: 0,
-                    best_selling_item: '',
-                    memo: '',
-                    _sources: 0,
-                    _bestItems: {},
-                };
-            }
-            const g = groups[key];
-            g.monthly_revenue += parseInt(s.monthly_revenue) || 0;
-            g.customer_count += parseInt(s.customer_count) || 0;
-            g.transaction_count += parseInt(s.transaction_count) || 0;
-            g._sources += 1;
-            // Track best selling items by frequency
-            if (s.best_selling_item) {
-                g._bestItems[s.best_selling_item] = (g._bestItems[s.best_selling_item] || 0) + 1;
-            }
-        });
-
-        return Object.values(groups).map(g => {
-            // Pick the most frequent best selling item
-            const bestItem = Object.entries(g._bestItems).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
-            return {
-                ...g,
-                avg_unit_price: g.transaction_count > 0 ? Math.round(g.monthly_revenue / g.transaction_count) : 0,
-                best_selling_item: bestItem,
-                memo: `${g._sources}건의 데이터 집계`,
-            };
-        }).sort((a, b) => a.record_date.localeCompare(b.record_date));
-    }, [allStats, activeTab]);
-
-    const resetForm = () => { setForm(emptyForm); setEditingRecord(null); };
+    const [showExtendedFields, setShowExtendedFields] = useState(false);
+    const resetForm = () => { setForm(emptyForm); setEditingRecord(null); setShowExtendedFields(false); };
 
     const handleOpenForm = (record = null, periodOverride = null) => {
         const period = periodOverride || (activeTab !== 'dashboard' ? activeTab : 'monthly');
@@ -2034,7 +3318,30 @@ ${productSection}
                 region_detail: record.region_detail || '',
                 satisfaction: parseInt(record.satisfaction) || 0,
                 memo: record.memo || '',
+                product_name: record.product_name || '',
+                sku: record.sku || '',
+                brand: record.brand || '',
+                option_info: record.option_info || '',
+                quantity_sold: record.quantity_sold || '',
+                cost_price: record.cost_price || '',
+                discount_amount: record.discount_amount || '',
+                tax_amount: record.tax_amount || '',
+                shipping_cost: record.shipping_cost || '',
+                refund_amount: record.refund_amount || '',
+                commission_fee: record.commission_fee || '',
+                net_revenue: record.net_revenue || '',
+                profit_amount: record.profit_amount || '',
+                payment_method: record.payment_method || '',
+                order_number: record.order_number || '',
+                sales_channel: record.sales_channel || '',
+                platform: record.platform || '',
+                store_name: record.store_name || '',
+                staff_name: record.staff_name || '',
+                customer_name: record.customer_name || '',
             });
+            // Auto-expand extended fields if any are filled
+            const hasExtended = record.product_name || record.sku || record.brand || record.cost_price || record.order_number || record.sales_channel || record.platform;
+            if (hasExtended) setShowExtendedFields(true);
         } else {
             resetForm();
             const now = new Date();
@@ -2115,6 +3422,35 @@ ${productSection}
         });
     };
 
+    const handleBulkDelete = () => {
+        if (selectedIds.size === 0) return;
+        setConfirmModal({
+            title: t('statsPage.bulkDeleteTitle', `${selectedIds.size}개 데이터 삭제`),
+            message: t('statsPage.bulkDeleteMsg', `선택한 ${selectedIds.size}개의 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`),
+            type: 'danger',
+            confirmLabel: t('statsPage.deleteCount', `${selectedIds.size}개 삭제`),
+            onConfirm: async () => {
+                setConfirmModal(null);
+                try {
+                    const res = await fetch(`${API_BASE}/${STATS_API}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ action: 'bulk_delete', ids: [...selectedIds] }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || t('statsPage.deleteSuccess', `${data.deleted}개 삭제됨`), 'success');
+                        setSelectedIds(new Set());
+                        fetchStats();
+                    } else showToast(data.message || t('statsPage.deleteFail', '삭제 실패'), 'error');
+                } catch {
+                    showToast(t('statsPage.serverError'), 'error');
+                }
+            }
+        });
+    };
+
 
     const formatDateLabel = (record) => {
         const d = record.record_date;
@@ -2132,24 +3468,33 @@ ${productSection}
 
     // ── Dashboard KPIs (from actual records — no double counting) ──
     const dashKPI = useMemo(() => {
-        const totalRevenue = allStats.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
-        const totalCustomers = allStats.reduce((sum, s) => sum + (parseInt(s.customer_count) || 0), 0);
-        const totalTransactions = allStats.reduce((sum, s) => sum + (parseInt(s.transaction_count) || 0), 0);
-        const totalCost = allStats.reduce((sum, s) => sum + (parseInt(s.cost_price) || 0), 0);
-        const totalCount = allStats.length;
+        // Filter by dashboardYear
+        const yearStr = String(dashboardYear);
+        const yearStats = dashboardYear ? allStats.filter(s => (s.record_date || '').startsWith(yearStr)) : allStats;
+        const totalRevenue = yearStats.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
+        const totalCustomers = yearStats.reduce((sum, s) => sum + (parseInt(s.customer_count) || 0), 0);
+        const totalTransactions = yearStats.reduce((sum, s) => sum + (parseInt(s.transaction_count) || 0), 0);
+        const totalCost = yearStats.reduce((sum, s) => sum + (parseInt(s.cost_price) || 0), 0);
+        const totalCount = yearStats.length;
 
         // Sparkline: recent 7-day revenue
-        const sorted = [...allStats].sort((a, b) => (a.record_date || '').localeCompare(b.record_date || ''));
+        const sorted = [...yearStats].sort((a, b) => (a.record_date || '').localeCompare(b.record_date || ''));
         const last7 = sorted.slice(-7).map(s => parseInt(s.monthly_revenue) || 0);
 
         // Monthly aggregation for trend
         const monthMap = {};
+        const monthCostMap = {};
+        const monthTxMap = {};
         sorted.forEach(s => {
             const m = (s.record_date || '').substring(0, 7);
-            if (m) monthMap[m] = (monthMap[m] || 0) + (parseInt(s.monthly_revenue) || 0);
+            if (m) {
+                monthMap[m] = (monthMap[m] || 0) + (parseInt(s.monthly_revenue) || 0);
+                monthCostMap[m] = (monthCostMap[m] || 0) + (parseInt(s.cost_price) || 0);
+                monthTxMap[m] = (monthTxMap[m] || 0) + (parseInt(s.transaction_count) || 0);
+            }
         });
         const monthKeys = Object.keys(monthMap).sort();
-        const last12Months = monthKeys.slice(-12).map(m => ({ month: m, revenue: monthMap[m] }));
+        const last12Months = monthKeys.slice(-12).map(m => ({ month: m, revenue: monthMap[m], cost: monthCostMap[m] || 0, transactions: monthTxMap[m] || 0 }));
 
         // MoM growth
         let momGrowth = null;
@@ -2177,7 +3522,7 @@ ${productSection}
         // Top channel & category
         const channelMap = {};
         const categoryMap = {};
-        allStats.forEach(s => {
+        yearStats.forEach(s => {
             const rev = parseInt(s.monthly_revenue) || 0;
             const ch = s.sales_channel || s.source || 'manual';
             channelMap[ch] = (channelMap[ch] || 0) + rev;
@@ -2200,28 +3545,48 @@ ${productSection}
             sparkline: last7, last12Months, momGrowth, wowGrowth, dailyAvg,
             bestDay, bestMonth, topChannel, topCategory, profitMargin,
         };
-    }, [allStats]);
+    }, [allStats, dashboardYear]);
 
     // ── Chart Data for filtered view (with period filter) ──
     const chartData = useMemo(() => {
         const sorted = [...filteredStats].sort((a, b) => a.record_date.localeCompare(b.record_date));
-        if (activeTab === 'daily') {
-            // Apply date range filter for daily tab (days)
+        // Helper: determine current view for chart
+        const curView = activeTab === 'sales' ? salesView : activeTab === 'customers' ? 'daily' : null;
+        if (curView === 'daily' || activeTab === 'customers') {
+            // Custom date range
+            if (customDateStart && customDateEnd) {
+                const dataMap = {};
+                sorted.filter(s => s.record_date >= customDateStart && s.record_date <= customDateEnd)
+                    .forEach(s => { dataMap[s.record_date] = (dataMap[s.record_date] || 0) + (parseInt(s.monthly_revenue) || 0); });
+                const result = [];
+                const cur = new Date(customDateStart);
+                const end = new Date(customDateEnd);
+                while (cur <= end) {
+                    const ds = cur.toISOString().slice(0, 10);
+                    result.push({ label: ds, revenue: dataMap[ds] || 0 });
+                    cur.setDate(cur.getDate() + 1);
+                }
+                return result;
+            }
             const today = new Date();
             const offsetDays = chartOffset * chartRange;
             const endDate = new Date(today);
             endDate.setDate(endDate.getDate() - offsetDays);
             const startDate = new Date(endDate);
             startDate.setDate(startDate.getDate() - chartRange + 1);
-            const startStr = startDate.toISOString().slice(0, 10);
-            const endStr = endDate.toISOString().slice(0, 10);
-            return sorted.filter(s => s.record_date >= startStr && s.record_date <= endStr).map(s => ({
-                label: s.record_date,
-                revenue: parseInt(s.monthly_revenue) || 0,
-            }));
+            const dataMap = {};
+            sorted.filter(s => s.record_date >= startDate.toISOString().slice(0, 10) && s.record_date <= endDate.toISOString().slice(0, 10))
+                .forEach(s => { dataMap[s.record_date] = (dataMap[s.record_date] || 0) + (parseInt(s.monthly_revenue) || 0); });
+            const result = [];
+            const cur = new Date(startDate);
+            while (cur <= endDate) {
+                const ds = cur.toISOString().slice(0, 10);
+                result.push({ label: ds, revenue: dataMap[ds] || 0 });
+                cur.setDate(cur.getDate() + 1);
+            }
+            return result;
         }
-        if (activeTab === 'monthly') {
-            // Apply date range filter for monthly tab (months)
+        if (curView === 'monthly') {
             const today = new Date();
             const offsetMonths = chartOffset * chartRange;
             const endDate = new Date(today.getFullYear(), today.getMonth() - offsetMonths, 1);
@@ -2231,13 +3596,9 @@ ${productSection}
             return sorted.filter(s => {
                 const ym = s.record_date?.slice(0, 7);
                 return ym >= startStr && ym <= endStr;
-            }).map(s => ({
-                label: s.record_date,
-                revenue: parseInt(s.monthly_revenue) || 0,
-            }));
+            }).map(s => ({ label: s.record_date, revenue: parseInt(s.monthly_revenue) || 0 }));
         }
-        if (activeTab === 'annual') {
-            // Apply date range filter for annual tab (years)
+        if (curView === 'annual') {
             const thisYear = new Date().getFullYear();
             const offsetYears = chartOffset * chartRange;
             const endYear = thisYear - offsetYears;
@@ -2245,32 +3606,14 @@ ${productSection}
             return sorted.filter(s => {
                 const y = parseInt(s.record_date?.slice(0, 4));
                 return y >= startYear && y <= endYear;
-            }).map(s => ({
-                label: s.record_date,
-                revenue: parseInt(s.monthly_revenue) || 0,
-            }));
-        }
-        if (activeTab === 'customers') {
-            // Apply date range filter for customers tab (days, like daily)
-            const today = new Date();
-            const offsetDays = chartOffset * chartRange;
-            const endDate = new Date(today);
-            endDate.setDate(endDate.getDate() - offsetDays);
-            const startDate = new Date(endDate);
-            startDate.setDate(startDate.getDate() - chartRange + 1);
-            const startStr = startDate.toISOString().slice(0, 10);
-            const endStr = endDate.toISOString().slice(0, 10);
-            return sorted.filter(s => s.record_date >= startStr && s.record_date <= endStr).map(s => ({
-                label: s.record_date,
-                revenue: parseInt(s.monthly_revenue) || 0,
-            }));
+            }).map(s => ({ label: s.record_date, revenue: parseInt(s.monthly_revenue) || 0 }));
         }
         // dashboard: show all
         return sorted.slice(-12).map(s => ({
             label: s.record_date,
             revenue: parseInt(s.monthly_revenue) || 0,
         }));
-    }, [filteredStats, activeTab, chartRange, chartOffset]);
+    }, [filteredStats, activeTab, salesView, chartRange, chartOffset, customDateStart, customDateEnd]);
     const maxChartVal = Math.max(...chartData.map(d => d.revenue), 1);
     const CHART_HEIGHT_PX = 140; // chart area height in pixels
 
@@ -2290,7 +3633,7 @@ ${productSection}
     }, [filteredStats, activeTab]);
 
     return (
-        <div className="max-w-6xl mx-auto pb-20">
+        <div className="max-w-6xl mx-auto pb-20 overflow-x-hidden">
             {/* ── Compact Header ── */}
             <div className="flex items-center justify-between gap-3 mb-2.5">
                 <div className="flex items-center gap-2.5">
@@ -2302,94 +3645,135 @@ ${productSection}
                         <p className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">{t('statsPage.subtitle')}</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => handleOpenForm()}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white rounded-lg font-bold text-xs hover:bg-emerald-700 active:scale-95 transition-all shadow-md shadow-emerald-200/50 dark:shadow-emerald-900/30"
-                >
-                    <Plus size={14} />
-                    <span className="hidden sm:inline">{t('statsPage.addData')}</span>
-                    <span className="sm:hidden">추가</span>
-                </button>
-            </div>
-
-            {/* ── Compact Tab Bar ── */}
-            <div className="flex gap-1 mb-5 overflow-x-auto pb-0.5 scrollbar-none">
-                {PERIOD_TABS.map(tab => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.key;
-                    const count = tab.key === 'dashboard'
-                        ? allStats.length
-                        : ['daily', 'monthly', 'annual'].includes(tab.key)
-                            ? allStats.filter(s => s.record_type === tab.key).length
-                            : 0;
-                    return (
-                        <button
-                            key={tab.key}
-                            onClick={() => {
-                                setActiveTab(tab.key);
-                                setChartOffset(0);
-                                if (tab.key === 'daily' || tab.key === 'customers') setChartRange(14);
-                                else if (tab.key === 'monthly') setChartRange(6);
-                                else if (tab.key === 'annual') setChartRange(5);
-                            }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${isActive
-                                ? 'text-white border-transparent shadow-sm'
-                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-800'
-                                }`}
-                            style={isActive ? { background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.dark})` } : {}}
-                        >
-                            <Icon size={13} />
-                            {tab.label}
-                            {count > 0 && (
-                                <span className={`text-[9px] min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full font-bold ${isActive ? 'bg-white/25' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                                    {count}
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* ── Country Filter (Dropdown) ── */}
-            <div className="relative mb-5" ref={countryPickerRef}>
-                <button
-                    onClick={() => setShowCountryPicker(!showCountryPicker)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all"
-                >
-                    <span className="text-base">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🏳️'}</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.name || selectedCountry}</span>
-                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${showCountryPicker ? 'rotate-180' : ''}`} />
-                </button>
-                {showCountryPicker && (
-                    <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowCountryPicker(false)} />
-                        <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-2 min-w-[220px] animate-in fade-in slide-in-from-top-2">
-                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 py-1.5 mb-1">{t('statsPage.selectCountry', '국가 선택')}</p>
-                            {HOST_COUNTRIES.map(c => (
-                                <button
-                                    key={c.code}
-                                    onClick={() => {
-                                        if (selectedCountry !== c.code) {
-                                            setSelectedCountry(c.code);
-                                            setLoading(true);
-                                        }
-                                        setShowCountryPicker(false);
-                                    }}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${selectedCountry === c.code
-                                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                                        }`}
-                                >
-                                    <span className="text-lg">{c.flag}</span>
-                                    <span className="flex-1 text-left">{c.name}</span>
-                                    {selectedCountry === c.code && (
-                                        <CheckCircle size={16} className="text-emerald-500" />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </>
+                {activeTab !== 'upload' && (
+                    <button
+                        onClick={() => {
+                            if (activeTab === 'expense') {
+                                setEditingExpense(null);
+                                setShowExpenseForm(true);
+                            } else {
+                                handleOpenForm();
+                            }
+                        }}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 ${activeTab === 'expense' ? 'bg-violet-600 hover:bg-violet-700 shadow-violet-200/50 dark:shadow-violet-900/30' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200/50 dark:shadow-emerald-900/30'} text-white rounded-lg font-bold text-xs active:scale-95 transition-all shadow-md`}
+                    >
+                        <Plus size={14} />
+                        <span className="hidden sm:inline">{activeTab === 'expense' ? t('statsPage.expAdd', '지출 추가') : t('statsPage.addData')}</span>
+                        <span className="sm:hidden">{t('statsPage.add', '추가')}</span>
+                    </button>
                 )}
+            </div>
+
+            {/* ── Tab & Country Pickers (side by side) ── */}
+            <div className="flex items-center gap-3 mb-5 flex-wrap">
+                {/* Tab Picker */}
+                <div className="relative" ref={tabPickerRef}>
+                    <button
+                        onClick={() => setShowTabPicker(!showTabPicker)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all"
+                    >
+                        {(() => {
+                            const currentTab = PERIOD_TABS.find(t2 => t2.key === activeTab);
+                            const CurIcon = currentTab?.icon || BarChart3;
+                            return (
+                                <>
+                                    <CurIcon size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{currentTab?.label || 'Dashboard'}</span>
+                                </>
+                            );
+                        })()}
+                        <ChevronDown size={14} className={`text-gray-400 transition-transform ${showTabPicker ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showTabPicker && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowTabPicker(false)} />
+                            <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-2 min-w-[220px] animate-in fade-in slide-in-from-top-2">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 py-1.5 mb-1">{t('statsPage.selectTab', '페이지 선택')}</p>
+                                {PERIOD_TABS.map(tab => {
+                                    const Icon = tab.icon;
+                                    const isActive = activeTab === tab.key;
+                                    const count = tab.key === 'dashboard'
+                                        ? allStats.length
+                                        : tab.key === 'sales'
+                                            ? allStats.filter(s => s.record_type === 'daily').length
+                                            : 0;
+                                    return (
+                                        <button
+                                            key={tab.key}
+                                            onClick={() => {
+                                                setRecordsPage(1);
+                                                startTransition(() => {
+                                                    setActiveTab(tab.key);
+                                                    setChartOffset(0);
+                                                    if (tab.key === 'sales') {
+                                                        setSalesView('daily');
+                                                        setSalesChartRange(14);
+                                                        setSalesChartOffset(0);
+                                                    }
+                                                    if (tab.key === 'customers') setChartRange(14);
+                                                });
+                                                setShowTabPicker(false);
+                                            }}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${isActive
+                                                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                                }`}
+                                        >
+                                            <Icon size={16} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'} />
+                                            <span className="flex-1 text-left">{tab.label}</span>
+
+                                            {isActive && (
+                                                <CheckCircle size={16} className="text-emerald-500" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Country Picker */}
+                <div className="relative" ref={countryPickerRef}>
+                    <button
+                        onClick={() => setShowCountryPicker(!showCountryPicker)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all"
+                    >
+                        <span className="text-base">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🏳️'}</span>
+                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.name || selectedCountry}</span>
+                        <ChevronDown size={14} className={`text-gray-400 transition-transform ${showCountryPicker ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showCountryPicker && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowCountryPicker(false)} />
+                            <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-2 min-w-[220px] animate-in fade-in slide-in-from-top-2">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 py-1.5 mb-1">{t('statsPage.selectCountry', '국가 선택')}</p>
+                                {HOST_COUNTRIES.map(c => (
+                                    <button
+                                        key={c.code}
+                                        onClick={() => {
+                                            if (selectedCountry !== c.code) {
+                                                setSelectedCountry(c.code);
+                                                setLoading(true);
+                                            }
+                                            setShowCountryPicker(false);
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${selectedCountry === c.code
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                            }`}
+                                    >
+                                        <span className="text-lg">{c.flag}</span>
+                                        <span className="flex-1 text-left">{c.name}</span>
+                                        {selectedCountry === c.code && (
+                                            <CheckCircle size={16} className="text-emerald-500" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             {loading ? (
@@ -2400,7 +3784,26 @@ ${productSection}
                 <>
                     {/* ════ DASHBOARD TAB ════ */}
                     {activeTab === 'dashboard' && (
-                        <div className="max-w-7xl mx-auto space-y-4 px-1">
+                        <div className="max-w-7xl mx-auto space-y-5 px-1">
+                            {/* Year Navigator */}
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => setDashboardYear(y => (y || new Date().getFullYear()) - 1)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+                                    <ChevronDown size={16} className="rotate-90" />
+                                </button>
+                                <span className="text-sm font-extrabold text-gray-900 dark:text-white min-w-[80px] text-center">
+                                    {dashboardYear ? `${dashboardYear}${t('statsPage.year', '년')}` : t('statsPage.allYears', '전체')}
+                                </span>
+                                <button onClick={() => setDashboardYear(y => !y ? null : y >= new Date().getFullYear() ? null : y + 1)}
+                                    disabled={!dashboardYear}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${!dashboardYear ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                                    <ChevronDown size={16} className="-rotate-90" />
+                                </button>
+                                <button onClick={() => setDashboardYear(prev => prev === null ? new Date().getFullYear() : null)}
+                                    className={`ml-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${!dashboardYear ? 'bg-indigo-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                                    {t('statsPage.allData', '전체')}
+                                </button>
+                            </div>
                             {/* Country Breakdown (compact horizontal) */}
                             {countryBreakdown.length > 1 && (
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3">
@@ -2450,7 +3853,7 @@ ${productSection}
                                         icon: <FileText size={18} />,
                                         iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',
                                         iconColor: 'text-emerald-600 dark:text-emerald-400',
-                                        targetTab: 'daily',
+                                        targetTab: 'sales',
                                     },
                                     {
                                         title: t('statsPage.totalRevenue', '누적 매출'),
@@ -2485,7 +3888,7 @@ ${productSection}
                                         targetTab: 'customers',
                                     },
                                 ].map((card, idx) => (
-                                    <div key={idx} onClick={() => setActiveTab(card.targetTab)} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
+                                    <div key={idx} onClick={() => { setRecordsPage(1); startTransition(() => setActiveTab(card.targetTab)); }} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
                                         <div className="flex items-start justify-between mb-3">
                                             <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{card.title}</p>
                                             <div className={`w-8 h-8 ${card.iconBg} rounded-lg flex items-center justify-center ${card.iconColor}`}>
@@ -2642,15 +4045,19 @@ ${productSection}
                                     {(() => {
                                         // Build category breakdown data from allStats
                                         const catMap = {};
+                                        const catCountMap = {};
                                         allStats.forEach(s => {
                                             const rev = parseInt(s.monthly_revenue) || 0;
                                             const cat = s.best_selling_item || t('statsPage.uncategorized', '미분류');
                                             catMap[cat] = (catMap[cat] || 0) + rev;
+                                            catCountMap[cat] = (catCountMap[cat] || 0) + 1;
                                         });
-                                        const entries = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 4);
+                                        const entries = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
                                         const total = entries.reduce((s, e) => s + e[1], 0);
-                                        const donutColors = ['#10b981', '#14b8a6', '#f59e0b', '#8b5cf6'];
-                                        const donutBgColors = ['bg-emerald-500', 'bg-teal-500', 'bg-amber-500', 'bg-violet-500'];
+                                        const totalCategories = Object.keys(catMap).length;
+                                        const donutColors = ['#10b981', '#14b8a6', '#f59e0b', '#8b5cf6', '#ec4899'];
+                                        const donutBgColors = ['bg-emerald-500', 'bg-teal-500', 'bg-amber-500', 'bg-violet-500', 'bg-pink-500'];
+                                        const donutTextColors = ['text-emerald-600', 'text-teal-600', 'text-amber-600', 'text-violet-600', 'text-pink-600'];
 
                                         if (entries.length === 0 || total === 0) {
                                             return (
@@ -2665,49 +4072,81 @@ ${productSection}
                                         const radius = 50;
                                         const circumference = 2 * Math.PI * radius;
                                         let accumulated = 0;
+                                        const topPct = entries.length > 0 ? Math.round((entries[0][1] / total) * 100) : 0;
 
                                         return (
-                                            <div className="flex gap-4 items-center">
-                                                {/* Donut SVG */}
-                                                <div className="relative flex-shrink-0">
-                                                    <svg width="130" height="130" viewBox="0 0 130 130">
-                                                        <circle cx="65" cy="65" r={radius} fill="none" stroke="#f3f4f6" strokeWidth="16" className="dark:stroke-gray-700" />
+                                            <div>
+                                                <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
+                                                    {/* Donut SVG */}
+                                                    <div className="relative flex-shrink-0">
+                                                        <svg width="130" height="130" viewBox="0 0 130 130">
+                                                            <circle cx="65" cy="65" r={radius} fill="none" stroke="#f3f4f6" strokeWidth="16" className="dark:stroke-gray-700" />
+                                                            {entries.map((entry, i) => {
+                                                                const pct = entry[1] / total;
+                                                                const dash = pct * circumference;
+                                                                const offset = -accumulated * circumference + circumference * 0.25;
+                                                                accumulated += pct;
+                                                                return (
+                                                                    <circle key={i} cx="65" cy="65" r={radius} fill="none"
+                                                                        stroke={donutColors[i]}
+                                                                        strokeWidth="16" strokeLinecap="butt"
+                                                                        strokeDasharray={`${dash} ${circumference - dash}`}
+                                                                        strokeDashoffset={offset}
+                                                                        className="transition-all duration-700" />
+                                                                );
+                                                            })}
+                                                        </svg>
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                            <span className="text-base font-extrabold text-gray-900 dark:text-white">{formatRevenue(total)}</span>
+                                                            <span className="text-[9px] text-gray-400">{totalCategories}{t('statsPage.categoriesCount', '개 카테고리')}</span>
+                                                        </div>
+                                                    </div>
+                                                    {/* Category list with progress bars + amounts */}
+                                                    <div className="flex-1 space-y-2">
                                                         {entries.map((entry, i) => {
-                                                            const pct = entry[1] / total;
-                                                            const dash = pct * circumference;
-                                                            const offset = -accumulated * circumference + circumference * 0.25;
-                                                            accumulated += pct;
+                                                            const pct = Math.round((entry[1] / total) * 100);
+                                                            const count = catCountMap[entry[0]] || 0;
+                                                            const isTop = i === 0;
                                                             return (
-                                                                <circle key={i} cx="65" cy="65" r={radius} fill="none"
-                                                                    stroke={donutColors[i]}
-                                                                    strokeWidth="16" strokeLinecap="butt"
-                                                                    strokeDasharray={`${dash} ${circumference - dash}`}
-                                                                    strokeDashoffset={offset}
-                                                                    className="transition-all duration-700" />
+                                                                <div key={i} className={`rounded-lg p-1.5 transition-colors ${isTop ? 'bg-emerald-50/60 dark:bg-emerald-900/15' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
+                                                                    <div className="flex items-center justify-between mb-0.5">
+                                                                        <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 truncate max-w-[90px] flex items-center gap-1">
+                                                                            <span className={`w-2 h-2 rounded-full ${donutBgColors[i]} flex-shrink-0`} />
+                                                                            {entry[0]}
+                                                                            {isTop && <span className="text-[9px] text-amber-500 ml-0.5">★</span>}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-extrabold text-gray-900 dark:text-white">{pct}%</span>
+                                                                    </div>
+                                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                                                                        <div className={`${donutBgColors[i]} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between mt-0.5">
+                                                                        <span className={`text-[9px] font-bold ${donutTextColors[i]}`}>{formatRevenue(entry[1])}</span>
+                                                                        <span className="text-[9px] text-gray-400">{count}건</span>
+                                                                    </div>
+                                                                </div>
                                                             );
                                                         })}
-                                                    </svg>
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                        <span className="text-base font-extrabold text-gray-900 dark:text-white">{formatRevenue(total)}</span>
-                                                        <span className="text-[9px] text-gray-400">{dashKPI.bestMonth ? dashKPI.bestMonth.month.slice(0, 7) : ''}</span>
                                                     </div>
                                                 </div>
-                                                {/* Category list with progress bars */}
-                                                <div className="flex-1 space-y-2.5">
-                                                    {entries.map((entry, i) => {
-                                                        const pct = Math.round((entry[1] / total) * 100);
-                                                        return (
-                                                            <div key={i}>
-                                                                <div className="flex items-center justify-between mb-0.5">
-                                                                    <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 truncate max-w-[100px]">{entry[0]}</span>
-                                                                    <span className="text-sm font-extrabold text-gray-900 dark:text-white">{pct}%</span>
-                                                                </div>
-                                                                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
-                                                                    <div className={`${donutBgColors[i]} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
-                                                                </div>
+                                                {/* Analysis Summary */}
+                                                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                                    <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                                                        <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">
+                                                            <Trophy size={10} className="text-amber-500" />
+                                                            <span className="text-gray-600 dark:text-gray-400">{t('statsPage.rank1st', '1위')} <strong className="text-emerald-700 dark:text-emerald-400">{entries[0]?.[0]}</strong></span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
+                                                            <Layers size={10} className="text-blue-500" />
+                                                            <span className="text-gray-600 dark:text-gray-400">{t('statsPage.top1Share', '상위 1개가 전체')} <strong className="text-blue-700 dark:text-blue-400">{topPct}%</strong></span>
+                                                        </div>
+                                                        {entries.length > 1 && (
+                                                            <div className="flex items-center gap-1 bg-violet-50 dark:bg-violet-900/20 px-2 py-1 rounded-lg">
+                                                                <Target size={10} className="text-violet-500" />
+                                                                <span className="text-gray-600 dark:text-gray-400">{totalCategories}{t('statsPage.categoriesDistributed', '개 분포')}</span>
                                                             </div>
-                                                        );
-                                                    })}
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -2716,7 +4155,7 @@ ${productSection}
                             </div>
 
                             {/* ── Quick Action Bar ── */}
-                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 flex items-center gap-2 overflow-x-auto">
+                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 flex items-center gap-2 overflow-x-auto" style={{ touchAction: 'pan-x' }}>
                                 <button onClick={() => handleOpenForm()} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all whitespace-nowrap shadow-sm">
                                     <Plus size={13} /> {t('statsPage.addData')}
                                 </button>
@@ -2736,9 +4175,9 @@ ${productSection}
 
                             {/* ── Row 2.5: Revenue Trend (Sparkline) + Profitability Gauge ── */}
                             <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">📊 {t('statsPage.revenueTrendSection', '매출 추이 & 수익성')}</p>
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-w-0">
                                 {/* Monthly Revenue Mini Chart (with Sparkline) */}
-                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
+                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow overflow-hidden min-w-0">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="font-extrabold text-gray-900 dark:text-white text-xs flex items-center gap-2">
                                             <BarChart3 size={14} className="text-emerald-600" />
@@ -2751,7 +4190,7 @@ ${productSection}
                                         )}
                                     </div>
                                     {dashKPI.last12Months.length > 0 ? (
-                                        <div className="flex items-end gap-1.5 h-36">
+                                        <div className="flex items-end gap-1.5 h-36 overflow-hidden min-w-0">
                                             {dashKPI.last12Months.map((m, i) => {
                                                 const mx = Math.max(...dashKPI.last12Months.map(x => x.revenue), 1);
                                                 const pct = m.revenue / mx;
@@ -2829,24 +4268,234 @@ ${productSection}
                                 </div>
                             </div>
 
+                            {/* ── Row 2.7: XY Line Chart (Revenue & Cost Trend) ── */}
+                            {dashKPI.last12Months.length > 0 && (
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow overflow-hidden min-w-0">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-extrabold text-gray-900 dark:text-white text-xs flex items-center gap-2">
+                                            <TrendingUp size={14} className="text-blue-600" />
+                                            {t('statsPage.xyChartTitle', '매출 · 원가 추이 (선 그래프)')}
+                                        </h3>
+                                        {/* Legend */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-4 h-[3px] bg-emerald-500 rounded-full" />
+                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">{t('statsPage.plRevenue', '매출')}</span>
+                                            </div>
+                                            {dashKPI.last12Months.some(d => d.cost > 0) && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-4 h-[3px] bg-red-400 rounded-full opacity-60" />
+                                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">{t('statsPage.plCost', '원가')}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {(() => {
+                                        const data = dashKPI.last12Months;
+                                        const hasCost = data.some(d => d.cost > 0);
+                                        const maxVal = Math.max(...data.map(d => Math.max(d.revenue, d.cost || 0)), 1) * 1.1; // 10% headroom
+                                        const W = 700;
+                                        const H = 300;
+                                        const padL = 70;  // left pad for Y labels
+                                        const padR = 15;
+                                        const padT = 15;
+                                        const padB = 30; // bottom pad for X labels
+                                        const chartW = W - padL - padR;
+                                        const chartH = H - padT - padB;
+                                        const n = data.length;
+                                        const step = n > 1 ? chartW / (n - 1) : 0;
+
+                                        const toX = (i) => padL + i * step;
+                                        const toY = (val) => padT + chartH - (val / maxVal) * chartH;
+
+                                        // Smooth cubic bezier path
+                                        const smoothPath = (pts) => {
+                                            if (pts.length < 2) return `M${pts[0][0]},${pts[0][1]}`;
+                                            let d = `M${pts[0][0]},${pts[0][1]}`;
+                                            for (let i = 0; i < pts.length - 1; i++) {
+                                                const cpx = (pts[i][0] + pts[i + 1][0]) / 2;
+                                                d += ` C${cpx},${pts[i][1]} ${cpx},${pts[i + 1][1]} ${pts[i + 1][0]},${pts[i + 1][1]}`;
+                                            }
+                                            return d;
+                                        };
+
+                                        const revPts = data.map((d, i) => [toX(i), toY(d.revenue)]);
+                                        const costPts = data.map((d, i) => [toX(i), toY(d.cost || 0)]);
+
+                                        const revenuePath = smoothPath(revPts);
+                                        const costPathD = smoothPath(costPts);
+
+                                        // Area under revenue
+                                        const revenueArea = revenuePath + ` L${revPts[revPts.length - 1][0]},${padT + chartH} L${revPts[0][0]},${padT + chartH} Z`;
+
+                                        // Y gridlines + labels
+                                        const yTicks = 5;
+                                        const yGrid = Array.from({ length: yTicks + 1 }, (_, i) => {
+                                            const frac = i / yTicks;
+                                            const val = maxVal * frac;
+                                            const y = padT + chartH * (1 - frac);
+                                            return { y, val };
+                                        });
+
+                                        return (
+                                            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 'auto', aspectRatio: `${W}/${H}` }}>
+                                                <defs>
+                                                    <linearGradient id="revAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                                                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+                                                    </linearGradient>
+                                                </defs>
+
+                                                {/* Y grid lines + labels */}
+                                                {yGrid.map((g, i) => (
+                                                    <g key={i}>
+                                                        <line x1={padL} x2={W - padR} y1={g.y} y2={g.y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray={i === 0 ? 'none' : '3,2'} className="dark:stroke-gray-700" />
+                                                        <text x={padL - 6} y={g.y + 3} textAnchor="end" fontSize="9" fill="#9ca3af" fontWeight="500" fontFamily="system-ui">
+                                                            {g.val >= 10000 ? `${(g.val / 10000).toFixed(g.val >= 100000 ? 0 : 1)}만` : g.val >= 1000 ? `${(g.val / 1000).toFixed(0)}천` : Math.round(g.val)}
+                                                        </text>
+                                                    </g>
+                                                ))}
+
+                                                {/* Revenue area fill */}
+                                                <path d={revenueArea} fill="url(#revAreaGrad)" />
+
+                                                {/* Revenue line */}
+                                                <path d={revenuePath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+
+                                                {/* Cost line */}
+                                                {hasCost && (
+                                                    <path d={costPathD} fill="none" stroke="#ef4444" strokeWidth="1.2" strokeDasharray="5,3" strokeLinejoin="round" strokeLinecap="round" opacity="0.6" />
+                                                )}
+
+                                                {/* Revenue dots with white border */}
+                                                {data.map((d, i) => (
+                                                    <g key={`rd${i}`} className="cursor-pointer">
+                                                        <circle cx={toX(i)} cy={toY(d.revenue)} r="4" fill="white" stroke="#10b981" strokeWidth="2" />
+                                                        <circle cx={toX(i)} cy={toY(d.revenue)} r="6" fill="transparent" className="hover:fill-emerald-500/10">
+                                                            <title>{d.month.slice(5)} {t('statsPage.monthlyRevenue', '월 매출')}: {formatRevenue(d.revenue)}</title>
+                                                        </circle>
+                                                    </g>
+                                                ))}
+
+                                                {/* Cost dots */}
+                                                {hasCost && data.map((d, i) => (
+                                                    d.cost > 0 && (
+                                                        <g key={`cd${i}`} className="cursor-pointer">
+                                                            <circle cx={toX(i)} cy={toY(d.cost)} r="3" fill="white" stroke="#ef4444" strokeWidth="1.2" opacity="0.7" />
+                                                            <circle cx={toX(i)} cy={toY(d.cost)} r="5" fill="transparent">
+                                                                <title>{d.month.slice(5)} {t('statsPage.monthlyCost', '월 원가')}: {formatRevenue(d.cost)}</title>
+                                                            </circle>
+                                                        </g>
+                                                    )
+                                                ))}
+
+                                                {/* X-axis labels */}
+                                                {data.map((d, i) => (
+                                                    <text key={`xl${i}`} x={toX(i)} y={H - 10} textAnchor="middle" fontSize="9" fill="#9ca3af" fontWeight="500" fontFamily="system-ui">
+                                                        {d.month.slice(5)}월
+                                                    </text>
+                                                ))}
+                                            </svg>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+
+                            {/* ── Row 2.8: Monthly Data Table ── */}
+                            {dashKPI.last12Months.length > 0 && (
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow overflow-hidden min-w-0">
+                                    <h3 className="font-extrabold text-gray-900 dark:text-white text-xs flex items-center gap-2 mb-3">
+                                        <FileText size={14} className="text-violet-600" />
+                                        {t('statsPage.monthlyDataTable', '월별 매출 데이터 (표)')}
+                                    </h3>
+                                    <div className="overflow-x-auto" style={{ touchAction: 'pan-x' }}>
+                                        <table className="w-full text-xs min-w-[600px]">
+                                            <thead>
+                                                <tr className="border-b border-gray-100 dark:border-gray-700">
+                                                    <th className="text-left py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.month', '월')}</th>
+                                                    <th className="text-right py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.plRevenue', '매출')}</th>
+                                                    <th className="text-right py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.plCost', '원가')}</th>
+                                                    <th className="text-right py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.profit', '이익')}</th>
+                                                    <th className="text-right py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.transactionCount', '거래 건수')}</th>
+                                                    <th className="text-right py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.marginRate', '마진율')}</th>
+                                                    <th className="text-right py-2 px-2 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">{t('statsPage.momChange', '전월 대비')} ↕</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {dashKPI.last12Months.map((m, i) => {
+                                                    const profit = m.revenue - (m.cost || 0);
+                                                    const margin = m.revenue > 0 ? Math.round((profit / m.revenue) * 100) : 0;
+                                                    const prev = i > 0 ? dashKPI.last12Months[i - 1] : null;
+                                                    const mom = prev && prev.revenue > 0
+                                                        ? Math.round(((m.revenue - prev.revenue) / prev.revenue) * 100)
+                                                        : null;
+                                                    const isLast = i === dashKPI.last12Months.length - 1;
+                                                    const txCount = m.transactions || 0;
+                                                    return (
+                                                        <tr key={i} className={`border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${isLast ? 'bg-emerald-50/50 dark:bg-emerald-900/10 font-bold' : ''}`}>
+                                                            <td className="py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">{m.month.slice(2).replace('-', '.')}월</td>
+                                                            <td className="py-2 px-2 text-right font-bold text-emerald-700 dark:text-emerald-400">{formatRevenue(m.revenue)}</td>
+                                                            <td className="py-2 px-2 text-right text-red-500 dark:text-red-400">{m.cost > 0 ? formatRevenue(m.cost) : '-'}</td>
+                                                            <td className={`py-2 px-2 text-right font-bold ${profit >= 0 ? 'text-gray-800 dark:text-gray-200' : 'text-red-600'}`}>{formatRevenue(profit)}</td>
+                                                            <td className="py-2 px-2 text-right text-gray-600 dark:text-gray-400 font-medium">{txCount > 0 ? `${txCount.toLocaleString()}건` : '-'}</td>
+                                                            <td className="py-2 px-2 text-right">
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${margin >= 50 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : margin >= 20 ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                                    {margin}%
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-2 px-2 text-right">
+                                                                {mom !== null ? (
+                                                                    <span className={`text-[10px] font-bold ${mom >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                                                                        {mom >= 0 ? '▲' : '▼'}{Math.abs(mom)}%
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-gray-300 dark:text-gray-600">-</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr className="border-t-2 border-gray-200 dark:border-gray-600">
+                                                    <td className="py-2 px-2 font-extrabold text-gray-900 dark:text-white">{t('statsPage.total', '합계')}</td>
+                                                    <td className="py-2 px-2 text-right font-extrabold text-emerald-700 dark:text-emerald-400">{formatRevenue(dashKPI.last12Months.reduce((s, d) => s + d.revenue, 0))}</td>
+                                                    <td className="py-2 px-2 text-right font-bold text-red-500">{formatRevenue(dashKPI.last12Months.reduce((s, d) => s + (d.cost || 0), 0))}</td>
+                                                    <td className="py-2 px-2 text-right font-extrabold text-gray-900 dark:text-white">{formatRevenue(dashKPI.last12Months.reduce((s, d) => s + d.revenue - (d.cost || 0), 0))}</td>
+                                                    <td className="py-2 px-2 text-right font-bold text-gray-600 dark:text-gray-400">{dashKPI.last12Months.reduce((s, d) => s + (d.transactions || 0), 0).toLocaleString()}건</td>
+                                                    <td className="py-2 px-2 text-right">
+                                                        {(() => {
+                                                            const totalR = dashKPI.last12Months.reduce((s, d) => s + d.revenue, 0);
+                                                            const totalC = dashKPI.last12Months.reduce((s, d) => s + (d.cost || 0), 0);
+                                                            const avgMargin = totalR > 0 ? Math.round(((totalR - totalC) / totalR) * 100) : 0;
+                                                            return <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400">{avgMargin}%</span>;
+                                                        })()}
+                                                    </td>
+                                                    <td className="py-2 px-2" />
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                             {/* ── Quick Insights (4 cards) ── */}
-                            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">💡 {t('statsPage.quickInsightsSection', '핵심 인사이트')}</p>
+                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">💡 {t('statsPage.quickInsightsSection', '핵심 인사이트')}</p>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-white"><Trophy size={14} /></div>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.bestMonth', '최고 매출월')}</p>
+                                        <p className="text-[11px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.bestMonth', '최고 매출월')}</p>
                                     </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.bestMonth ? dashKPI.bestMonth.month.slice(0, 7) : '-'}</p>
                                     {dashKPI.bestMonth && (
                                         <>
-                                            <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.bestMonth.revenue)}</p>
+                                            <p className="text-[11px] text-emerald-600 font-bold">{formatRevenue(dashKPI.bestMonth.revenue)}</p>
                                             {dashKPI.totalRevenue > 0 && (
                                                 <div className="mt-1.5">
                                                     <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
                                                         <div className="bg-amber-400 h-1 rounded-full" style={{ width: `${Math.min(100, (dashKPI.bestMonth.revenue / dashKPI.totalRevenue * 100))}%` }} />
                                                     </div>
-                                                    <p className="text-[8px] text-gray-400 mt-0.5">{t('statsPage.shareOfTotal', '전체 대비')} {(dashKPI.bestMonth.revenue / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
+                                                    <p className="text-[11px] text-gray-400 mt-0.5">{t('statsPage.shareOfTotal', '전체 대비')} {(dashKPI.bestMonth.revenue / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
                                                 </div>
                                             )}
                                         </>
@@ -2855,18 +4504,18 @@ ${productSection}
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white"><ShoppingCart size={14} /></div>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
+                                        <p className="text-[11px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.analyticsAvgOrder', '평균 주문가')}</p>
                                     </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white">{dashKPI.totalTransactions > 0 ? formatRevenue(Math.round(dashKPI.totalRevenue / dashKPI.totalTransactions)) : '-'}</p>
                                     {dashKPI.totalTransactions > 0 && (
                                         <div className="mt-1.5 grid grid-cols-2 gap-1">
                                             <div className="bg-blue-50 dark:bg-blue-900/20 rounded px-1.5 py-0.5">
-                                                <p className="text-[8px] text-blue-500 font-bold">{t('statsPage.totalSales', '총매출')}</p>
-                                                <p className="text-[9px] font-extrabold text-gray-700 dark:text-gray-300">{formatRevenue(dashKPI.totalRevenue)}</p>
+                                                <p className="text-[11px] text-blue-500 font-bold">{t('statsPage.totalSales', '총매출')}</p>
+                                                <p className="text-xs font-extrabold text-gray-700 dark:text-gray-300">{formatRevenue(dashKPI.totalRevenue)}</p>
                                             </div>
                                             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded px-1.5 py-0.5">
-                                                <p className="text-[8px] text-indigo-500 font-bold">{t('statsPage.orderCount', '주문수')}</p>
-                                                <p className="text-[9px] font-extrabold text-gray-700 dark:text-gray-300">{dashKPI.totalTransactions.toLocaleString()}</p>
+                                                <p className="text-[11px] text-indigo-500 font-bold">{t('statsPage.orderCount', '주문수')}</p>
+                                                <p className="text-xs font-extrabold text-gray-700 dark:text-gray-300">{dashKPI.totalTransactions.toLocaleString()}</p>
                                             </div>
                                         </div>
                                     )}
@@ -2874,18 +4523,18 @@ ${productSection}
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white"><TrendingUp size={14} /></div>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.topChannel', '주요 채널')}</p>
+                                        <p className="text-[11px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.topChannel', '주요 채널')}</p>
                                     </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topChannel ? dashKPI.topChannel[0] : '-'}</p>
                                     {dashKPI.topChannel && (
                                         <>
-                                            <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topChannel[1])}</p>
+                                            <p className="text-[11px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topChannel[1])}</p>
                                             {dashKPI.totalRevenue > 0 && (
                                                 <div className="mt-1.5">
                                                     <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
                                                         <div className="bg-emerald-500 h-1 rounded-full" style={{ width: `${Math.min(100, (dashKPI.topChannel[1] / dashKPI.totalRevenue * 100))}%` }} />
                                                     </div>
-                                                    <p className="text-[8px] text-gray-400 mt-0.5">{t('statsPage.revenueShare', '매출 비중')} {(dashKPI.topChannel[1] / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
+                                                    <p className="text-[11px] text-gray-400 mt-0.5">{t('statsPage.revenueShare', '매출 비중')} {(dashKPI.topChannel[1] / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
                                                 </div>
                                             )}
                                         </>
@@ -2894,18 +4543,18 @@ ${productSection}
                                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white"><Star size={14} /></div>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.topCategory', '인기 상품')}</p>
+                                        <p className="text-[11px] text-gray-400 font-bold uppercase leading-tight">{t('statsPage.topCategory', '인기 상품')}</p>
                                     </div>
                                     <p className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{dashKPI.topCategory ? dashKPI.topCategory[0] : '-'}</p>
                                     {dashKPI.topCategory && (
                                         <>
-                                            <p className="text-[10px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topCategory[1])}</p>
+                                            <p className="text-[11px] text-emerald-600 font-bold">{formatRevenue(dashKPI.topCategory[1])}</p>
                                             {dashKPI.totalRevenue > 0 && (
                                                 <div className="mt-1.5">
                                                     <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
                                                         <div className="bg-violet-500 h-1 rounded-full" style={{ width: `${Math.min(100, (dashKPI.topCategory[1] / dashKPI.totalRevenue * 100))}%` }} />
                                                     </div>
-                                                    <p className="text-[8px] text-gray-400 mt-0.5">{t('statsPage.revenueShare', '매출 비중')} {(dashKPI.topCategory[1] / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
+                                                    <p className="text-[11px] text-gray-400 mt-0.5">{t('statsPage.revenueShare', '매출 비중')} {(dashKPI.topCategory[1] / dashKPI.totalRevenue * 100).toFixed(1)}%</p>
                                                 </div>
                                             )}
                                         </>
@@ -2914,7 +4563,7 @@ ${productSection}
                             </div>
 
                             {/* ── Period Breakdown Cards (3) ── */}
-                            <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">📋 {t('statsPage.periodBreakdownSection', '기간별 데이터')}</p>
+                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">📋 {t('statsPage.periodBreakdownSection', '기간별 데이터')}</p>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 {[
                                     { key: 'daily', label: t('statsPage.dailyData'), icon: <Clock size={15} />, color: 'from-blue-500 to-indigo-600', bgColor: 'bg-blue-50 dark:bg-blue-900/30', textColor: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800' },
@@ -2938,25 +4587,25 @@ ${productSection}
                                                     </div>
                                                     <h4 className="font-extrabold text-gray-900 dark:text-white text-xs">{period.label}</h4>
                                                 </div>
-                                                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${period.bgColor} ${period.textColor}`}>
+                                                <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-bold ${period.bgColor} ${period.textColor}`}>
                                                     {count}{t('statsPage.units')}
                                                 </span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-1.5">
                                                 <div className={`${period.bgColor} rounded-lg p-2`}>
-                                                    <p className={`text-[9px] font-bold ${period.textColor} mb-0.5`}>{t('statsPage.totalSales')}</p>
+                                                    <p className={`text-[11px] font-bold ${period.textColor} mb-0.5`}>{t('statsPage.totalSales')}</p>
                                                     <p className="text-xs font-extrabold text-gray-900 dark:text-gray-100">
                                                         {totalRev > 0 ? formatRevenue(totalRev) : '-'}
                                                     </p>
                                                 </div>
                                                 <div className={`${period.bgColor} rounded-lg p-2`}>
-                                                    <p className={`text-[9px] font-bold ${period.textColor} mb-0.5`}>{t('statsPage.avgSales')}</p>
+                                                    <p className={`text-[11px] font-bold ${period.textColor} mb-0.5`}>{t('statsPage.avgSales')}</p>
                                                     <p className="text-xs font-extrabold text-gray-900 dark:text-gray-100">
                                                         {avgRev > 0 ? formatRevenue(avgRev) : '-'}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className={`mt-2.5 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold ${period.bgColor} ${period.textColor} group-hover:ring-1 ${period.ring} transition-all`}>
+                                            <div className={`mt-2.5 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold ${period.bgColor} ${period.textColor} group-hover:ring-1 ${period.ring} transition-all`}>
                                                 {t('statsPage.viewDetails', { period: period.label })}
                                                 <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
@@ -2975,12 +4624,12 @@ ${productSection}
                                                 <Calendar size={15} className="text-emerald-600" />
                                                 {t('statsPage.latestTransactions', '최근 거래 내역')}
                                             </h3>
-                                            <button onClick={() => setActiveTab('daily')} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
+                                            <button onClick={() => setActiveTab('sales')} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
                                                 {t('statsPage.viewAll', '전체보기')} →
                                             </button>
                                         </div>
                                         {/* Table Header */}
-                                        <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2 border-b border-gray-100 dark:border-gray-700 mb-2">
+                                        <div className="grid grid-cols-12 gap-2 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2 border-b border-gray-100 dark:border-gray-700 mb-2">
                                             <span className="col-span-4">{t('statsPage.itemName', '항목')}</span>
                                             <span className="col-span-3">{t('statsPage.date', '날짜')}</span>
                                             <span className="col-span-2 text-center">{t('statsPage.status', '유형')}</span>
@@ -3009,7 +4658,7 @@ ${productSection}
                                                             {record.record_date || '-'}
                                                         </span>
                                                         <div className="col-span-2 flex justify-center">
-                                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${typeColors[record.record_type] || 'bg-gray-100 text-gray-500'}`}>
+                                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${typeColors[record.record_type] || 'bg-gray-100 text-gray-500'}`}>
                                                                 {record.record_type === 'daily' ? t('statsPage.daily', '일별') : record.record_type === 'monthly' ? t('statsPage.monthlyLabel', '월별') : t('statsPage.annualLabel', '연간')}
                                                             </span>
                                                         </div>
@@ -3091,20 +4740,20 @@ ${productSection}
                                                         </svg>
                                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                                                             <span className={`text-lg font-extrabold ${progress >= 100 ? 'text-emerald-600' : 'text-emerald-600'}`}>{progress.toFixed(0)}%</span>
-                                                            <span className="text-[9px] text-gray-400 dark:text-gray-500">{t('statsPage.goalAchieved', '달성률')}</span>
+                                                            <span className="text-[11px] text-gray-400 dark:text-gray-500">{t('statsPage.goalAchieved', '달성률')}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex-1 space-y-2">
                                                         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
-                                                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('statsPage.goalTarget', '목표')}</p>
+                                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{t('statsPage.goalTarget', '목표')}</p>
                                                             <p className="text-sm font-extrabold text-gray-900 dark:text-white">{formatRevenue(goalAmt)}</p>
                                                         </div>
                                                         <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-3">
-                                                            <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">{t('statsPage.goalCurrent', '현재')}</p>
+                                                            <p className="text-xs text-teal-600 dark:text-teal-400 font-bold">{t('statsPage.goalCurrent', '현재')}</p>
                                                             <p className="text-sm font-extrabold text-gray-900 dark:text-white">{formatRevenue(currentRevenue)}</p>
                                                         </div>
                                                         {remaining > 0 && (
-                                                            <p className="text-[10px] text-gray-400 text-center">
+                                                            <p className="text-xs text-gray-400 text-center">
                                                                 {t('statsPage.goalRemaining', '남은 금액')}: <span className="font-bold text-emerald-600">{formatRevenue(remaining)}</span>
                                                             </p>
                                                         )}
@@ -3130,7 +4779,7 @@ ${productSection}
 
                     {/* ════ PERIOD TABS (daily/monthly/annual) ════ */}
                     {
-                        activeTab !== 'dashboard' && (
+                        activeTab === 'sales' && (
                             <div className="space-y-3">
                                 {/* Period KPI */}
                                 {periodKPI && (
@@ -3159,22 +4808,53 @@ ${productSection}
                                         <div className="flex items-center justify-between mb-2.5">
                                             <div className="flex items-center gap-2">
                                                 <BarChart3 size={18} className="text-emerald-600 dark:text-emerald-400" />
-                                                <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(activeTab) })}</h3>
+                                                <h3 className="font-extrabold text-gray-900 dark:text-gray-100">{t('statsPage.salesTrend', { period: periodLabel(salesView) })}</h3>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {/* Chart Type Toggle */}
+                                                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                                                    {[{ val: 'chart', icon: '📊' }, { val: 'table', icon: '📋' }, { val: 'both', icon: '📊📋' }].map(v => (
+                                                        <button key={v.val} onClick={() => setChartViewMode(v.val)}
+                                                            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${chartViewMode === v.val ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600'}`}
+                                                        >{v.icon}</button>
+                                                    ))}
+                                                </div>
+                                                {/* Daily/Monthly/Annual Toggle */}
+                                                <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                                                    {[
+                                                        { key: 'daily', label: t('statsPage.tabDaily', '일간') },
+                                                        { key: 'monthly', label: t('statsPage.tabMonthly', '월간') },
+                                                        { key: 'annual', label: t('statsPage.tabAnnual', '연간') },
+                                                    ].map(v => (
+                                                        <button key={v.key} onClick={() => {
+                                                            setSalesView(v.key);
+                                                            setChartOffset(0);
+                                                            setRecordsPage(1);
+                                                            if (v.key === 'daily') setChartRange(14);
+                                                            else if (v.key === 'monthly') setChartRange(6);
+                                                            else setChartRange(5);
+                                                        }}
+                                                            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${salesView === v.key
+                                                                ? 'bg-emerald-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                            {v.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Period Filter (daily / monthly / annual) */}
-                                        {['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && (
+                                        {/* Period Filter */}
+                                        {activeTab === 'sales' && (
                                             <div className="flex items-center gap-2 mb-2.5 flex-wrap">
                                                 <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
-                                                    {((activeTab === 'daily' || activeTab === 'customers')
-                                                        ? [{ val: 7, label: '7일' }, { val: 14, label: '14일' }, { val: 30, label: '1개월' }, { val: 90, label: '3개월' }]
-                                                        : activeTab === 'monthly'
-                                                            ? [{ val: 3, label: '3개월' }, { val: 6, label: '6개월' }, { val: 12, label: '12개월' }, { val: 24, label: '24개월' }]
-                                                            : [{ val: 3, label: '3년' }, { val: 5, label: '5년' }, { val: 10, label: '10년' }]
+                                                    {(salesView === 'daily'
+                                                        ? [{ val: 7, label: t('statsPage.days7', '7일') }, { val: 14, label: t('statsPage.days14', '14일') }, { val: 30, label: t('statsPage.month1', '1개월') }]
+                                                        : salesView === 'monthly'
+                                                            ? [{ val: 3, label: t('statsPage.months3', '3개월') }, { val: 6, label: t('statsPage.months6', '6개월') }, { val: 12, label: t('statsPage.months12', '12개월') }, { val: 24, label: t('statsPage.months24', '24개월') }]
+                                                            : [{ val: 3, label: t('statsPage.years3', '3년') }, { val: 5, label: t('statsPage.years5', '5년') }, { val: 10, label: t('statsPage.years10', '10년') }]
                                                     ).map(opt => (
                                                         <button key={opt.val}
-                                                            onClick={() => { setChartRange(opt.val); setChartOffset(0); }}
+                                                            onClick={() => { setChartRange(opt.val); setChartOffset(0); setCustomDateStart(''); setCustomDateEnd(''); }}
                                                             className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.val
                                                                 ? 'bg-emerald-500 text-white shadow-sm'
                                                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -3184,70 +4864,205 @@ ${productSection}
                                                         </button>
                                                     ))}
                                                 </div>
-                                                <div className="flex items-center gap-1 ml-auto">
+                                                {/* Custom Date Range (daily/customers only) */}
+                                                {salesView === 'daily' && (
+                                                    <div className="flex items-center gap-1.5 ml-2">
+                                                        <input
+                                                            type="date"
+                                                            value={customDateStart}
+                                                            onChange={e => { setCustomDateStart(e.target.value); setChartRange(0); }}
+                                                            className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[11px] text-gray-700 dark:text-gray-300 font-medium"
+                                                        />
+                                                        <span className="text-[11px] text-gray-400">~</span>
+                                                        <input
+                                                            type="date"
+                                                            value={customDateEnd}
+                                                            onChange={e => { setCustomDateEnd(e.target.value); setChartRange(0); }}
+                                                            className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[11px] text-gray-700 dark:text-gray-300 font-medium"
+                                                        />
+                                                        {(customDateStart || customDateEnd) && (
+                                                            <button
+                                                                onClick={() => { setCustomDateStart(''); setCustomDateEnd(''); setChartRange(14); }}
+                                                                className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-500 text-[10px] font-bold hover:bg-red-100 transition-all"
+                                                            >{t('statsPage.reset', '초기화')}</button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-0 ml-auto bg-white dark:bg-gray-800 rounded-xl border border-emerald-200 dark:border-emerald-700 shadow-sm overflow-hidden">
                                                     <button
-                                                        onClick={() => setChartOffset(p => p + 1)}
-                                                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all"
-                                                        title="이전 기간"
-                                                    >◀</button>
-                                                    {chartOffset > 0 && (
-                                                        <button
-                                                            onClick={() => setChartOffset(p => Math.max(0, p - 1))}
-                                                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all"
-                                                            title="다음 기간"
-                                                        >▶</button>
-                                                    )}
-                                                    {chartOffset > 0 && (
-                                                        <button
-                                                            onClick={() => setChartOffset(0)}
-                                                            className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all"
-                                                        >최근</button>
-                                                    )}
+                                                        onClick={() => { setCustomDateStart(''); setCustomDateEnd(''); setChartOffset(p => p + 1); }}
+                                                        className="w-8 h-8 flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 active:bg-emerald-100 transition-colors border-r border-emerald-200 dark:border-emerald-700"
+                                                        title={t('statsPage.prevPeriod', '이전 기간')}
+                                                    ><ChevronDown size={14} className="rotate-90" /></button>
+                                                    <button
+                                                        onClick={() => setChartOffset(p => Math.max(0, p - 1))}
+                                                        disabled={chartOffset === 0}
+                                                        className={`w-8 h-8 flex items-center justify-center transition-colors border-r border-emerald-200 dark:border-emerald-700 ${chartOffset > 0 ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 active:bg-emerald-100' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                                                        title={t('statsPage.nextPeriod', '다음 기간')}
+                                                    ><ChevronDown size={14} className="-rotate-90" /></button>
+                                                    <button
+                                                        onClick={() => setChartOffset(0)}
+                                                        disabled={chartOffset === 0}
+                                                        className={`px-3 h-8 text-[10px] font-bold transition-colors ${chartOffset > 0 ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 active:bg-emerald-100' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                                                    >{t('statsPage.latest', '최근')}</button>
                                                 </div>
                                             </div>
                                         )}
 
                                         {/* Chart Date Range Label */}
-                                        {['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && chartData.length > 0 && (
+                                        {activeTab === 'sales' && chartData.length > 0 && (
                                             <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 font-medium">
-                                                {(activeTab === 'daily' || activeTab === 'customers') && `${chartData[0]?.label} ~ ${chartData[chartData.length - 1]?.label}`}
-                                                {activeTab === 'monthly' && `${chartData[0]?.label?.slice(0, 7)} ~ ${chartData[chartData.length - 1]?.label?.slice(0, 7)}`}
-                                                {activeTab === 'annual' && `${chartData[0]?.label?.slice(0, 4)}년 ~ ${chartData[chartData.length - 1]?.label?.slice(0, 4)}년`}
-                                                {chartOffset > 0 && <span className="ml-1 text-amber-500">(과거 데이터)</span>}
+                                                {salesView === 'daily' && `${chartData[0]?.label} ~ ${chartData[chartData.length - 1]?.label}`}
+                                                {salesView === 'monthly' && `${chartData[0]?.label?.slice(0, 7)} ~ ${chartData[chartData.length - 1]?.label?.slice(0, 7)}`}
+                                                {salesView === 'annual' && `${chartData[0]?.label?.slice(0, 4)} ~ ${chartData[chartData.length - 1]?.label?.slice(0, 4)}`}
+                                                {chartOffset > 0 && <span className="ml-1 text-amber-500">({t('statsPage.pastData', '과거 데이터')})</span>}
                                             </p>
                                         )}
 
-                                        <div className="flex items-end gap-1.5" style={{ height: `${CHART_HEIGHT_PX}px` }}>
-                                            {chartData.map((d, idx) => {
-                                                const pct = maxChartVal > 0 ? (d.revenue / maxChartVal) : 0;
-                                                const hasData = d.revenue > 0;
-                                                const barH = hasData ? Math.max(pct * (CHART_HEIGHT_PX - 30), 6) : 6;
-                                                return (
-                                                    <div key={idx} className="flex flex-col items-center flex-1 min-w-0 group" style={{ height: '100%', justifyContent: 'flex-end' }}>
-                                                        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                                            {formatRevenue(d.revenue)}
-                                                        </span>
-                                                        <div
-                                                            className={`w-full max-w-[32px] rounded-t-md transition-all duration-500 cursor-pointer
-                                                            ${hasData
-                                                                    ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-300 shadow-sm'
-                                                                    : 'bg-gray-200 dark:bg-gray-700'}`}
-                                                            style={{ height: `${barH}px` }}
-                                                        />
-                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 truncate w-full text-center font-medium">
-                                                            {(activeTab === 'daily' || activeTab === 'customers') ? d.label.slice(5) : activeTab === 'annual' ? d.label?.slice(0, 4) : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
-                                                        </span>
+                                        {(chartViewMode === 'chart' || chartViewMode === 'both') && (
+                                            <div className="overflow-x-auto" style={{ touchAction: 'pan-x' }}>
+                                                <div className="flex items-end gap-1.5" style={{ height: `${CHART_HEIGHT_PX}px`, minWidth: `${Math.max(chartData.length * 42, 300)}px` }}>
+                                                    {chartData.map((d, idx) => {
+                                                        const pct = maxChartVal > 0 ? (d.revenue / maxChartVal) : 0;
+                                                        const hasData = d.revenue > 0;
+                                                        const barH = hasData ? Math.max(pct * (CHART_HEIGHT_PX - 30), 6) : 6;
+                                                        return (
+                                                            <div key={idx} className="flex flex-col items-center group" style={{ height: '100%', justifyContent: 'flex-end', minWidth: '36px', flex: '1 0 36px' }}>
+                                                                <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                                                    {formatRevenue(d.revenue)}
+                                                                </span>
+                                                                <div
+                                                                    className={`w-full max-w-[32px] rounded-t-md transition-all duration-500 cursor-pointer
+                                                                    ${hasData
+                                                                            ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-300 shadow-sm'
+                                                                            : 'bg-gray-200 dark:bg-gray-700'}`}
+                                                                    style={{ height: `${barH}px` }}
+                                                                />
+                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 whitespace-nowrap text-center font-medium">
+                                                                    {salesView === 'daily' ? d.label.slice(5) : salesView === 'annual' ? d.label?.slice(0, 4) : d.label.slice(5) + t('statsPage.chartMonthSuffix')}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Analysis Data Table */}
+                                        {(chartViewMode === 'table' || chartViewMode === 'both') && chartData.length > 0 && (() => {
+                                            const totalRev = chartData.reduce((s, d) => s + d.revenue, 0);
+                                            const avgRev = chartData.length > 0 ? Math.round(totalRev / chartData.length) : 0;
+                                            const maxRev = Math.max(...chartData.map(d => d.revenue));
+                                            const minRev = Math.min(...chartData.map(d => d.revenue));
+                                            const nonZero = chartData.filter(d => d.revenue > 0);
+                                            const sortedData = [...chartData].sort((a, b) => {
+                                                const av = trendSortField === 'label' ? a.label : a.revenue;
+                                                const bv = trendSortField === 'label' ? b.label : b.revenue;
+                                                if (av < bv) return trendSortDir === 'asc' ? -1 : 1;
+                                                if (av > bv) return trendSortDir === 'asc' ? 1 : -1;
+                                                return 0;
+                                            });
+                                            const toggleTrendSort = (f) => {
+                                                if (trendSortField === f) setTrendSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                                else { setTrendSortField(f); setTrendSortDir('asc'); }
+                                            };
+                                            return (
+                                                <div className="mt-3">
+                                                    {/* Summary Cards */}
+                                                    <div className="grid grid-cols-4 gap-2 mb-3">
+                                                        <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-2 text-center">
+                                                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('statsPage.total', '합계')}</p>
+                                                            <p className="text-xs font-extrabold text-gray-900 dark:text-white">{formatRevenue(totalRev)}</p>
+                                                        </div>
+                                                        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-2 text-center">
+                                                            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">{t('statsPage.trendAvg', '평균')}</p>
+                                                            <p className="text-xs font-extrabold text-gray-900 dark:text-white">{formatRevenue(avgRev)}</p>
+                                                        </div>
+                                                        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-2 text-center">
+                                                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">{t('statsPage.trendMax', '최대')}</p>
+                                                            <p className="text-xs font-extrabold text-gray-900 dark:text-white">{formatRevenue(maxRev)}</p>
+                                                        </div>
+                                                        <div className="bg-violet-50 dark:bg-violet-900/30 rounded-lg p-2 text-center">
+                                                            <p className="text-[10px] text-violet-600 dark:text-violet-400 font-bold">{t('statsPage.dataCount', '데이터 수')}</p>
+                                                            <p className="text-xs font-extrabold text-gray-900 dark:text-white">{nonZero.length}/{chartData.length}</p>
+                                                        </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
+                                                    {/* Sortable Data Table */}
+                                                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                                                        <table className="w-full text-[11px]">
+                                                            <thead>
+                                                                <tr className="bg-gray-50 dark:bg-gray-700/50">
+                                                                    <th className="px-3 py-2 text-left font-bold text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleTrendSort('label')}>
+                                                                        {t('statsPage.dateLabel', '날짜')} {trendSortField === 'label' && (trendSortDir === 'asc' ? '↑' : '↓')}
+                                                                    </th>
+                                                                    <th className="px-3 py-2 text-right font-bold text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 select-none" onClick={() => toggleTrendSort('revenue')}>
+                                                                        {t('statsPage.salesLabel', '매출')} {trendSortField === 'revenue' && (trendSortDir === 'asc' ? '↑' : '↓')}
+                                                                    </th>
+                                                                    <th className="px-3 py-2 text-right font-bold text-gray-500 dark:text-gray-400">{t('statsPage.share', '비중')}</th>
+                                                                    <th className="px-3 py-2 text-right font-bold text-gray-500 dark:text-gray-400">{t('statsPage.vsAvg', '평균 대비')}</th>
+                                                                    <th className="px-3 py-2 text-right font-bold text-gray-500 dark:text-gray-400">{t('statsPage.vsPrev', '전일 대비')}</th>
+                                                                    <th className="px-3 py-2 text-right font-bold text-gray-500 dark:text-gray-400">{t('statsPage.cumulative', '누적 매출')}</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                                {(() => {
+                                                                    let cumulative = 0;
+                                                                    // Build a date-sorted copy for prev-day lookup
+                                                                    const dateSorted = [...chartData].sort((a, b) => a.label.localeCompare(b.label));
+                                                                    const prevMap = {};
+                                                                    dateSorted.forEach((d, i) => {
+                                                                        prevMap[d.label] = i > 0 ? dateSorted[i - 1].revenue : null;
+                                                                    });
+                                                                    return sortedData.map((d, i) => {
+                                                                        cumulative += d.revenue;
+                                                                        const share = totalRev > 0 ? ((d.revenue / totalRev) * 100).toFixed(1) : '0.0';
+                                                                        const vsAvg = avgRev > 0 ? (((d.revenue - avgRev) / avgRev) * 100).toFixed(0) : '0';
+                                                                        const isMax = d.revenue === maxRev && d.revenue > 0;
+                                                                        const prevRev = prevMap[d.label];
+                                                                        const vsPrev = prevRev != null && prevRev > 0 ? (((d.revenue - prevRev) / prevRev) * 100).toFixed(0) : null;
+                                                                        return (
+                                                                            <tr key={i} className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${isMax ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}`}>
+                                                                                <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300">
+                                                                                    {salesView === 'daily' ? d.label : salesView === 'annual' ? d.label?.slice(0, 4) + '년' : d.label?.slice(0, 7)}
+                                                                                </td>
+                                                                                <td className="px-3 py-2 text-right font-bold text-gray-900 dark:text-white">
+                                                                                    {d.revenue > 0 ? formatRevenue(d.revenue) : '-'}
+                                                                                    {isMax && <span className="ml-1 text-[9px] text-emerald-500">★</span>}
+                                                                                </td>
+                                                                                <td className="px-3 py-2 text-right text-gray-500 dark:text-gray-400">
+                                                                                    <div className="flex items-center justify-end gap-1">
+                                                                                        <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                                                                                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(parseFloat(share), 100)}%` }} />
+                                                                                        </div>
+                                                                                        <span>{share}%</span>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className={`px-3 py-2 text-right font-bold ${parseInt(vsAvg) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                                                                                    {d.revenue > 0 ? `${parseInt(vsAvg) >= 0 ? '+' : ''}${vsAvg}%` : '-'}
+                                                                                </td>
+                                                                                <td className={`px-3 py-2 text-right font-bold ${vsPrev != null ? (parseInt(vsPrev) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-500') : 'text-gray-400'}`}>
+                                                                                    {vsPrev != null ? `${parseInt(vsPrev) >= 0 ? '+' : ''}${vsPrev}%` : '-'}
+                                                                                </td>
+                                                                                <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300 font-medium">
+                                                                                    {cumulative > 0 ? formatRevenue(cumulative) : '-'}
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    });
+                                                                })()}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* Empty state for filtered range */}
-                                        {chartData.length === 0 && ['daily', 'monthly', 'annual', 'customers'].includes(activeTab) && (
+                                        {chartData.length === 0 && activeTab === 'sales' && (
                                             <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
                                                 <BarChart3 size={32} className="mb-2 opacity-30" />
-                                                <p className="text-xs font-medium">이 기간에 데이터가 없습니다</p>
-                                                <button onClick={() => setChartOffset(0)} className="mt-2 text-[11px] font-bold text-emerald-500 hover:text-emerald-600">최근으로 이동 →</button>
+                                                <p className="text-xs font-medium">{t('statsPage.noDataPeriod', '이 기간에 데이터가 없습니다')}</p>
+                                                <button onClick={() => setChartOffset(0)} className="mt-2 text-[11px] font-bold text-emerald-500 hover:text-emerald-600">{t('statsPage.goToLatest', '최근으로 이동')} →</button>
                                             </div>
                                         )}
                                     </div>
@@ -3263,7 +5078,7 @@ ${productSection}
                                         {/* Period Filter */}
                                         <div className="flex items-center gap-2 mb-2.5 flex-wrap">
                                             <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
-                                                {[{ days: 7, label: '7일' }, { days: 14, label: '14일' }, { days: 30, label: '1개월' }, { days: 90, label: '3개월' }].map(opt => (
+                                                {[{ days: 7, label: t('statsPage.days7', '7일') }, { days: 14, label: t('statsPage.days14', '14일') }, { days: 30, label: t('statsPage.month1', '1개월') }].map(opt => (
                                                     <button key={opt.days}
                                                         onClick={() => { setChartRange(opt.days); setChartOffset(0); }}
                                                         className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${chartRange === opt.days
@@ -3282,14 +5097,14 @@ ${productSection}
                                                 {chartOffset > 0 && (
                                                     <button onClick={() => setChartOffset(0)}
                                                         className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold"
-                                                    >최근</button>
+                                                    >{t('statsPage.latest', '최근')}</button>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
                                             <BarChart3 size={32} className="mb-2 opacity-30" />
-                                            <p className="text-xs font-medium">이 기간에 데이터가 없습니다</p>
-                                            <button onClick={() => setChartOffset(0)} className="mt-2 text-[11px] font-bold text-emerald-500 hover:text-emerald-600">최근으로 이동 →</button>
+                                            <p className="text-xs font-medium">{t('statsPage.noDataPeriod', '이 기간에 데이터가 없습니다')}</p>
+                                            <button onClick={() => setChartOffset(0)} className="mt-2 text-[11px] font-bold text-emerald-500 hover:text-emerald-600">{t('statsPage.goToLatest', '최근으로 이동')} →</button>
                                         </div>
                                     </div>
                                 )}
@@ -3308,21 +5123,167 @@ ${productSection}
                                 {/* Records List */}
                                 {filteredStats.length === 0 ? (
                                     <EmptyPrompt onAdd={() => handleOpenForm(null, activeTab)} />
-                                ) : (
-                                    <div className="space-y-3">
-                                        {filteredStats.map(record => (
-                                            <RecordCard
-                                                key={record.id}
-                                                record={record}
-                                                formatRevenue={formatRevenue}
-                                                formatDateLabel={formatDateLabel}
-                                                translateDbValue={translateDbValue}
-                                                onEdit={() => handleOpenForm(record)}
-                                                onDelete={() => handleDelete(record)}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
+                                ) : (() => {
+                                    // Filter by date range if set
+                                    const dateFiltered = filteredStats.filter(r => {
+                                        if (!salesDateStart && !salesDateEnd) return true;
+                                        const d = r.record_date || '';
+                                        if (salesDateStart && d < salesDateStart) return false;
+                                        if (salesDateEnd && d > salesDateEnd) return false;
+                                        return true;
+                                    });
+                                    // Sort records
+                                    const sorted = [...dateFiltered].sort((a, b) => {
+                                        let av, bv;
+                                        if (sortField === 'record_date') { av = a.record_date || ''; bv = b.record_date || ''; }
+                                        else if (sortField === 'monthly_revenue') { av = parseInt(a.monthly_revenue) || 0; bv = parseInt(b.monthly_revenue) || 0; }
+                                        else if (sortField === 'customer_count') { av = parseInt(a.customer_count) || 0; bv = parseInt(b.customer_count) || 0; }
+                                        else if (sortField === 'transaction_count') { av = parseInt(a.transaction_count) || 0; bv = parseInt(b.transaction_count) || 0; }
+                                        else { av = a.record_date || ''; bv = b.record_date || ''; }
+                                        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+                                        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+                                        return 0;
+                                    });
+                                    const totalPages = Math.ceil(sorted.length / RECORDS_PER_PAGE);
+                                    const safePage = Math.min(recordsPage, totalPages);
+                                    const pageRecords = sorted.slice((safePage - 1) * RECORDS_PER_PAGE, safePage * RECORDS_PER_PAGE);
+                                    const allOnPage = pageRecords.every(r => selectedIds.has(r.id));
+                                    const toggleSort = (field) => {
+                                        if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                        else { setSortField(field); setSortDir('desc'); }
+                                        setRecordsPage(1);
+                                    };
+                                    const toggleSelectAll = () => {
+                                        const next = new Set(selectedIds);
+                                        if (allOnPage) pageRecords.forEach(r => next.delete(r.id));
+                                        else pageRecords.forEach(r => next.add(r.id));
+                                        setSelectedIds(next);
+                                    };
+                                    const toggleOne = (id) => {
+                                        const next = new Set(selectedIds);
+                                        if (next.has(id)) next.delete(id); else next.add(id);
+                                        setSelectedIds(next);
+                                    };
+                                    return (
+                                        <div className="space-y-2">
+                                            {/* Sort Bar */}
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500">{t('statsPage.sortLabel', '정렬')}:</span>
+                                                {[
+                                                    { key: 'record_date', label: t('statsPage.dateLabel', '날짜') },
+                                                    { key: 'monthly_revenue', label: t('statsPage.salesLabel', '매출') },
+                                                    { key: 'customer_count', label: t('statsPage.customersLabel', '고객수') },
+                                                    { key: 'transaction_count', label: t('statsPage.transactionsLabel', '거래수') },
+                                                ].map(s => (
+                                                    <button key={s.key} onClick={() => toggleSort(s.key)}
+                                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${sortField === s.key
+                                                            ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                    >
+                                                        {s.label} {sortField === s.key && (sortDir === 'asc' ? '↑' : '↓')}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    onClick={() => setShowSalesDatePicker(v => !v)}
+                                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${showSalesDatePicker || salesDateStart || salesDateEnd ? 'bg-indigo-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                >
+                                                    📅 {t('statsPage.dateRange', '기간')}
+                                                </button>
+                                                <span className="ml-auto text-[11px] text-gray-400 dark:text-gray-500 font-medium">{t('statsPage.totalCount', '총')} {sorted.length}</span>
+                                            </div>
+                                            {showSalesDatePicker && (
+                                                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-3 py-2 border border-indigo-200 dark:border-indigo-700">
+                                                    <span className="text-[10px] font-bold text-indigo-500">📅</span>
+                                                    <input type="date" value={salesDateStart} onChange={e => { setSalesDateStart(e.target.value); setRecordsPage(1); }}
+                                                        className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 w-[130px]" />
+                                                    <span className="text-xs text-gray-400">~</span>
+                                                    <input type="date" value={salesDateEnd} onChange={e => { setSalesDateEnd(e.target.value); setRecordsPage(1); }}
+                                                        className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 w-[130px]" />
+                                                    {(salesDateStart || salesDateEnd) && (
+                                                        <button onClick={() => { setSalesDateStart(''); setSalesDateEnd(''); setRecordsPage(1); }}
+                                                            className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 hover:bg-red-100 hover:text-red-500 transition-all">
+                                                            {t('statsPage.resetFilter', '초기화')}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Bulk Action Bar */}
+                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2 flex-wrap">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="checkbox" checked={allOnPage && pageRecords.length > 0} onChange={toggleSelectAll}
+                                                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                                                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">{t('statsPage.selectAll', '전체선택')}</span>
+                                                </label>
+                                                {/* Select ALL data (all pages) */}
+                                                {sorted.length > RECORDS_PER_PAGE && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const allIds = new Set(sorted.map(r => r.id));
+                                                            setSelectedIds(allIds);
+                                                        }}
+                                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${selectedIds.size === sorted.length
+                                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400'
+                                                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-300'}`}
+                                                    >
+                                                        📋 {t('statsPage.selectAllPages', `전체 ${sorted.length}개 모두 선택`)}
+                                                    </button>
+                                                )}
+                                                {selectedIds.size > 0 && (
+                                                    <>
+                                                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{selectedIds.size}{t('statsPage.selected', '개 선택됨')}</span>
+                                                        <button onClick={handleBulkDelete}
+                                                            className="ml-auto flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm">
+                                                            <Trash2 size={12} /> {t('statsPage.deleteSelected', '선택 삭제')}
+                                                        </button>
+                                                        <button onClick={() => setSelectedIds(new Set())}
+                                                            className="px-2.5 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-[11px] font-bold hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                                                            {t('statsPage.deselectAll', '선택해제')}
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {/* Record Cards */}
+                                            {pageRecords.map(record => (
+                                                <RecordCard
+                                                    key={record.id}
+                                                    record={record}
+                                                    formatRevenue={formatRevenue}
+                                                    formatDateLabel={formatDateLabel}
+                                                    translateDbValue={translateDbValue}
+                                                    onEdit={() => handleOpenForm(record)}
+                                                    onDelete={() => handleDelete(record)}
+                                                    checked={selectedIds.has(record.id)}
+                                                    onCheck={() => toggleOne(record.id)}
+                                                />
+                                            ))}
+
+                                            {/* Pagination */}
+                                            {totalPages > 1 && (
+                                                <div className="flex items-center justify-center gap-1 pt-2">
+                                                    <button onClick={() => setRecordsPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all">◀</button>
+                                                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                                                        let page;
+                                                        if (totalPages <= 7) page = i + 1;
+                                                        else if (safePage <= 4) page = i + 1;
+                                                        else if (safePage >= totalPages - 3) page = totalPages - 6 + i;
+                                                        else page = safePage - 3 + i;
+                                                        return (
+                                                            <button key={page} onClick={() => setRecordsPage(page)}
+                                                                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === safePage
+                                                                    ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                            >{page}</button>
+                                                        );
+                                                    })}
+                                                    <button onClick={() => setRecordsPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all">▶</button>
+                                                    <span className="ml-2 text-[10px] text-gray-400 font-medium">{safePage}/{totalPages}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         )
                     }
@@ -3334,44 +5295,74 @@ ${productSection}
                                 {/* Step: File Select */}
                                 {uploadStep === 'select' && (
                                     <>
-                                        <div
-                                            className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer ${dragOver ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/30 scale-[1.01]' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-500 dark:hover:bg-emerald-900/20'
-                                                }`}
-                                            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
-                                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
-                                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
-                                            onDrop={(e) => {
-                                                e.preventDefault(); e.stopPropagation(); setDragOver(false);
-                                                const files = e.dataTransfer?.files;
-                                                if (files && files.length > 0) {
-                                                    const file = files[0];
-                                                    console.log('[Upload] File dropped:', file.name, file.size, file.type);
-                                                    handleFileParse(file);
-                                                } else {
-                                                    console.warn('[Upload] No files in drop event');
-                                                }
-                                            }}
-                                            onClick={() => fileInputRef.current?.click()}
-                                        >
-                                            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        console.log('[Upload] File selected:', file.name, file.size);
-                                                        handleFileParse(file);
-                                                    }
-                                                    e.target.value = ''; // 같은 파일 재선택 가능
-                                                }} />
-                                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-2.5 flex items-center justify-center pointer-events-none">
-                                                <FolderUp className="text-white" size={28} />
+                                        {/* Upload Type Selection Cards */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            {/* Sales Upload Card */}
+                                            <div
+                                                className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer
+                                                    ${dragOver && uploadDataType === 'sales' ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/30 scale-[1.01]' : 'border-emerald-200 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-900/10 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:border-emerald-500 dark:hover:bg-emerald-900/20'}`}
+                                                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setUploadDataType('sales'); setDragOver(true); }}
+                                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                                                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
+                                                onDrop={(e) => {
+                                                    e.preventDefault(); e.stopPropagation(); setDragOver(false);
+                                                    setUploadDataType('sales');
+                                                    const files = e.dataTransfer?.files;
+                                                    if (files && files.length > 0) handleFileParse(files[0]);
+                                                }}
+                                                onClick={() => { setUploadDataType('sales'); fileInputRef.current?.click(); }}
+                                            >
+                                                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-3 flex items-center justify-center pointer-events-none">
+                                                    <TrendingUp className="text-white" size={24} />
+                                                </div>
+                                                <h3 className="font-extrabold text-gray-800 dark:text-white text-base mb-1 pointer-events-none">
+                                                    💰 {t('statsPage.uploadSalesTitle', '매출 데이터 업로드')}
+                                                </h3>
+                                                <p className="text-xs text-gray-400 pointer-events-none">
+                                                    {t('statsPage.uploadSalesDesc', '일간/월간/연간 매출 데이터를 업로드합니다')}
+                                                </p>
+                                                <p className="text-[10px] text-emerald-500 font-bold mt-2 pointer-events-none">Excel (.xlsx, .xls) / CSV</p>
                                             </div>
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-2 pointer-events-none">
-                                                {t('statsPage.uploadDragTitle', '파일을 드래그하거나 클릭하세요')}
-                                            </h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 pointer-events-none">
-                                                {t('statsPage.uploadDragDesc', 'Excel (.xlsx, .xls) 또는 CSV 파일 지원')}
-                                            </p>
+
+                                            {/* Expense Upload Card */}
+                                            <div
+                                                className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer
+                                                    ${dragOver && uploadDataType === 'expense' ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/30 scale-[1.01]' : 'border-violet-200 dark:border-violet-700 bg-violet-50/30 dark:bg-violet-900/10 hover:border-violet-400 hover:bg-violet-50 dark:hover:border-violet-500 dark:hover:bg-violet-900/20'}`}
+                                                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setUploadDataType('expense'); setDragOver(true); }}
+                                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                                                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
+                                                onDrop={(e) => {
+                                                    e.preventDefault(); e.stopPropagation(); setDragOver(false);
+                                                    setUploadDataType('expense');
+                                                    const files = e.dataTransfer?.files;
+                                                    if (files && files.length > 0) handleFileParse(files[0]);
+                                                }}
+                                                onClick={() => { setUploadDataType('expense'); fileInputRef.current?.click(); }}
+                                            >
+                                                <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl mx-auto mb-3 flex items-center justify-center pointer-events-none">
+                                                    <Wallet className="text-white" size={24} />
+                                                </div>
+                                                <h3 className="font-extrabold text-gray-800 dark:text-white text-base mb-1 pointer-events-none">
+                                                    💸 {t('statsPage.uploadExpenseTitle', '지출 데이터 업로드')}
+                                                </h3>
+                                                <p className="text-xs text-gray-400 pointer-events-none">
+                                                    {t('statsPage.uploadExpenseDesc', '지출/경비 데이터를 업로드합니다')}
+                                                </p>
+                                                <p className="text-[10px] text-violet-500 font-bold mt-2 pointer-events-none">Excel (.xlsx, .xls) / CSV</p>
+                                            </div>
                                         </div>
+
+                                        {/* Hidden file input (shared) */}
+                                        <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    console.log('[Upload] File selected:', file.name, file.size);
+                                                    handleFileParse(file);
+                                                }
+                                                e.target.value = '';
+                                            }} />
+
 
                                         {/* ERP Template Selector — 숨김 처리 */}
                                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4" style={{ display: 'none' }}>
@@ -3400,37 +5391,74 @@ ${productSection}
 
                                         {/* Import History */}
                                         {importHistory.length > 0 && (
-                                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                                                <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
-                                                    <Clock size={16} className="text-emerald-600" />
-                                                    {t('statsPage.uploadHistoryTitle', '임포트 이력')}
-                                                </h3>
-                                                <div className="space-y-2">
-                                                    {importHistory.map((batch, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs font-bold text-gray-900">
-                                                                        {batch.sales_channel || batch.source || 'Excel'}
-                                                                    </span>
-                                                                    <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold">
-                                                                        {batch.record_count}{t('statsPage.units', '건')}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-gray-400">{batch.currency}</span>
-                                                                </div>
-                                                                <p className="text-[10px] text-gray-400 mt-0.5">
-                                                                    {batch.date_from} ~ {batch.date_to} · {new Date(batch.imported_at).toLocaleDateString()}
-                                                                </p>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => undoBatch(batch.import_batch_id)}
-                                                                className="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                                                                title={t('statsPage.uploadUndo', '취소')}
-                                                            >
-                                                                <RotateCcw size={14} />
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                                <div className="flex items-center justify-between mb-2.5">
+                                                    <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                                                        <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                                        {t('statsPage.uploadHistoryTitle', '임포트 이력')}
+                                                    </h3>
+                                                    {selectedBatchIds.size > 0 && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{selectedBatchIds.size}{t('statsPage.selected', '개 선택됨')}</span>
+                                                            <button onClick={handleBulkUndoBatches}
+                                                                className="flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm">
+                                                                <Trash2 size={12} /> {t('statsPage.deleteSelected', '선택 삭제')}
+                                                            </button>
+                                                            <button onClick={() => setSelectedBatchIds(new Set())}
+                                                                className="px-2.5 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-[11px] font-bold hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                                                                {t('statsPage.deselectAll', '해제')}
                                                             </button>
                                                         </div>
-                                                    ))}
+                                                    )}
+                                                </div>
+                                                {/* Select All */}
+                                                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                                                    <input type="checkbox"
+                                                        checked={importHistory.length > 0 && importHistory.every(b => selectedBatchIds.has(b.import_batch_id))}
+                                                        onChange={() => {
+                                                            const allSelected = importHistory.every(b => selectedBatchIds.has(b.import_batch_id));
+                                                            if (allSelected) setSelectedBatchIds(new Set());
+                                                            else setSelectedBatchIds(new Set(importHistory.map(b => b.import_batch_id)));
+                                                        }}
+                                                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                                                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">{t('statsPage.selectAll', '전체선택')}</span>
+                                                </label>
+                                                <div className="space-y-2">
+                                                    {importHistory.map((batch, idx) => {
+                                                        const isChecked = selectedBatchIds.has(batch.import_batch_id);
+                                                        const toggleBatch = () => {
+                                                            const next = new Set(selectedBatchIds);
+                                                            if (isChecked) next.delete(batch.import_batch_id); else next.add(batch.import_batch_id);
+                                                            setSelectedBatchIds(next);
+                                                        };
+                                                        return (
+                                                            <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${isChecked ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+                                                                <input type="checkbox" checked={isChecked} onChange={toggleBatch}
+                                                                    className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 flex-shrink-0 cursor-pointer" />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-bold text-gray-900 dark:text-white">
+                                                                            {batch.sales_channel || batch.source || 'Excel'}
+                                                                        </span>
+                                                                        <span className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold">
+                                                                            {batch.record_count}{t('statsPage.units', '건')}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{batch.currency}</span>
+                                                                    </div>
+                                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                                                        {batch.date_from} ~ {batch.date_to} · {new Date(batch.imported_at).toLocaleDateString()}
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => undoBatch(batch.import_batch_id)}
+                                                                    className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition-colors"
+                                                                    title={t('statsPage.uploadUndo', '취소')}
+                                                                >
+                                                                    <RotateCcw size={14} />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
@@ -3505,49 +5533,78 @@ ${productSection}
                                                 {t('statsPage.uploadMappingDesc', '파일: ')}{uploadFile?.name} — {parsedRows.length}{t('statsPage.uploadRows', '행 감지')}
                                             </p>
 
-                                            {/* Upload settings */}
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2.5">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                                                        {t('statsPage.uploadRecordType', '기록 유형')}
-                                                    </label>
-                                                    <select value={uploadRecordType} onChange={(e) => setUploadRecordType(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium">
-                                                        <option value="daily">{t('statsPage.tabDaily')}</option>
-                                                        <option value="monthly">{t('statsPage.tabMonthly')}</option>
-                                                        <option value="annual">{t('statsPage.tabAnnual')}</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                                                        {t('statsPage.uploadCurrency', '통화')}
-                                                    </label>
-                                                    <select value={uploadCurrency} onChange={(e) => setUploadCurrency(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium">
-                                                        {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                                                        {t('statsPage.uploadChannel', '판매 채널')}
-                                                    </label>
-                                                    <input type="text" value={uploadChannel}
-                                                        onChange={(e) => setUploadChannel(e.target.value)}
-                                                        placeholder={t('statsPage.uploadChannelPh', '예: 네이버 스마트스토어')}
-                                                        className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                                                        {t('statsPage.uploadDuplicateMode', '중복 처리')}
-                                                    </label>
-                                                    <select value={uploadDuplicateMode} onChange={(e) => setUploadDuplicateMode(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 text-xs font-medium">
-                                                        <option value="overwrite">{t('statsPage.duplicateOverwrite', '덮어쓰기')}</option>
-                                                        <option value="skip">{t('statsPage.duplicateSkip', '건너뛰기')}</option>
-                                                        <option value="append">{t('statsPage.duplicateAppend', '추가')}</option>
-                                                    </select>
+                                            {/* Data Type Detection Badge + Toggle */}
+                                            <div className="flex items-center gap-2 mb-3 p-2.5 rounded-xl bg-gradient-to-r from-gray-50 to-gray-50 border border-gray-100">
+                                                <span className="text-[10px] font-bold text-gray-500 uppercase">{t('statsPage.uploadDetectedType', '감지된 데이터 유형')}:</span>
+                                                <div className="flex gap-1.5">
+                                                    <button
+                                                        onClick={() => {
+                                                            setUploadDataType('sales');
+                                                            autoMapColumns(parsedHeaders);
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${uploadDataType === 'sales'
+                                                            ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:border-emerald-300'}`}
+                                                    >
+                                                        <TrendingUp size={12} /> {t('statsPage.uploadTypeSales', '📊 매출 데이터')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setUploadDataType('expense');
+                                                            setColumnMapping(autoMapExpenseColumnsUpload(parsedHeaders));
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${uploadDataType === 'expense'
+                                                            ? 'bg-violet-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:border-violet-300'}`}
+                                                    >
+                                                        <Wallet size={12} /> {t('statsPage.uploadTypeExpense', '💸 지출 데이터')}
+                                                    </button>
                                                 </div>
                                             </div>
+
+                                            {/* Upload settings (sales only) */}
+                                            {uploadDataType === 'sales' && (
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2.5">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                                                            {t('statsPage.uploadRecordType', '기록 유형')}
+                                                        </label>
+                                                        <select value={uploadRecordType} onChange={(e) => setUploadRecordType(e.target.value)}
+                                                            className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium">
+                                                            <option value="daily">{t('statsPage.tabDaily')}</option>
+                                                            <option value="monthly">{t('statsPage.tabMonthly')}</option>
+                                                            <option value="annual">{t('statsPage.tabAnnual')}</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                                                            {t('statsPage.uploadCurrency', '통화')}
+                                                        </label>
+                                                        <select value={uploadCurrency} onChange={(e) => setUploadCurrency(e.target.value)}
+                                                            className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium">
+                                                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                                                            {t('statsPage.uploadChannel', '판매 채널')}
+                                                        </label>
+                                                        <input type="text" value={uploadChannel}
+                                                            onChange={(e) => setUploadChannel(e.target.value)}
+                                                            placeholder={t('statsPage.uploadChannelPh', '예: 네이버 스마트스토어')}
+                                                            className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-medium" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                                                            {t('statsPage.uploadDuplicateMode', '중복 처리')}
+                                                        </label>
+                                                        <select value={uploadDuplicateMode} onChange={(e) => setUploadDuplicateMode(e.target.value)}
+                                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 text-xs font-medium">
+                                                            <option value="overwrite">{t('statsPage.duplicateOverwrite', '덮어쓰기')}</option>
+                                                            <option value="skip">{t('statsPage.duplicateSkip', '건너뛰기')}</option>
+                                                            <option value="append">{t('statsPage.duplicateAppend', '추가')}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Column mapping table */}
                                             <div className="overflow-x-auto">
@@ -3576,7 +5633,7 @@ ${productSection}
                                                                             : 'bg-gray-50 border-gray-200 text-gray-500'
                                                                             }`}
                                                                     >
-                                                                        {SYSTEM_FIELDS.map(f => (
+                                                                        {(uploadDataType === 'expense' ? UPLOAD_EXPENSE_FIELDS : SYSTEM_FIELDS).map(f => (
                                                                             <option key={f.key} value={f.key}>{f.label}</option>
                                                                         ))}
                                                                     </select>
@@ -3691,15 +5748,16 @@ ${productSection}
                     {
                         activeTab === 'expense' && (
                             <div className="space-y-3">
-                                {/* Year Selector */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => setExpenseYear(y => y - 1)} className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
-                                            <ChevronDown size={14} className="rotate-90" />
+                                {/* Period Filter Bar */}
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    {/* Year Navigation */}
+                                    <div className="flex items-center gap-1.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-2 py-1.5 shadow-sm">
+                                        <button onClick={() => setExpenseYear(y => y - 1)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                            <ChevronDown size={12} className="rotate-90 text-gray-500" />
                                         </button>
-                                        <span className="text-sm font-extrabold text-gray-900">{t('statsPage.expYear', { year: expenseYear })}</span>
-                                        <button onClick={() => setExpenseYear(y => y + 1)} className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
-                                            <ChevronDown size={14} className="-rotate-90" />
+                                        <span className="text-sm font-extrabold text-gray-900 dark:text-white min-w-[52px] text-center">{expenseYear}{t('statsPage.yearSuffix', '년')}</span>
+                                        <button onClick={() => setExpenseYear(y => y + 1)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                            <ChevronDown size={12} className="-rotate-90 text-gray-500" />
                                         </button>
                                     </div>
                                 </div>
@@ -3710,26 +5768,36 @@ ${productSection}
                                     <>
                                         {/* KPI Cards */}
                                         {expenseSummary && (
-                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                                <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-2"><Wallet size={16} /></div>
-                                                    <p className="text-lg font-extrabold text-gray-900">{formatRevenue(expenseSummary.totals.total_expense)}</p>
-                                                    <p className="text-[11px] text-gray-400 font-medium">{t('statsPage.expTotalExpense', '총 지출')}</p>
-                                                </div>
-                                                <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white mb-2"><Receipt size={16} /></div>
-                                                    <p className="text-lg font-extrabold text-gray-900">{parseInt(expenseSummary.totals.total_count || 0).toLocaleString()}{t('statsPage.units', '건')}</p>
-                                                    <p className="text-[11px] text-gray-400 font-medium">{t('statsPage.expTotalCount', '총 건수')}</p>
-                                                </div>
-                                                {/* Net Profit */}
+                                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                                {/* Total Revenue */}
                                                 {(() => {
-                                                    const yearRecords = allStats.filter(s => s.record_type === 'annual');
-                                                    const totalRevenue = yearRecords.reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
+                                                    const yearStr = String(expenseYear);
+                                                    const yearRevenue = allStats
+                                                        .filter(s => {
+                                                            const d = s.record_date || '';
+                                                            return d.startsWith(yearStr);
+                                                        })
+                                                        .reduce((sum, s) => sum + (parseInt(s.monthly_revenue) || 0), 0);
                                                     const totalExpense = parseInt(expenseSummary.totals.total_expense || 0);
-                                                    const netProfit = totalRevenue - totalExpense;
-                                                    const profitRate = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
+                                                    const netProfit = yearRevenue - totalExpense;
+                                                    const profitRate = yearRevenue > 0 ? ((netProfit / yearRevenue) * 100).toFixed(1) : (totalExpense > 0 ? '-100' : '0');
                                                     return (
                                                         <>
+                                                            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                                                                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white mb-2"><TrendingUp size={16} /></div>
+                                                                <p className="text-lg font-extrabold text-emerald-600">{formatRevenue(yearRevenue)}</p>
+                                                                <p className="text-[11px] text-gray-400 font-medium">{t('statsPage.expTotalRevenue', '총 매출')}</p>
+                                                            </div>
+                                                            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                                                                <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center text-white mb-2"><Wallet size={16} /></div>
+                                                                <p className="text-lg font-extrabold text-gray-900">{formatRevenue(totalExpense)}</p>
+                                                                <p className="text-[11px] text-gray-400 font-medium">{t('statsPage.expTotalExpense', '총 지출')}</p>
+                                                            </div>
+                                                            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                                                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white mb-2"><Receipt size={16} /></div>
+                                                                <p className="text-lg font-extrabold text-gray-900">{parseInt(expenseSummary.totals.total_count || 0).toLocaleString()}{t('statsPage.units', '건')}</p>
+                                                                <p className="text-[11px] text-gray-400 font-medium">{t('statsPage.expTotalCount', '총 건수')}</p>
+                                                            </div>
                                                             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                                                                 <div className={`w-8 h-8 bg-gradient-to-br ${netProfit >= 0 ? 'from-emerald-500 to-teal-600' : 'from-red-500 to-rose-600'} rounded-lg flex items-center justify-center text-white mb-2`}><TrendingUp size={16} /></div>
                                                                 <p className={`text-lg font-extrabold ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{netProfit >= 0 ? '+' : ''}{formatRevenue(netProfit)}</p>
@@ -3781,35 +5849,233 @@ ${productSection}
                                             </div>
                                         )}
 
-                                        {/* Monthly Trend */}
-                                        {expenseSummary?.monthlyTotals?.length > 0 && (
-                                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                                                <h3 className="font-extrabold text-gray-900 flex items-center gap-2 mb-2.5">
-                                                    <BarChart3 size={16} className="text-violet-600" />
-                                                    {t('statsPage.expMonthlyTrend', '월별 지출 추이')}
-                                                </h3>
-                                                <div className="flex items-end gap-2 h-36">
-                                                    {(() => {
-                                                        const maxVal = Math.max(...expenseSummary.monthlyTotals.map(m => parseInt(m.total)), 1);
-                                                        return expenseSummary.monthlyTotals.map((m, idx) => {
-                                                            const pct = (parseInt(m.total) / maxVal) * 100;
-                                                            return (
-                                                                <div key={idx} className="flex flex-col items-center flex-1 min-w-0 group">
-                                                                    <span className="text-[9px] font-bold text-gray-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                                                        {formatRevenue(m.total)}
-                                                                    </span>
-                                                                    <div
-                                                                        className="w-full max-w-[36px] rounded-t-lg transition-all duration-500 hover:opacity-80 bg-gradient-to-t from-violet-500 to-purple-400"
-                                                                        style={{ height: `${Math.max(pct, 3)}%` }}
-                                                                    />
-                                                                    <span className="text-[9px] text-gray-400 mt-1 truncate w-full text-center font-medium">
-                                                                        {m.month.slice(5)}월
-                                                                    </span>
-                                                                </div>
-                                                            );
-                                                        });
-                                                    })()}
+                                        {/* ═══ Expense Trend Chart (daily/monthly/annual) ═══ */}
+                                        {expenses.length > 0 && (
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                                {/* Header: Title + View Mode Toggle */}
+                                                <div className="flex items-center justify-between mb-2.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <BarChart3 size={16} className="text-violet-600" />
+                                                        <h3 className="font-extrabold text-gray-900 dark:text-gray-100">
+                                                            {expChartView === 'daily' ? t('statsPage.expDailyTrend', '일간 지출 추이')
+                                                                : expChartView === 'monthly' ? t('statsPage.expMonthlyTrend', '월별 지출 추이')
+                                                                    : t('statsPage.expAnnualTrend', '연간 지출 추이')}
+                                                        </h3>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {/* Chart Type Toggle */}
+                                                        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                                                            {[{ val: 'chart', icon: '📊' }, { val: 'table', icon: '📋' }, { val: 'both', icon: '📊📋' }].map(v => (
+                                                                <button key={v.val} onClick={() => setExpChartMode(v.val)}
+                                                                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${expChartMode === v.val ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                                                >{v.icon}</button>
+                                                            ))}
+                                                        </div>
+                                                        {/* Daily/Monthly/Annual Toggle */}
+                                                        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                                                            {[
+                                                                { key: 'daily', label: t('statsPage.tabDaily', '일간') },
+                                                                { key: 'monthly', label: t('statsPage.tabMonthly', '월간') },
+                                                                { key: 'annual', label: t('statsPage.tabAnnual', '연간') },
+                                                            ].map(v => (
+                                                                <button key={v.key} onClick={() => { setExpChartView(v.key); setExpChartOffset(0); setExpChartRange(v.key === 'daily' ? 14 : v.key === 'monthly' ? 6 : 3); }}
+                                                                    className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${expChartView === v.key
+                                                                        ? 'bg-violet-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                                    {v.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
+
+                                                {/* Period Range Selector + Past Navigation */}
+                                                <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                                                    <div className="flex gap-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
+                                                        {(expChartView === 'daily'
+                                                            ? [{ val: 7, label: t('statsPage.days7', '7일') }, { val: 14, label: t('statsPage.days14', '14일') }, { val: 30, label: t('statsPage.month1', '1개월') }]
+                                                            : expChartView === 'monthly'
+                                                                ? [{ val: 3, label: t('statsPage.months3', '3개월') }, { val: 6, label: t('statsPage.months6', '6개월') }, { val: 12, label: t('statsPage.months12', '12개월') }, { val: 24, label: t('statsPage.months24', '24개월') }]
+                                                                : [{ val: 1, label: t('statsPage.years1', '1년') }, { val: 3, label: t('statsPage.years3', '3년') }, { val: 5, label: t('statsPage.years5', '5년') }, { val: 10, label: t('statsPage.years10', '10년') }]
+                                                        ).map(opt => (
+                                                            <button key={opt.val}
+                                                                onClick={() => { setExpChartRange(opt.val); setExpChartOffset(0); }}
+                                                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${expChartRange === opt.val
+                                                                    ? 'bg-violet-500 text-white shadow-sm'
+                                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex items-center gap-0 ml-auto bg-white dark:bg-gray-800 rounded-xl border border-violet-200 dark:border-violet-700 shadow-sm overflow-hidden">
+                                                        <button
+                                                            onClick={() => setExpChartOffset(p => p + 1)}
+                                                            className="w-8 h-8 flex items-center justify-center text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 active:bg-violet-100 transition-colors border-r border-violet-200 dark:border-violet-700"
+                                                            title={t('statsPage.prevPeriod', '이전 기간')}
+                                                        ><ChevronDown size={14} className="rotate-90" /></button>
+                                                        <button
+                                                            onClick={() => setExpChartOffset(p => Math.max(0, p - 1))}
+                                                            disabled={expChartOffset === 0}
+                                                            className={`w-8 h-8 flex items-center justify-center transition-colors border-r border-violet-200 dark:border-violet-700 ${expChartOffset > 0 ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 active:bg-violet-100' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                                                            title={t('statsPage.nextPeriod', '다음 기간')}
+                                                        ><ChevronDown size={14} className="-rotate-90" /></button>
+                                                        <button
+                                                            onClick={() => setExpChartOffset(0)}
+                                                            disabled={expChartOffset === 0}
+                                                            className={`px-3 h-8 text-[10px] font-bold transition-colors ${expChartOffset > 0 ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 active:bg-violet-100' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                                                        >{t('statsPage.latest', '최근')}</button>
+                                                    </div>
+                                                </div>
+
+                                                {(() => {
+                                                    // Group expenses by view mode
+                                                    let grouped = {};
+                                                    expenses.forEach(exp => {
+                                                        let key;
+                                                        if (expChartView === 'daily') key = exp.expense_date;
+                                                        else if (expChartView === 'monthly') key = exp.expense_date?.slice(0, 7);
+                                                        else key = exp.expense_date?.slice(0, 4);
+                                                        if (!key) return;
+                                                        if (!grouped[key]) grouped[key] = { total: 0, count: 0 };
+                                                        grouped[key].total += parseInt(exp.amount) || 0;
+                                                        grouped[key].count += 1;
+                                                    });
+
+                                                    // Sort all keys
+                                                    const allKeys = Object.keys(grouped).sort();
+
+                                                    // Apply range and offset
+                                                    let endIdx = allKeys.length - (expChartOffset * expChartRange);
+                                                    let startIdx = Math.max(0, endIdx - expChartRange);
+                                                    if (endIdx <= 0) { endIdx = Math.min(expChartRange, allKeys.length); startIdx = 0; }
+                                                    const chartKeys = allKeys.slice(startIdx, endIdx);
+
+                                                    const chartData = chartKeys.map(k => ({ key: k, ...grouped[k] }));
+                                                    if (chartData.length === 0) return <p className="text-sm text-gray-400 text-center py-8">{t('statsPage.expNoData', '데이터 없음')}</p>;
+
+                                                    const maxVal = Math.max(...chartData.map(d => d.total), 1);
+                                                    const totalSum = chartData.reduce((s, d) => s + d.total, 0);
+                                                    const avgVal = Math.round(totalSum / chartData.length);
+                                                    const maxItem = chartData.reduce((a, b) => a.total > b.total ? a : b);
+                                                    const totalCount = chartData.reduce((s, d) => s + d.count, 0);
+
+                                                    const formatLabel = (key) => {
+                                                        if (expChartView === 'daily') return key.slice(5);
+                                                        if (expChartView === 'monthly') return key.slice(5) + '월';
+                                                        return key + '년';
+                                                    };
+
+                                                    // Date range label
+                                                    const rangeLabel = chartData.length > 0 ? `${chartData[0].key} ~ ${chartData[chartData.length - 1].key}` : '';
+
+                                                    return (
+                                                        <>
+                                                            {/* Date Range Label */}
+                                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 font-medium">
+                                                                {rangeLabel}
+                                                                {expChartOffset > 0 && <span className="ml-1 text-amber-500">({t('statsPage.pastData', '과거 데이터')})</span>}
+                                                            </p>
+
+                                                            {/* Bar Chart */}
+                                                            {(expChartMode === 'chart' || expChartMode === 'both') && (
+                                                                <div className="flex items-end gap-1.5 h-40 mb-3">
+                                                                    {chartData.map((d, idx) => {
+                                                                        const pct = (d.total / maxVal) * 100;
+                                                                        return (
+                                                                            <div key={idx} className="flex flex-col items-center flex-1 min-w-0 h-full group cursor-pointer">
+                                                                                <span className="text-[8px] font-bold text-gray-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                                                                    {formatRevenue(d.total)}
+                                                                                </span>
+                                                                                <div className="flex-1 w-full flex items-end justify-center">
+                                                                                    <div
+                                                                                        className="w-full max-w-[36px] rounded-t-lg transition-all duration-500 hover:opacity-80 bg-gradient-to-t from-violet-500 to-purple-400"
+                                                                                        style={{ height: `${Math.max(pct, 4)}%` }}
+                                                                                    />
+                                                                                </div>
+                                                                                <span className="text-[8px] text-gray-400 mt-1 truncate w-full text-center font-medium">
+                                                                                    {formatLabel(d.key)}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Summary Cards */}
+                                                            <div className="grid grid-cols-4 gap-2 mb-3">
+                                                                <div className="bg-violet-50 rounded-xl p-2.5 text-center">
+                                                                    <p className="text-[10px] font-bold text-violet-600">{t('statsPage.expTotalLabel', '합계')}</p>
+                                                                    <p className="text-sm font-extrabold text-violet-700">{formatRevenue(totalSum)}</p>
+                                                                </div>
+                                                                <div className="bg-blue-50 rounded-xl p-2.5 text-center">
+                                                                    <p className="text-[10px] font-bold text-blue-600">{t('statsPage.expAvgLabel', '평균')}</p>
+                                                                    <p className="text-sm font-extrabold text-blue-700">{formatRevenue(avgVal)}</p>
+                                                                </div>
+                                                                <div className="bg-red-50 rounded-xl p-2.5 text-center">
+                                                                    <p className="text-[10px] font-bold text-red-600">{t('statsPage.expMaxLabel', '최고')}</p>
+                                                                    <p className="text-sm font-extrabold text-red-700">{formatRevenue(maxItem.total)}</p>
+                                                                </div>
+                                                                <div className="bg-amber-50 rounded-xl p-2.5 text-center">
+                                                                    <p className="text-[10px] font-bold text-amber-600">{t('statsPage.expCountLabel', '데이터 수')}</p>
+                                                                    <p className="text-sm font-extrabold text-amber-700">{totalCount}{t('statsPage.units', '건')}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Data Table */}
+                                                            {(expChartMode === 'table' || expChartMode === 'both') && (
+                                                                <div className="overflow-x-auto">
+                                                                    <table className="w-full text-xs">
+                                                                        <thead>
+                                                                            <tr className="border-b border-gray-200 dark:border-gray-600">
+                                                                                <th className="text-left py-2 font-bold text-gray-500">{t('statsPage.expDate', '날짜')}</th>
+                                                                                <th className="text-right py-2 font-bold text-gray-500">{t('statsPage.expAmount', '지출')}</th>
+                                                                                <th className="text-right py-2 font-bold text-gray-500">{t('statsPage.expShare', '비중')}</th>
+                                                                                <th className="text-right py-2 font-bold text-gray-500">{t('statsPage.expVsAvg', '평균 대비')}</th>
+                                                                                <th className="text-right py-2 font-bold text-gray-500">{t('statsPage.expVsPrev', '전일 대비')}</th>
+                                                                                <th className="text-right py-2 font-bold text-gray-500">{t('statsPage.expCumulative', '누적 지출')}</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {(() => {
+                                                                                let cumulative = 0;
+                                                                                return chartData.map((d, idx) => {
+                                                                                    cumulative += d.total;
+                                                                                    const share = totalSum > 0 ? ((d.total / totalSum) * 100).toFixed(1) : 0;
+                                                                                    const vsAvg = avgVal > 0 ? (((d.total - avgVal) / avgVal) * 100).toFixed(0) : 0;
+                                                                                    const prevTotal = idx > 0 ? chartData[idx - 1].total : null;
+                                                                                    const vsPrev = prevTotal ? (((d.total - prevTotal) / prevTotal) * 100).toFixed(0) : null;
+                                                                                    const isMax = d.total === maxItem.total;
+                                                                                    return (
+                                                                                        <tr key={idx} className={`border-b border-gray-50 dark:border-gray-700 ${isMax ? 'bg-violet-50/50' : ''}`}>
+                                                                                            <td className="py-2 font-bold text-gray-900 dark:text-white">{d.key}</td>
+                                                                                            <td className="py-2 text-right font-bold text-gray-900 dark:text-white">
+                                                                                                {formatRevenue(d.total)}{isMax && ' ⭐'}
+                                                                                            </td>
+                                                                                            <td className="py-2 text-right">
+                                                                                                <span className="inline-flex items-center gap-1">
+                                                                                                    <span className="w-8 h-1.5 rounded-full bg-gray-200 inline-block relative overflow-hidden">
+                                                                                                        <span className="absolute left-0 top-0 h-full bg-violet-500 rounded-full" style={{ width: `${share}%` }} />
+                                                                                                    </span>
+                                                                                                    <span className="text-gray-500 font-medium">{share}%</span>
+                                                                                                </span>
+                                                                                            </td>
+                                                                                            <td className={`py-2 text-right font-bold ${Number(vsAvg) >= 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                                                {Number(vsAvg) >= 0 ? '+' : ''}{vsAvg}%
+                                                                                            </td>
+                                                                                            <td className={`py-2 text-right font-bold ${vsPrev === null ? 'text-gray-300' : Number(vsPrev) >= 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                                                {vsPrev === null ? '-' : `${Number(vsPrev) >= 0 ? '+' : ''}${vsPrev}%`}
+                                                                                            </td>
+                                                                                            <td className="py-2 text-right font-medium text-gray-500">{formatRevenue(cumulative)}</td>
+                                                                                        </tr>
+                                                                                    );
+                                                                                });
+                                                                            })()}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         )}
 
@@ -3821,39 +6087,189 @@ ${productSection}
                                                 <h3 className="text-lg font-bold text-gray-400">{t('statsPage.expNoData', '아직 지출 기록이 없습니다.')}</h3>
                                                 <p className="text-sm text-gray-400 mt-1">{t('statsPage.expAddFirst', '첫 지출을 기록해보세요!')}</p>
                                             </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {expenses.map(exp => {
-                                                    const meta = getExpenseCatMeta(exp.category);
-                                                    const CatIcon = meta.icon;
-                                                    const pm = PAYMENT_METHODS.find(p => p.key === exp.payment_method);
-                                                    return (
-                                                        <div key={exp.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`w-10 h-10 bg-gradient-to-br ${meta.color} rounded-xl flex items-center justify-center text-white flex-shrink-0`}>
-                                                                    <CatIcon size={18} />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <span className="text-sm font-extrabold text-gray-900">{getExpenseCatLabel(exp.category)}</span>
-                                                                        <span className="text-sm font-extrabold text-violet-600">{formatRevenue(exp.amount)}</span>
+                                        ) : (() => {
+                                            // Filter by date range if set
+                                            const expDateFiltered = expenses.filter(e => {
+                                                if (!expDateStart && !expDateEnd) return true;
+                                                const d = e.expense_date || '';
+                                                if (expDateStart && d < expDateStart) return false;
+                                                if (expDateEnd && d > expDateEnd) return false;
+                                                return true;
+                                            });
+                                            // Sort
+                                            const sorted = [...expDateFiltered].sort((a, b) => {
+                                                let av, bv;
+                                                if (expSortField === 'expense_date') { av = a.expense_date || ''; bv = b.expense_date || ''; }
+                                                else if (expSortField === 'amount') { av = parseInt(a.amount) || 0; bv = parseInt(b.amount) || 0; }
+                                                else if (expSortField === 'category') { av = getExpenseCatLabel(a.category); bv = getExpenseCatLabel(b.category); }
+                                                else if (expSortField === 'payment_method') {
+                                                    const pmA = PAYMENT_METHODS.find(p => p.key === a.payment_method);
+                                                    const pmB = PAYMENT_METHODS.find(p => p.key === b.payment_method);
+                                                    av = pmA?.label || a.payment_method; bv = pmB?.label || b.payment_method;
+                                                }
+                                                else { av = a.expense_date || ''; bv = b.expense_date || ''; }
+                                                if (av < bv) return expSortDir === 'asc' ? -1 : 1;
+                                                if (av > bv) return expSortDir === 'asc' ? 1 : -1;
+                                                return 0;
+                                            });
+                                            const totalPages = Math.ceil(sorted.length / EXP_PER_PAGE);
+                                            const safePage = Math.min(expPage, totalPages);
+                                            const pageItems = sorted.slice((safePage - 1) * EXP_PER_PAGE, safePage * EXP_PER_PAGE);
+                                            const allOnPage = pageItems.every(r => expSelectedIds.has(r.id));
+                                            const toggleExpSort = (field) => {
+                                                if (expSortField === field) setExpSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                                else { setExpSortField(field); setExpSortDir('desc'); }
+                                                setExpPage(1);
+                                            };
+                                            const toggleExpSelectAll = () => {
+                                                const next = new Set(expSelectedIds);
+                                                if (allOnPage) pageItems.forEach(r => next.delete(r.id));
+                                                else pageItems.forEach(r => next.add(r.id));
+                                                setExpSelectedIds(next);
+                                            };
+                                            const toggleExpOne = (id) => {
+                                                const next = new Set(expSelectedIds);
+                                                if (next.has(id)) next.delete(id); else next.add(id);
+                                                setExpSelectedIds(next);
+                                            };
+                                            return (
+                                                <div className="space-y-2">
+                                                    {/* Sort Bar */}
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500">{t('statsPage.sortLabel', '정렬')}:</span>
+                                                        {[
+                                                            { key: 'expense_date', label: t('statsPage.expDate', '날짜') },
+                                                            { key: 'amount', label: t('statsPage.expAmount', '금액') },
+                                                            { key: 'category', label: t('statsPage.expCategory', '카테고리') },
+                                                            { key: 'payment_method', label: t('statsPage.expPayment', '결제수단') },
+                                                        ].map(s => (
+                                                            <button key={s.key} onClick={() => toggleExpSort(s.key)}
+                                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${expSortField === s.key
+                                                                    ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                            >
+                                                                {s.label} {expSortField === s.key && (expSortDir === 'asc' ? '↑' : '↓')}
+                                                            </button>
+                                                        ))}
+                                                        <button
+                                                            onClick={() => setShowExpDatePicker(v => !v)}
+                                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${showExpDatePicker || expDateStart || expDateEnd ? 'bg-indigo-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                        >
+                                                            📅 {t('statsPage.dateRange', '기간')}
+                                                        </button>
+                                                        <span className="ml-auto text-[11px] text-gray-400 dark:text-gray-500 font-medium">{t('statsPage.totalCount', '총')} {sorted.length}</span>
+                                                    </div>
+                                                    {showExpDatePicker && (
+                                                        <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-3 py-2 border border-indigo-200 dark:border-indigo-700">
+                                                            <span className="text-[10px] font-bold text-indigo-500">📅</span>
+                                                            <input type="date" value={expDateStart} onChange={e => { setExpDateStart(e.target.value); setExpPage(1); }}
+                                                                className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 w-[130px]" />
+                                                            <span className="text-xs text-gray-400">~</span>
+                                                            <input type="date" value={expDateEnd} onChange={e => { setExpDateEnd(e.target.value); setExpPage(1); }}
+                                                                className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 w-[130px]" />
+                                                            {(expDateStart || expDateEnd) && (
+                                                                <button onClick={() => { setExpDateStart(''); setExpDateEnd(''); setExpPage(1); }}
+                                                                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 hover:bg-red-100 hover:text-red-500 transition-all">
+                                                                    {t('statsPage.resetFilter', '초기화')}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Bulk Action Bar */}
+                                                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2 flex-wrap">
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input type="checkbox" checked={allOnPage && pageItems.length > 0} onChange={toggleExpSelectAll}
+                                                                className="w-4 h-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500" />
+                                                            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">{t('statsPage.selectAll', '전체선택')}</span>
+                                                        </label>
+                                                        {/* Select ALL data (all pages) */}
+                                                        {sorted.length > EXP_PER_PAGE && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    const allIds = new Set(sorted.map(r => r.id));
+                                                                    setExpSelectedIds(allIds);
+                                                                }}
+                                                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${expSelectedIds.size === sorted.length
+                                                                    ? 'bg-violet-100 dark:bg-violet-900/30 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-400'
+                                                                    : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300'}`}
+                                                            >
+                                                                📋 {t('statsPage.selectAllPages', `전체 ${sorted.length}개 모두 선택`)}
+                                                            </button>
+                                                        )}
+                                                        {expSelectedIds.size > 0 && (
+                                                            <>
+                                                                <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400">{expSelectedIds.size}{t('statsPage.selected', '개 선택됨')}</span>
+                                                                <button onClick={handleBulkDeleteExpenses}
+                                                                    className="ml-auto flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm">
+                                                                    <Trash2 size={12} /> {t('statsPage.deleteSelected', '선택 삭제')}
+                                                                </button>
+                                                                <button onClick={() => setExpSelectedIds(new Set())}
+                                                                    className="px-2.5 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-[11px] font-bold hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                                                                    {t('statsPage.deselectAll', '선택해제')}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Expense Cards */}
+                                                    {pageItems.map(exp => {
+                                                        const meta = getExpenseCatMeta(exp.category);
+                                                        const CatIcon = meta.icon;
+                                                        const pm = PAYMENT_METHODS.find(p => p.key === exp.payment_method);
+                                                        return (
+                                                            <div key={exp.id} className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm p-4 hover:shadow-md transition-shadow ${expSelectedIds.has(exp.id) ? 'border-violet-300 dark:border-violet-600 bg-violet-50/30' : 'border-gray-100 dark:border-gray-700'}`}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <input type="checkbox" checked={expSelectedIds.has(exp.id)} onChange={() => toggleExpOne(exp.id)}
+                                                                        className="w-4 h-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 flex-shrink-0" />
+                                                                    <div className={`w-10 h-10 bg-gradient-to-br ${meta.color} rounded-xl flex items-center justify-center text-white flex-shrink-0`}>
+                                                                        <CatIcon size={18} />
                                                                     </div>
-                                                                    <div className="flex items-center gap-2 mt-1">
-                                                                        <span className="text-[10px] text-gray-400">{exp.expense_date}</span>
-                                                                        {pm && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full font-medium">{pm.label}</span>}
-                                                                        {exp.memo && <span className="text-[10px] text-gray-400 truncate max-w-[120px]">{exp.memo}</span>}
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-sm font-extrabold text-gray-900 dark:text-white">{getExpenseCatLabel(exp.category)}</span>
+                                                                            <span className="text-sm font-extrabold text-violet-600">{formatRevenue(exp.amount)}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                            <span className="text-[10px] text-gray-400">{exp.expense_date}</span>
+                                                                            {pm && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full font-medium">{pm.label}</span>}
+                                                                            {exp.memo && <span className="text-[10px] text-gray-400 truncate max-w-[120px]">{exp.memo}</span>}
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                                <div className="flex gap-1">
-                                                                    <button onClick={() => { setEditingExpense(exp); setShowExpenseForm(true); }} className="p-2 rounded-lg text-gray-400 hover:bg-violet-50 hover:text-violet-600 transition-colors"><Edit3 size={14} /></button>
-                                                                    <button onClick={() => handleDeleteExpense(exp)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                                                                    <div className="flex gap-1">
+                                                                        <button onClick={() => { setEditingExpense(exp); setShowExpenseForm(true); }} className="p-2 rounded-lg text-gray-400 hover:bg-violet-50 hover:text-violet-600 transition-colors"><Edit3 size={14} /></button>
+                                                                        <button onClick={() => handleDeleteExpense(exp)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
+                                                        );
+                                                    })}
+
+                                                    {/* Pagination */}
+                                                    {totalPages > 1 && (
+                                                        <div className="flex items-center justify-center gap-1 pt-2">
+                                                            <button onClick={() => setExpPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all">◀</button>
+                                                            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                                                                let page;
+                                                                if (totalPages <= 7) page = i + 1;
+                                                                else if (safePage <= 4) page = i + 1;
+                                                                else if (safePage >= totalPages - 3) page = totalPages - 6 + i;
+                                                                else page = safePage - 3 + i;
+                                                                return (
+                                                                    <button key={page} onClick={() => setExpPage(page)}
+                                                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === safePage
+                                                                            ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                                                    >{page}</button>
+                                                                );
+                                                            })}
+                                                            <button onClick={() => setExpPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-bold transition-all">▶</button>
+                                                            <span className="ml-2 text-[10px] text-gray-400 font-medium">{safePage}/{totalPages}</span>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </>
                                 )}
 
@@ -3873,6 +6289,10 @@ ${productSection}
                                                 paymentMethods={PAYMENT_METHODS}
                                                 getCatLabel={getExpenseCatLabel}
                                                 formatRevenue={formatRevenue}
+                                                selectedCountry={selectedCountry}
+                                                onCountryChange={setSelectedCountry}
+                                                hostCountries={HOST_COUNTRIES}
+                                                countryCurrency={COUNTRY_CURRENCY}
                                                 t={t}
                                             />
                                         </div>
@@ -4119,7 +6539,7 @@ ${productSection}
                                                                                     const nb = [...editBrackets]; nb[idx] = { ...nb[idx], min: e.target.value }; setEditBrackets(nb);
                                                                                 }}
                                                                                 className="flex-1 px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-right"
-                                                                                placeholder="최소" />
+                                                                                placeholder={t('statsPage.minimum', '최소')} />
                                                                             <span className="text-gray-400 text-xs">~</span>
                                                                             <input type="number" value={bracket.max ?? ''}
                                                                                 onChange={e => {
@@ -4504,6 +6924,25 @@ ${productSection}
                             <div className="space-y-3">
                                 {analyticsData ? (
                                     <>
+                                        {/* Year Navigator (same as dashboard) */}
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <button onClick={() => setDashboardYear(y => (y || new Date().getFullYear()) - 1)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+                                                <ChevronDown size={16} className="rotate-90" />
+                                            </button>
+                                            <span className="text-sm font-extrabold text-gray-900 dark:text-white min-w-[80px] text-center">
+                                                {dashboardYear ? `${dashboardYear}${t('statsPage.year', '년')}` : t('statsPage.allYears', '전체')}
+                                            </span>
+                                            <button onClick={() => setDashboardYear(y => !y ? null : y >= new Date().getFullYear() ? null : y + 1)}
+                                                disabled={!dashboardYear}
+                                                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${!dashboardYear ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                                                <ChevronDown size={16} className="-rotate-90" />
+                                            </button>
+                                            <button onClick={() => setDashboardYear(prev => prev === null ? new Date().getFullYear() : null)}
+                                                className={`ml-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${!dashboardYear ? 'bg-indigo-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                                                {t('statsPage.allData', '전체')}
+                                            </button>
+                                        </div>
                                         {/* ═══ Enhanced KPI Cards with SVG Infographics ═══ */}
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             {/* Total Revenue — with mini area sparkline */}
@@ -4643,37 +7082,52 @@ ${productSection}
                                             const healthLabel = healthScore >= 70 ? t('statsPage.healthExcellent', '우수') : healthScore >= 40 ? t('statsPage.healthGood', '양호') : t('statsPage.healthCaution', '주의');
                                             const r = 42; const circ = 2 * Math.PI * r;
                                             const dashVal = (healthScore / 100) * circ;
+
+                                            // Additional metrics
+                                            const avgRevPerTx = dashKPI.totalTransactions > 0 ? Math.round(dashKPI.totalRevenue / dashKPI.totalTransactions) : 0;
+                                            const txEfficiency = dashKPI.totalTransactions > 0 ? Math.min(100, Math.round((avgRevPerTx / (dashKPI.totalRevenue / Math.max(dashKPI.totalCount, 1))) * 50)) : 0;
+                                            const stabilityScore = dashKPI.last12Months && dashKPI.last12Months.length >= 3 ? (() => {
+                                                const revenues = dashKPI.last12Months.map(m => m.revenue);
+                                                const avg = revenues.reduce((a, b) => a + b, 0) / revenues.length;
+                                                if (avg === 0) return 0;
+                                                const variance = revenues.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / revenues.length;
+                                                const cv = Math.sqrt(variance) / avg;
+                                                return Math.min(100, Math.round((1 - Math.min(cv, 1)) * 100));
+                                            })() : 50;
+
                                             return (
-                                                <div className="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-750 rounded-2xl border border-gray-700 shadow-lg p-5 text-white">
+                                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 hover:shadow-md transition-shadow">
                                                     <div className="flex items-center gap-5">
                                                         {/* Health Ring */}
                                                         <div className="relative flex-shrink-0">
                                                             <svg width="100" height="100" viewBox="0 0 100 100">
-                                                                <circle cx="50" cy="50" r={r} fill="none" stroke="#374151" strokeWidth="6" />
+                                                                <circle cx="50" cy="50" r={r} fill="none" stroke="#f3f4f6" strokeWidth="6" className="dark:stroke-gray-700" />
                                                                 <circle cx="50" cy="50" r={r} fill="none" stroke={healthColor} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${dashVal} ${circ}`} transform="rotate(-90 50 50)" className="transition-all duration-1000" />
                                                             </svg>
                                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                                                 <span className="text-2xl font-extrabold" style={{ color: healthColor }}>{healthScore}</span>
-                                                                <span className="text-[8px] text-gray-400 font-bold uppercase">{healthLabel}</span>
+                                                                <span className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase">{healthLabel}</span>
                                                             </div>
                                                         </div>
                                                         {/* Description */}
                                                         <div className="flex-1 min-w-0">
-                                                            <h3 className="font-extrabold text-sm mb-1 flex items-center gap-2">
-                                                                <Zap size={14} className="text-amber-400" />
+                                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-sm mb-1 flex items-center gap-2">
+                                                                <Zap size={14} className="text-amber-500" />
                                                                 {t('statsPage.revenueHealthScore', '매출 건강 점수')}
                                                             </h3>
-                                                            <p className="text-[10px] text-gray-400 mb-3">{t('statsPage.healthDesc', '마진율, 성장률, 목표달성률을 종합한 비즈니스 상태 지표')}</p>
-                                                            <div className="grid grid-cols-3 gap-2">
+                                                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">{t('statsPage.healthDesc', '마진율, 성장률, 목표달성률을 종합한 비즈니스 상태 지표')}</p>
+                                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                                                                 {[
-                                                                    { label: t('statsPage.marginRate', '마진율'), value: `${margin}%`, score: marginScore, color: '#10b981' },
-                                                                    { label: t('statsPage.analyticsGrowth', '성장률'), value: `${growth > 0 ? '+' : ''}${growth}%`, score: growthScore, color: '#3b82f6' },
-                                                                    { label: t('statsPage.goalAchieve', '목표달성'), value: `${goalProb}%`, score: goalScore, color: '#8b5cf6' },
+                                                                    { label: t('statsPage.marginRate', '마진율'), value: `${margin}%`, score: marginScore, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800/40' },
+                                                                    { label: t('statsPage.analyticsGrowth', '성장률'), value: `${growth > 0 ? '+' : ''}${growth}%`, score: growthScore, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800/40' },
+                                                                    { label: t('statsPage.goalAchieve', '목표달성'), value: `${goalProb}%`, score: goalScore, color: '#8b5cf6', bg: 'bg-violet-50 dark:bg-violet-900/20', border: 'border-violet-200 dark:border-violet-800/40' },
+                                                                    { label: t('statsPage.txEfficiency', '거래효율'), value: avgRevPerTx > 0 ? formatRevenue(avgRevPerTx) : '-', score: txEfficiency, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800/40' },
+                                                                    { label: t('statsPage.stability', '안정성'), value: `${stabilityScore}${t('statsPage.scoreSuffix', '점')}`, score: stabilityScore, color: '#ec4899', bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-200 dark:border-pink-800/40' },
                                                                 ].map((item, i) => (
-                                                                    <div key={i} className="bg-white/5 rounded-lg p-2">
-                                                                        <p className="text-[8px] text-gray-500 font-bold uppercase">{item.label}</p>
+                                                                    <div key={i} className={`${item.bg} rounded-xl p-2.5 border ${item.border}`}>
+                                                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase mb-0.5">{item.label}</p>
                                                                         <p className="text-sm font-extrabold" style={{ color: item.color }}>{item.value}</p>
-                                                                        <div className="w-full bg-gray-700 rounded-full h-1 mt-1">
+                                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 mt-1.5">
                                                                             <div className="h-1 rounded-full transition-all duration-700" style={{ width: `${item.score}%`, backgroundColor: item.color }} />
                                                                         </div>
                                                                     </div>
@@ -4753,7 +7207,7 @@ ${productSection}
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm">{t('statsPage.analyticsTrend', '매출 트렌드')}</h3>
-                                                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">최근 12개월</p>
+                                                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{t('statsPage.last12Months', '최근 12개월')}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -4761,11 +7215,11 @@ ${productSection}
                                                             {trendData.filter(m => m.revenue > 0).length > 0 && (
                                                                 <div className="flex gap-3">
                                                                     <div className="text-right">
-                                                                        <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">최고</p>
+                                                                        <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">{t('statsPage.trendMax', '최고')}</p>
                                                                         <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{formatRevenue(Math.max(...trendData.map(m => m.revenue)))}</p>
                                                                     </div>
                                                                     <div className="text-right">
-                                                                        <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">평균</p>
+                                                                        <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">{t('statsPage.trendAvg', '평균')}</p>
                                                                         <p className="text-xs font-extrabold text-blue-600 dark:text-blue-400">{formatRevenue(Math.round(trendData.reduce((s, m) => s + m.revenue, 0) / Math.max(1, trendData.filter(m => m.revenue > 0).length)))}</p>
                                                                     </div>
                                                                 </div>
@@ -5339,7 +7793,7 @@ ${productSection}
 
                                         {/* Stats Footer */}
                                         <p className="text-[10px] text-gray-400 text-center">
-                                            {t('statsPage.analyticsFooter', `총 ${analyticsData.recordCount}개 레코드 기준 분석`)}
+                                            {t('statsPage.analyticsFooter', `총 ${analyticsData.recordCount}${t('statsPage.recordBasedAnalysis', '개 레코드 기준 분석')}`)}
                                         </p>
 
                                         {/* Export Buttons */}
@@ -5349,6 +7803,47 @@ ${productSection}
                                                 {t('statsPage.exportTitle', '📤 리포트 내보내기')}
                                             </h3>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5">{t('statsPage.exportDesc', '매출 데이터와 손익계산서를 파일로 다운로드하세요')}</p>
+                                            {/* Period Selector */}
+                                            <div className="mb-4">
+                                                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">{t('statsPage.exportPeriodLabel', '📅 내보내기 기간')}</label>
+                                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                                    {[
+                                                        { key: '1m', label: t('statsPage.export1m', '1개월') },
+                                                        { key: '3m', label: t('statsPage.export3m', '3개월') },
+                                                        { key: '6m', label: t('statsPage.export6m', '6개월') },
+                                                        { key: '1y', label: t('statsPage.export1y', '1년') },
+                                                        { key: 'custom', label: t('statsPage.exportCustom', '직접 설정') },
+                                                    ].map(opt => (
+                                                        <button key={opt.key} type="button"
+                                                            onClick={() => setExportPeriod(opt.key)}
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${exportPeriod === opt.key
+                                                                ? 'bg-indigo-500 text-white shadow-sm'
+                                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                                }`}
+                                                        >{opt.label}</button>
+                                                    ))}
+                                                </div>
+                                                {exportPeriod === 'custom' && (
+                                                    <div className="flex items-center gap-2">
+                                                        <input type="date" value={exportCustomStart}
+                                                            onChange={e => setExportCustomStart(e.target.value)}
+                                                            className="flex-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300" />
+                                                        <span className="text-xs text-gray-400">~</span>
+                                                        <input type="date" value={exportCustomEnd}
+                                                            onChange={e => setExportCustomEnd(e.target.value)}
+                                                            className="flex-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300" />
+                                                    </div>
+                                                )}
+                                                {/* Show selected range */}
+                                                {(() => {
+                                                    const { start, end } = getExportDateRange();
+                                                    return (
+                                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+                                                            📊 {start} ~ {end}
+                                                        </p>
+                                                    );
+                                                })()}
+                                            </div>
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                                 <button onClick={exportToExcel}
                                                     className="flex flex-col items-center gap-2 py-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-700/50 rounded-xl hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-all">
@@ -5477,8 +7972,8 @@ ${productSection}
                                             </div>
                                             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {[
-                                                    { key: 'gsheets', name: 'Google Sheets', icon: '📊', desc: '매출 데이터를 복사하여 시트에 붙여넣기', features: ['클립보드 복사', 'Ctrl+V 붙여넣기'], color: 'from-green-500 to-emerald-600', action: copyForGoogleSheets, actionLabel: '데이터 복사' },
-                                                    { key: 'email', name: '이메일 보고서', icon: '📧', desc: '매출 요약 보고서 초안 자동 작성', features: ['보고서 초안', '메일 앱 연결'], color: 'from-purple-500 to-violet-600', action: sendEmailReport, actionLabel: '보고서 전송' },
+                                                    { key: 'gsheets', name: 'Google Sheets', icon: '📊', desc: t('statsPage.gsheetsDesc', '매출 데이터를 복사하여 시트에 붙여넣기'), features: [t('statsPage.clipboardCopy', '클립보드 복사'), 'Ctrl+V'], color: 'from-green-500 to-emerald-600', action: copyForGoogleSheets, actionLabel: t('statsPage.copyData', '데이터 복사') },
+                                                    { key: 'email', name: t('statsPage.emailReport', '이메일 보고서'), icon: '📧', desc: t('statsPage.emailDesc', '매출 요약 보고서 초안 자동 작성'), features: [t('statsPage.reportDraft', '보고서 초안'), t('statsPage.mailAppConnect', '메일 앱 연결')], color: 'from-purple-500 to-violet-600', action: sendEmailReport, actionLabel: t('statsPage.sendReport', '보고서 전송') },
                                                 ].map(item => (
                                                     <div key={item.key} className={`rounded-xl border p-4 transition-all ${integrations[item.key] ? 'border-sky-200 dark:border-sky-700 bg-sky-50/50 dark:bg-sky-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
                                                         <div className="flex items-start justify-between mb-3">
@@ -5686,30 +8181,98 @@ ${productSection}
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                {/* Country Selector */}
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">
-                                        🌐 {t('statsPage.countrySelect', '국가 선택')}
-                                    </label>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {HOST_COUNTRIES.map(c => (
-                                            <button
-                                                key={c.code}
-                                                type="button"
-                                                onClick={() => {
-                                                    if (selectedCountry !== c.code) {
-                                                        setSelectedCountry(c.code);
-                                                        setForm(prev => ({ ...prev, region: '', region_detail: '' }));
-                                                    }
-                                                }}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${selectedCountry === c.code
-                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                                                    : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                                                    }`}
-                                            >
-                                                <span className="mr-1">{c.flag}</span>{c.name}
-                                            </button>
-                                        ))}
+                                {/* Country Selector + Upload Button */}
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                    {/* Compact Country Selector */}
+                                    <div className="relative flex-1">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">
+                                            🌐 {t('statsPage.countrySelect', '국가 선택')}
+                                        </label>
+                                        <button type="button"
+                                            onClick={() => setForm(prev => ({ ...prev, _showCountryPicker: !prev._showCountryPicker }))}
+                                            className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-emerald-400 transition-colors text-sm font-bold text-gray-800 dark:text-gray-200"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span className="text-lg">{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🏳️'}</span>
+                                                <span>{HOST_COUNTRIES.find(c => c.code === selectedCountry)?.name || selectedCountry}</span>
+                                            </span>
+                                            <ChevronDown size={16} className={`text-gray-400 transition-transform ${form._showCountryPicker ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        {form._showCountryPicker && (
+                                            <div className="absolute z-10 mt-1 left-0 right-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl max-h-48 overflow-y-auto">
+                                                {HOST_COUNTRIES.map(c => (
+                                                    <button
+                                                        key={c.code}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (selectedCountry !== c.code) {
+                                                                setSelectedCountry(c.code);
+                                                                setForm(prev => ({ ...prev, region: '', region_detail: '', _showCountryPicker: false }));
+                                                            } else {
+                                                                setForm(prev => ({ ...prev, _showCountryPicker: false }));
+                                                            }
+                                                        }}
+                                                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${selectedCountry === c.code
+                                                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold'
+                                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                                            }`}
+                                                    >
+                                                        <span className="text-lg">{c.flag}</span>
+                                                        <span className="flex-1">{c.name}</span>
+                                                        {selectedCountry === c.code && <Check size={14} className="text-emerald-600" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* File Upload Area (Drag & Drop) */}
+                                <div
+                                    className={`relative border-2 border-dashed rounded-2xl p-5 text-center transition-all cursor-pointer ${dragOver ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/30 scale-[1.01]' : 'border-gray-200 dark:border-gray-600 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10 hover:border-indigo-300 hover:from-indigo-50 hover:to-purple-50'}`}
+                                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
+                                    onDrop={(e) => {
+                                        e.preventDefault(); e.stopPropagation(); setDragOver(false);
+                                        const files = e.dataTransfer?.files;
+                                        if (files && files.length > 0) {
+                                            const file = files[0];
+                                            setShowForm(false);
+                                            resetForm();
+                                            startTransition(() => { setActiveTab('upload'); });
+                                            setTimeout(() => handleFileParse(file), 100);
+                                        }
+                                    }}
+                                    onClick={() => {
+                                        // Create a temporary file input for the modal
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = '.xlsx,.xls,.csv';
+                                        input.onchange = (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setShowForm(false);
+                                                resetForm();
+                                                startTransition(() => { setActiveTab('upload'); });
+                                                setTimeout(() => handleFileParse(file), 100);
+                                            }
+                                        };
+                                        input.click();
+                                    }}
+                                >
+                                    <div className="flex items-center justify-center gap-4 pointer-events-none">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200/50 flex-shrink-0">
+                                            <FolderUp className="text-white" size={22} />
+                                        </div>
+                                        <div className="text-left">
+                                            <h4 className="font-extrabold text-gray-800 dark:text-white text-sm">
+                                                {t('statsPage.uploadDragTitle', '파일을 드래그하거나 클릭하세요')}
+                                            </h4>
+                                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                                Excel (.xlsx, .xls) · CSV {t('statsPage.fileSupported', '파일 지원')}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -5903,6 +8466,129 @@ ${productSection}
                                     </div>
                                 </div>
 
+                                {/* Extended Fields — Collapsible */}
+                                <div className="border border-gray-200 dark:border-gray-600 rounded-2xl overflow-hidden">
+                                    <button type="button" onClick={() => setShowExtendedFields(!showExtendedFields)}
+                                        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                        <span className="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                            📋 {t('statsPage.detailedData', '상세 데이터 (엑셀 매핑 필드)')}
+                                            {Object.entries(form).filter(([k, v]) => ['product_name', 'sku', 'brand', 'cost_price', 'order_number', 'sales_channel', 'platform', 'quantity_sold'].includes(k) && v).length > 0 && (
+                                                <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold">
+                                                    {Object.entries(form).filter(([k, v]) => ['product_name', 'sku', 'brand', 'cost_price', 'order_number', 'sales_channel', 'platform', 'quantity_sold', 'option_info', 'discount_amount', 'tax_amount', 'shipping_cost', 'refund_amount', 'commission_fee', 'net_revenue', 'profit_amount', 'payment_method', 'store_name', 'staff_name', 'customer_name'].includes(k) && v).length}{t('statsPage.fieldsEntered', '개 입력')}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <ChevronDown size={16} className={`text-gray-400 transition-transform ${showExtendedFields ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showExtendedFields && (
+                                        <div className="p-4 space-y-4 border-t border-gray-200 dark:border-gray-600">
+                                            {/* Product Info */}
+                                            <div>
+                                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-2">📦 {t('statsPage.productInfoLabel', '상품 정보')}</p>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.productNameLabel', '상품명')}</label>
+                                                        <input type="text" value={form.product_name} onChange={e => setForm({ ...form, product_name: e.target.value })}
+                                                            placeholder={t('statsPage.productNameLabel', '상품명')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.skuLabel', 'SKU / 바코드')}</label>
+                                                        <input type="text" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })}
+                                                            placeholder="SKU" className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.brandLabel', '브랜드')}</label>
+                                                        <input type="text" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })}
+                                                            placeholder={t('statsPage.brandLabel', '브랜드')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.optionLabel', '옵션')}</label>
+                                                        <input type="text" value={form.option_info} onChange={e => setForm({ ...form, option_info: e.target.value })}
+                                                            placeholder={t('statsPage.optionPlaceholder', '색상/사이즈')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.quantityLabel', '판매수량')}</label>
+                                                        <NumberInput value={form.quantity_sold} onChange={val => setForm({ ...form, quantity_sold: val })}
+                                                            placeholder="0" className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Financial Info */}
+                                            <div>
+                                                <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-2">💰 {t('statsPage.financialInfoLabel', '금액 정보')} ({countryCurrencySymbol})</p>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {[
+                                                        { key: 'cost_price', label: t('statsPage.costPriceLabel', '원가') },
+                                                        { key: 'discount_amount', label: t('statsPage.discountLabel', '할인액') },
+                                                        { key: 'tax_amount', label: t('statsPage.taxLabel', '세금/부가세') },
+                                                        { key: 'shipping_cost', label: t('statsPage.shippingLabel', '배송비') },
+                                                        { key: 'refund_amount', label: t('statsPage.refundLabel', '환불액') },
+                                                        { key: 'commission_fee', label: t('statsPage.commissionLabel', '수수료') },
+                                                        { key: 'net_revenue', label: t('statsPage.netRevenueLabel', '순매출') },
+                                                        { key: 'profit_amount', label: t('statsPage.profitLabel', '이익') },
+                                                    ].map(f => (
+                                                        <div key={f.key}>
+                                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">{f.label}</label>
+                                                            <NumberInput value={form[f.key]} onChange={val => setForm({ ...form, [f.key]: val })}
+                                                                placeholder="0" className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Transaction Info */}
+                                            <div>
+                                                <p className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase mb-2">🧾 {t('statsPage.txInfoLabel', '거래 정보')}</p>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.paymentMethodLabel', '결제수단')}</label>
+                                                        <input type="text" value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })}
+                                                            placeholder={t('statsPage.paymentMethodPlaceholder', '카드/현금')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.orderNumLabel', '주문번호')}</label>
+                                                        <input type="text" value={form.order_number} onChange={e => setForm({ ...form, order_number: e.target.value })}
+                                                            placeholder={t('statsPage.orderNumLabel', '주문번호')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.salesChannelLabel', '판매채널')}</label>
+                                                        <input type="text" value={form.sales_channel} onChange={e => setForm({ ...form, sales_channel: e.target.value })}
+                                                            placeholder={t('statsPage.salesChannelPlaceholder', '온라인/오프라인')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.platformLabel', '플랫폼')}</label>
+                                                        <input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })}
+                                                            placeholder={t('statsPage.platformPlaceholder', 'Naver/Coupang')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Operations Info */}
+                                            <div>
+                                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-2">🏪 {t('statsPage.opsInfoLabel', '운영 정보')}</p>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.storeNameLabel', '매장명')}</label>
+                                                        <input type="text" value={form.store_name} onChange={e => setForm({ ...form, store_name: e.target.value })}
+                                                            placeholder={t('statsPage.storeNameLabel', '매장명')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.staffLabel', '담당자')}</label>
+                                                        <input type="text" value={form.staff_name} onChange={e => setForm({ ...form, staff_name: e.target.value })}
+                                                            placeholder={t('statsPage.staffLabel', '담당자')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">{t('statsPage.customerNameLabel', '고객명')}</label>
+                                                        <input type="text" value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })}
+                                                            placeholder={t('statsPage.customerNameLabel', '고객명')} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-emerald-500 outline-none text-xs" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Memo */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('statsPage.memo')}</label>
@@ -5977,18 +8663,24 @@ const RecentRecordRow = ({ record, formatRevenue, periodLabel, translateDbValue,
     </div>
 );
 
-const RecordCard = ({ record, formatRevenue, formatDateLabel, translateDbValue, onEdit, onDelete }) => {
+const RecordCard = ({ record, formatRevenue, formatDateLabel, translateDbValue, onEdit, onDelete, checked, onCheck }) => {
     const { t } = useTranslation('seller');
     const revenue = parseInt(record.monthly_revenue) || 0;
     const customers = parseInt(record.customer_count) || 0;
     const transactions = parseInt(record.transaction_count) || 0;
     const unitPrice = parseInt(record.avg_unit_price) || 0;
+    const costPrice = parseInt(record.cost_price) || 0;
     const satisfaction = parseInt(record.satisfaction) || 0;
+    const productName = record.product_name || '';
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-shadow">
+        <div className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm p-4 hover:shadow-md transition-shadow ${checked ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10' : 'border-gray-100 dark:border-gray-700'}`}>
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
+                    {onCheck && (
+                        <input type="checkbox" checked={!!checked} onChange={onCheck}
+                            className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 flex-shrink-0 mt-1 cursor-pointer" />
+                    )}
                     <div className="w-12 h-12 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/40 rounded-xl flex items-center justify-center border border-emerald-100 dark:border-emerald-800/50">
                         <Calendar size={20} className="text-emerald-600 dark:text-emerald-400" />
                     </div>
@@ -6015,22 +8707,30 @@ const RecordCard = ({ record, formatRevenue, formatDateLabel, translateDbValue, 
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-3 border border-emerald-100/50 dark:border-emerald-800/30">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-2.5 border border-emerald-100/50 dark:border-emerald-800/30">
                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mb-0.5">{t('statsPage.salesCardLabel')}</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100">{revenue > 0 ? formatRevenue(revenue) : '-'}</p>
                 </div>
-                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 border border-blue-100/50 dark:border-blue-800/30">
+                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-2.5 border border-blue-100/50 dark:border-blue-800/30">
                     <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mb-0.5">{t('statsPage.customersCardLabel')}</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100">{customers > 0 ? `${customers.toLocaleString()}${t('statsPage.peopleSuffix')}` : '-'}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-3 border border-amber-100/50 dark:border-amber-800/30">
+                <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-2.5 border border-amber-100/50 dark:border-amber-800/30">
                     <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mb-0.5">{t('statsPage.transactionsCardLabel')}</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100">{transactions > 0 ? `${transactions.toLocaleString()}${t('statsPage.transactionSuffix')}` : '-'}</p>
                 </div>
-                <div className="bg-violet-50 dark:bg-violet-900/30 rounded-xl p-3 border border-violet-100/50 dark:border-violet-800/30">
+                <div className="bg-violet-50 dark:bg-violet-900/30 rounded-xl p-2.5 border border-violet-100/50 dark:border-violet-800/30">
                     <p className="text-[10px] text-violet-600 dark:text-violet-400 font-bold mb-0.5">{t('statsPage.unitPriceCardLabel')}</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100">{unitPrice > 0 ? formatRevenue(unitPrice) : '-'}</p>
+                </div>
+                <div className="bg-pink-50 dark:bg-pink-900/30 rounded-xl p-2.5 border border-pink-100/50 dark:border-pink-800/30">
+                    <p className="text-[10px] text-pink-600 dark:text-pink-400 font-bold mb-0.5">{t('statsPage.costPriceLabel', '원가')}</p>
+                    <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100">{costPrice > 0 ? formatRevenue(costPrice) : '-'}</p>
+                </div>
+                <div className="bg-teal-50 dark:bg-teal-900/30 rounded-xl p-2.5 border border-teal-100/50 dark:border-teal-800/30">
+                    <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold mb-0.5">{t('statsPage.productNameLabel', '상품명')}</p>
+                    <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100 truncate" title={productName}>{productName || '-'}</p>
                 </div>
             </div>
 
@@ -6060,7 +8760,387 @@ const RecordCard = ({ record, formatRevenue, formatDateLabel, translateDbValue, 
     );
 };
 
-const ExpenseFormInner = ({ initial, onSave, onCancel, categories, paymentMethods, getCatLabel, formatRevenue, t }) => {
+const ExpenseFormInner = ({ initial, onSave, onCancel, categories, paymentMethods, getCatLabel, formatRevenue, selectedCountry, onCountryChange, hostCountries, countryCurrency, t }) => {
+    // ── Custom categories & payment methods from localStorage ──
+    const [customCategories, setCustomCategories] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('expense_custom_categories') || '[]'); } catch { return []; }
+    });
+    const [customPaymentMethods, setCustomPaymentMethods] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('expense_custom_payments') || '[]'); } catch { return []; }
+    });
+    const [showCustomCatInput, setShowCustomCatInput] = useState(false);
+    const [customCatName, setCustomCatName] = useState('');
+    const [showCustomPmInput, setShowCustomPmInput] = useState(false);
+    const [customPmName, setCustomPmName] = useState('');
+
+    // ── File upload state (step-based like sales upload) ──
+    const [uploadMode, setUploadMode] = useState(false);
+    const [expUploadStep, setExpUploadStep] = useState('select'); // select | mapping | importing | done
+    const [expUploadFile, setExpUploadFile] = useState(null);
+    const [expParsedHeaders, setExpParsedHeaders] = useState([]);
+    const [expParsedRows, setExpParsedRows] = useState([]);
+    const [expColumnMapping, setExpColumnMapping] = useState({});
+    const [expDragOver, setExpDragOver] = useState(false);
+    const [expImporting, setExpImporting] = useState(false);
+    const [expImportResult, setExpImportResult] = useState(null);
+    const expFileInputRef = useRef(null);
+    const [showCountryPicker, setShowCountryPicker] = useState(false);
+    const [expCountry, setExpCountry] = useState(selectedCountry || 'KR');
+
+    const EXPENSE_FIELDS = [
+        { key: '', label: t('statsPage.uploadSkip', '— 건너뛰기 —') },
+        { key: 'expense_date', label: t('statsPage.expFieldDate', '지출 날짜') },
+        { key: 'transaction_no', label: t('statsPage.expFieldTxNo', '거래 번호') },
+        { key: 'expense_class', label: t('statsPage.expFieldClass', '지출 분류') },
+        { key: 'expense_item', label: t('statsPage.expFieldItem', '지출 항목') },
+        { key: 'vendor', label: t('statsPage.expFieldVendor', '거래처') },
+        { key: 'quantity', label: t('statsPage.expFieldQty', '수량') },
+        { key: 'unit', label: t('statsPage.expFieldUnit', '단위') },
+        { key: 'unit_price', label: t('statsPage.expFieldUnitPrice', '단가') },
+        { key: 'supply_amount', label: t('statsPage.expFieldSupply', '공급가액') },
+        { key: 'vat', label: t('statsPage.expFieldVat', '부가세') },
+        { key: 'amount', label: t('statsPage.expFieldAmount', '합계금액') },
+        { key: 'category', label: t('statsPage.expFieldCategory', '카테고리') },
+        { key: 'payment_method', label: t('statsPage.expFieldPayment', '결제수단') },
+        { key: 'memo', label: t('statsPage.expFieldMemo', '비고') },
+    ];
+
+    // ── Auto-map expense columns ──
+    const autoMapExpenseColumns = (headers) => {
+        // Reuse the same comprehensive keyword dictionary
+        const FIELD_KW = {
+            expense_date: { exact: ['date', '날짜', '일자', '일시', '지출일', '지출일자', '사용일', '사용일자', '거래일', '거래일자', '결제일', '결제일자', '발생일', '이용일', '이용일자', '승인일', '승인일자', '매입일'], partial: ['date', '날짜', '일자', '일시'], exclude: ['업데이트', 'update'] },
+            transaction_no: { exact: ['거래번호', '전표번호', '승인번호', '카드승인번호', '영수증번호', 'transaction_no', 'tx_no', 'receipt_no', 'approval_no'], partial: ['거래번호', '전표', '승인번호', '영수증', 'transaction', 'receipt'], exclude: [] },
+            expense_class: { exact: ['분류', '지출분류', '비용분류', '대분류', '중분류', 'class', 'classification', 'type', '유형', '구분', '지출구분', '비용구분'], partial: ['분류', 'class', 'type', '유형'], exclude: ['항목', 'item', '품목'] },
+            expense_item: { exact: ['항목', '지출항목', '비용항목', '품목', '품명', '상품명', '물품명', '내역', '거래내역', '지출내역', '사용내역', '적요', 'item', 'description', 'particular', '세부내역', '세부항목'], partial: ['항목', '품목', '품명', '내역', '적요', 'item', 'particular', 'description'], exclude: [] },
+            vendor: { exact: ['거래처', '거래처명', '업체', '업체명', '상호', '상호명', '사용처', '이용처', '가맹점', '가맹점명', '매장', '매장명', 'vendor', 'supplier', 'merchant', 'store', '점포', '점포명'], partial: ['거래처', '업체', '상호', '사용처', '이용처', '가맹점', 'vendor', 'supplier', 'merchant'], exclude: [] },
+            quantity: { exact: ['수량', 'qty', 'quantity', '건수', '매수', '개수'], partial: ['수량', 'qty', 'quantity'], exclude: ['단가', 'price', '금액'] },
+            unit: { exact: ['단위', 'unit'], partial: ['단위'], exclude: ['단가', 'price', '금액'] },
+            unit_price: { exact: ['단가', '개당가격', 'unit_price', 'unitprice'], partial: ['단가', 'unit.*price'], exclude: [] },
+            supply_amount: { exact: ['공급가액', '공급가', '공급금액', 'supply_amount', 'net_amount', '과세표준'], partial: ['공급가', 'supply', 'net.*amount'], exclude: [] },
+            vat: { exact: ['부가세', '부가가치세', 'vat', '세액', 'tax', '세금'], partial: ['부가세', 'vat', '세액'], exclude: ['공급'] },
+            amount: { exact: ['합계', '합계금액', '총액', '총금액', '금액', '결제금액', '이용금액', '사용금액', '지출금액', '결제액', '청구금액', '출금액', 'total', 'amount', '원화금액', '원화', '매입금액', '승인금액', '지급액', '비용', '지출액', 'price', 'cost', 'expense', 'total_amount', '카드사용금액', '카드이용금액'], partial: ['합계', '총액', '금액', '결제금', '이용금', '사용금', '지출금', '출금', '청구금', 'total', 'amount', '비용', 'price', 'cost', 'expense'], exclude: ['공급가', '부가세', '단가', '할인', 'discount', '수량'] },
+            category: { exact: ['카테고리', 'category', '비용카테고리', '지출카테고리', '계정과목', '계정', '과목'], partial: ['카테고리', 'category', '계정.*과목', '계정'], exclude: [] },
+            payment_method: { exact: ['결제수단', '결제방법', '지불방법', '지불수단', 'payment_method', 'payment', '카드종류', '카드사', '결제유형', '지급방법', '출금수단'], partial: ['결제수단', '결제방법', '지불', 'payment', '카드종류', '카드사'], exclude: ['금액', 'amount', '일자', 'date'] },
+            memo: { exact: ['메모', '비고', '비고사항', '참고', '참고사항', 'memo', 'note', 'notes', 'remark', 'remarks', '설명', '기타', '코멘트', 'comment'], partial: ['메모', '비고', '참고', 'memo', 'note', 'remark', '코멘트', 'comment'], exclude: [] },
+        };
+        const mapping = {};
+        const usedFields = new Set();
+        // Phase 1: Exact match
+        headers.forEach((h, idx) => {
+            const hl = h.toLowerCase().trim().replace(/[\s_\-]+/g, '');
+            for (const [field, kw] of Object.entries(FIELD_KW)) {
+                if (usedFields.has(field)) continue;
+                if (kw.exact.some(k => hl === k.toLowerCase().replace(/[\s_\-]+/g, ''))) {
+                    if (!kw.exclude.some(ex => hl.includes(ex.toLowerCase()))) {
+                        mapping[idx] = field;
+                        usedFields.add(field);
+                        break;
+                    }
+                }
+            }
+        });
+        // Phase 2: Partial match
+        headers.forEach((h, idx) => {
+            if (mapping[idx]) return;
+            const hl = h.toLowerCase().trim();
+            let bestField = null, bestScore = 0;
+            for (const [field, kw] of Object.entries(FIELD_KW)) {
+                if (usedFields.has(field)) continue;
+                if (kw.exclude.some(ex => hl.includes(ex.toLowerCase()))) continue;
+                for (const p of kw.partial) {
+                    try { if (new RegExp(p, 'i').test(hl) && p.length > bestScore) { bestScore = p.length; bestField = field; } }
+                    catch { if (hl.includes(p.toLowerCase()) && p.length > bestScore) { bestScore = p.length; bestField = field; } }
+                }
+            }
+            if (bestField) { mapping[idx] = bestField; usedFields.add(bestField); }
+        });
+        return mapping;
+    };
+
+    // ── Parse file for expense upload (multi-sheet merge) ──
+    const handleExpenseFileParse = async (file) => {
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls', 'csv'].includes(ext)) return;
+
+        try {
+            setExpUploadFile(file);
+            const data = await file.arrayBuffer();
+            const wb = XLSX.read(data, { type: 'array', cellDates: true });
+
+            // Merge all sheets
+            let mergedHeaders = null;
+            let mergedRows = [];
+
+            wb.SheetNames.forEach(sheetName => {
+                const ws = wb.Sheets[sheetName];
+                const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+                if (rawRows.length < 2) return;
+
+                // Find header row (first row with 2+ non-empty cells)
+                let headerIdx = 0;
+                for (let i = 0; i < Math.min(rawRows.length, 5); i++) {
+                    if (rawRows[i].filter(c => c !== '').length >= 2) { headerIdx = i; break; }
+                }
+
+                const sheetHeaders = rawRows[headerIdx].map(h => String(h).trim());
+                const sheetRows = rawRows.slice(headerIdx + 1).filter(r => r.some(c => c !== ''));
+
+                if (!mergedHeaders) {
+                    mergedHeaders = sheetHeaders;
+                    mergedRows = [...sheetRows];
+                } else {
+                    // Map columns from this sheet to merged headers
+                    sheetHeaders.forEach(h => {
+                        if (!mergedHeaders.includes(h)) mergedHeaders.push(h);
+                    });
+                    const colMap = sheetHeaders.map(h => mergedHeaders.indexOf(h));
+                    sheetRows.forEach(row => {
+                        const mapped = new Array(mergedHeaders.length).fill('');
+                        row.forEach((val, idx) => {
+                            if (colMap[idx] >= 0) mapped[colMap[idx]] = val;
+                        });
+                        mergedRows.push(mapped);
+                    });
+                }
+            });
+
+            if (!mergedHeaders || mergedRows.length === 0) return;
+
+            console.log(`[ExpenseUpload] Merged ${wb.SheetNames.length} sheets: ${mergedHeaders.length} cols, ${mergedRows.length} rows`);
+            setExpParsedHeaders(mergedHeaders);
+            setExpParsedRows(mergedRows);
+            setExpColumnMapping(autoMapExpenseColumns(mergedHeaders));
+            setExpUploadStep('mapping');
+        } catch (err) {
+            console.error('Expense file parse error:', err);
+        }
+    };
+
+    // ── Reset expense upload ──
+    const resetExpUpload = () => {
+        setExpUploadStep('select');
+        setExpUploadFile(null);
+        setExpParsedHeaders([]);
+        setExpParsedRows([]);
+        setExpColumnMapping({});
+        setExpImportResult(null);
+    };
+
+    // ── Category keyword dictionary for auto-classification ──
+    const CATEGORY_KEYWORDS = {
+        materials: [
+            '재료', '원재료', '원두', '식자재', '부자재', '원료', '소재', '자재',
+            '커피콩', '우유', '시럽', '설탕', '밀가루', '쌀', '고기', '야채', '과일', '생수',
+            '종이컵', '빨대', '리드', '냅킨', '티슈', '세제', '세정제', '일회용',
+            '원자재', '재고', '매입', '입고', '도매', '구매자재',
+            'material', 'ingredient', 'raw', 'supplies', 'wholesale', 'purchase',
+            '반제품', '가공재료', '농산물', '수산물', '축산물', '유제품', '양념', '조미료',
+            '제빵재료', '토핑', '크림', '버터', '계란', '달걀', '오일',
+        ],
+        packaging: [
+            '포장', '박스', '봉투', '용기', '팩', '패킹', '포장재', '포장비',
+            '비닐', '랩', '테이프', '스티커', '라벨', '태그', '리본', '쇼핑백',
+            '종이백', '에어캡', '완충재', '택배박스', '종이상자', '선물포장',
+            'packaging', 'package', 'wrapping', 'box', 'container', 'bag', 'label',
+            '캐리어', '트레이', '도시락용기', '컵홀더', '슬리브',
+        ],
+        shipping: [
+            '배송', '택배', '배달', '운송', '운반', '발송', '우편', '퀵', '퀵서비스',
+            '화물', '물류', '해외배송', '국제배송', '착불', '선불', '반품배송',
+            '배송대행', '풀필먼트', '우체국', 'CJ', '한진', '로젠', '롯데택배',
+            'shipping', 'delivery', 'freight', 'postage', 'courier', 'logistics',
+            '배달대행', '배민', '요기요', '쿠팡이츠', '배달비', '배달수수료',
+        ],
+        booth_rental: [
+            '임대', '부스', '매장', '월세', '임차', '렌탈', '공간', '사무실',
+            '보증금', '관리비', '공용관리비', '건물관리', '시설사용', '장소대여',
+            '플리마켓', '팝업', '팝업스토어', '전시', '행사장', '마켓참가',
+            '주방임대', '공유주방', '공유오피스', '코워킹', '창고', '창고임대',
+            'rent', 'booth', 'lease', 'store', 'rental', 'office', 'warehouse',
+            '부동산', '건물', '상가', '점포임대', '시장',
+        ],
+        transport: [
+            '교통', '주차', '유류', '기름', '주유', '톨게이트', '택시', '버스',
+            '지하철', 'KTX', 'SRT', '기차', '항공', '비행기', '출장교통',
+            '하이패스', '주차비', '주차요금', '통행료', '차량유지', '자동차',
+            '렌트카', '차량렌트', '대리운전', '카풀', '오토바이', '킥보드',
+            'transport', 'parking', 'fuel', 'gas', 'taxi', 'fare', 'travel',
+            '경유', '휘발유', 'LPG', '충전', '전기차충전', '타이어', '세차',
+        ],
+        advertising: [
+            '광고', '마케팅', '홍보', '프로모션', '전단', '블로그', '인스타',
+            '페이스북', '구글', '네이버', '카카오', 'SNS', '온라인광고',
+            '오프라인광고', '현수막', '배너', '간판', '전단지', '명함', '인쇄',
+            '이벤트', '쿠폰', '할인행사', '판촉', '판촉물', '샘플', '시식',
+            'advertising', 'marketing', 'ad', 'promo', 'promotion', 'campaign',
+            '브랜딩', '디자인', '로고', '사진촬영', '영상촬영', '콘텐츠',
+        ],
+        commission: [
+            '수수료', '플랫폼', '중개', '카드수수료', '결제수수료', 'PG수수료',
+            '배달앱수수료', '마켓수수료', '판매수수료', '중개수수료', '거래수수료',
+            '가맹수수료', '네이버수수료', '쿠팡수수료', '카카오수수료',
+            '은행수수료', '송금수수료', '환전수수료', '이체수수료',
+            'commission', 'fee', 'platform', 'transaction fee', 'service fee',
+            '대행수수료', '정산수수료', '결제대행', '밴수수료', 'VAN',
+        ],
+        labor: [
+            '인건', '급여', '임금', '아르바이트', '알바', '직원', '근로', '용역',
+            '일용직', '파트타임', '시급', '월급', '상여', '보너스', '퇴직금',
+            '4대보험', '사회보험', '국민연금', '건강보험', '고용보험', '산재보험',
+            '인력', '파견', '외주', '프리랜서', '강사비', '강연비', '자문료',
+            'labor', 'wage', 'salary', 'payroll', 'staff', 'employee', 'worker',
+            '야근수당', '주휴수당', '연장근로', '교육비', '복리후생', '식대지원',
+        ],
+        equipment: [
+            '장비', '소모품', '비품', '도구', '공구', '기계', '수리', '유지',
+            '설비', '시설', '인테리어', '리모델링', '집기', '가구', '선반',
+            'POS', '컴퓨터', '노트북', '프린터', '모니터', '키보드', '마우스',
+            '에어컨', '냉장고', '냉동고', '오븐', '커피머신', '에스프레소',
+            '그라인더', '블렌더', '믹서기', '정수기', '제빙기', 'CCTV', '카메라',
+            'equipment', 'tool', 'supply', 'maintenance', 'repair', 'fixture',
+            '전구', '조명', 'LED', '배터리', '충전기', '케이블', '어댑터', '문구',
+        ],
+        food: [
+            '식비', '식대', '점심', '저녁', '간식', '음료', '커피', '다과',
+            '회식', '야식', '출장식비', '직원식대', '배달음식', '음식점', '식당',
+            '카페', '편의점', '마트', '외식', '조식', '브런치', '제과', '베이커리',
+            '분식', '패스트푸드', '한식', '중식', '일식', '양식', '뷔페',
+            'food', 'meal', 'lunch', 'dinner', 'snack', 'beverage', 'catering',
+            '회의다과', '손님접대', '접대비', '경조사', '축의금', '조의금',
+        ],
+        communication: [
+            '통신', '전화', '인터넷', '문자', 'SMS', '데이터', '와이파이',
+            'WiFi', 'LTE', '5G', '핸드폰', '휴대폰', '스마트폰', '유선전화',
+            '팩스', '우편요금', '등기', '서버', '호스팅', '도메인', '클라우드',
+            '소프트웨어', '앱', '구독', '라이선스', '이메일', '전기', '전기요금',
+            '수도', '수도요금', '가스', '가스요금', '공과금', '관리비',
+            'telecom', 'phone', 'internet', 'communication', 'utility',
+            'SaaS', '구독료', '월정액', '정기결제',
+        ],
+    };
+
+    const classifyExpenseCategory = (val, cats, getCatLbl) => {
+        if (!val) return 'other';
+        const vl = val.toLowerCase().trim();
+        // 1) Exact match on key or label
+        const exactMatch = cats.find(c => c.key === vl || getCatLbl(c.key).toLowerCase() === vl);
+        if (exactMatch) return exactMatch.key;
+        // 2) Keyword-based fuzzy match
+        for (const [catKey, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+            if (keywords.some(kw => vl.includes(kw.toLowerCase()))) return catKey;
+        }
+        // 3) Fallback
+        return 'other';
+    };
+
+    const classifyPaymentMethod = (val, pms) => {
+        if (!val) return 'other';
+        const vl = val.toLowerCase().trim();
+        // Exact match
+        const exact = pms.find(p => p.key === vl || p.label?.toLowerCase() === vl);
+        if (exact) return exact.key;
+        // Keyword match
+        if (/현금|cash/i.test(vl)) return 'cash';
+        if (/카드|card|신용|체크/i.test(vl)) return 'card';
+        if (/이체|transfer|송금|계좌|banking/i.test(vl)) return 'transfer';
+        return 'other';
+    };
+
+    // ── Import expense data ──
+    const handleExpenseImport = async () => {
+        const mappedCols = Object.entries(expColumnMapping).filter(([, v]) => v);
+        if (mappedCols.length === 0 || expParsedRows.length === 0) return;
+
+        setExpUploadStep('importing');
+        setExpImporting(true);
+
+        let success = 0, fail = 0, errors = [];
+        const categoryStats = {};
+        const insertedRecords = [];
+
+        for (let ri = 0; ri < expParsedRows.length; ri++) {
+            const row = expParsedRows[ri];
+            const record = { id: 0, expense_date: '', amount: 0, category: 'other', payment_method: 'other', memo: '' };
+            let itemLabel = '';
+
+            mappedCols.forEach(([colIdx, field]) => {
+                const val = String(row[parseInt(colIdx)] ?? '').trim();
+                if (field === 'expense_date') {
+                    if (typeof row[parseInt(colIdx)] === 'number') {
+                        const d = new Date((row[parseInt(colIdx)] - 25569) * 86400 * 1000);
+                        record.expense_date = d.toISOString().slice(0, 10);
+                    } else if (val) {
+                        const d = new Date(val.replace(/\//g, '-'));
+                        if (!isNaN(d.getTime())) record.expense_date = d.toISOString().slice(0, 10);
+                        else record.expense_date = val;
+                    }
+                } else if (field === 'amount') {
+                    record.amount = parseInt(String(val).replace(/[^0-9-]/g, '')) || 0;
+                } else if (field === 'category') {
+                    record.category = classifyExpenseCategory(val, categories, getCatLabel);
+                } else if (field === 'expense_class' || field === 'expense_item') {
+                    if (field === 'expense_item') itemLabel = val;
+                    if (record.category === 'other') {
+                        record.category = classifyExpenseCategory(val, categories, getCatLabel);
+                    }
+                } else if (field === 'payment_method') {
+                    record.payment_method = classifyPaymentMethod(val, paymentMethods);
+                } else if (field === 'memo') {
+                    record.memo = val;
+                } else {
+                    if (val && field !== 'transaction_no' && field !== 'quantity' && field !== 'unit' && field !== 'unit_price' && field !== 'supply_amount' && field !== 'vat' && field !== 'vendor') {
+                        record.memo = record.memo ? `${record.memo} | ${val}` : val;
+                    }
+                }
+            });
+
+            if (!record.expense_date) record.expense_date = new Date().toISOString().slice(0, 10);
+            if (record.amount <= 0) { fail++; errors.push({ row: ri + 2, error: t('statsPage.expErrNoAmount', '금액 없음') }); continue; }
+
+            // Track category stats
+            categoryStats[record.category] = (categoryStats[record.category] || 0) + 1;
+
+            try {
+                await onSave(record, true);
+                success++;
+                insertedRecords.push({
+                    row: ri + 2,
+                    date: record.expense_date,
+                    item: itemLabel || record.memo?.split('|')[0]?.trim() || '',
+                    amount: record.amount,
+                    category: record.category,
+                });
+            } catch {
+                fail++;
+                errors.push({ row: ri + 2, error: t('statsPage.serverError', '서버 에러') });
+            }
+        }
+
+        setExpImportResult({
+            inserted: success, skipped: fail, total: expParsedRows.length, errors,
+            categoryStats, insertedRecords,
+        });
+        setExpImporting(false);
+        setExpUploadStep('done');
+    };
+
+    // Merge custom categories with defaults
+    const allCategories = useMemo(() => {
+        const customs = customCategories.map(c => ({
+            key: `custom_${c}`, icon: FileText, color: 'from-slate-400 to-slate-600', bg: 'bg-slate-50', text: 'text-slate-600', customLabel: c
+        }));
+        return [...categories, ...customs];
+    }, [categories, customCategories]);
+
+    const allPaymentMethods = useMemo(() => {
+        const customs = customPaymentMethods.map(p => ({
+            key: `custom_${p}`, icon: Wallet, label: p
+        }));
+        return [...paymentMethods, ...customs];
+    }, [paymentMethods, customPaymentMethods]);
+
     const [formData, setFormData] = useState({
         id: initial?.id || 0,
         expense_date: initial?.expense_date || new Date().toISOString().slice(0, 10),
@@ -6070,6 +9150,36 @@ const ExpenseFormInner = ({ initial, onSave, onCancel, categories, paymentMethod
         memo: initial?.memo || '',
     });
 
+    // ── Add custom category ──
+    const addCustomCategory = () => {
+        const name = customCatName.trim();
+        if (!name || customCategories.includes(name)) return;
+        const updated = [...customCategories, name];
+        setCustomCategories(updated);
+        localStorage.setItem('expense_custom_categories', JSON.stringify(updated));
+        setFormData(f => ({ ...f, category: `custom_${name}` }));
+        setCustomCatName('');
+        setShowCustomCatInput(false);
+    };
+
+    // ── Add custom payment method ──
+    const addCustomPaymentMethod = () => {
+        const name = customPmName.trim();
+        if (!name || customPaymentMethods.includes(name)) return;
+        const updated = [...customPaymentMethods, name];
+        setCustomPaymentMethods(updated);
+        localStorage.setItem('expense_custom_payments', JSON.stringify(updated));
+        setFormData(f => ({ ...f, payment_method: `custom_${name}` }));
+        setCustomPmName('');
+        setShowCustomPmInput(false);
+    };
+
+    // ── Get label for any category (including custom) ──
+    const getAnyCatLabel = (key) => {
+        if (key?.startsWith('custom_')) return key.replace('custom_', '');
+        return getCatLabel(key);
+    };
+
     const handleSubmit = () => {
         if (!formData.expense_date || !formData.amount || parseInt(formData.amount) <= 0) return;
         onSave({ ...formData, amount: parseInt(formData.amount) });
@@ -6077,83 +9187,465 @@ const ExpenseFormInner = ({ initial, onSave, onCancel, categories, paymentMethod
 
     return (
         <div className="p-5 space-y-4">
-            {/* Date */}
-            <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">{t('statsPage.expDate', '날짜')}</label>
-                <input type="date" value={formData.expense_date}
-                    onChange={e => setFormData(f => ({ ...f, expense_date: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium" />
-            </div>
-            {/* Amount */}
-            <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">{t('statsPage.expAmount', '금액')}</label>
-                <NumberInput value={formData.amount} placeholder="0"
-                    onChange={val => setFormData(f => ({ ...f, amount: val }))}
-                    className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm font-bold text-right" />
-            </div>
-            {/* Category */}
-            <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2">{t('statsPage.expCategory', '카테고리')}</label>
-                <div className="grid grid-cols-4 gap-2">
-                    {categories.map(cat => {
-                        const CatIcon = cat.icon;
-                        const selected = formData.category === cat.key;
-                        return (
-                            <button key={cat.key}
-                                onClick={() => setFormData(f => ({ ...f, category: cat.key }))}
-                                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl text-[10px] font-bold transition-all border ${selected
-                                    ? `bg-gradient-to-br ${cat.color} text-white border-transparent shadow-md`
-                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                                    }`}
-                            >
-                                <CatIcon size={16} />
-                                <span className="truncate w-full text-center">{getCatLabel(cat.key)}</span>
-                            </button>
-                        );
-                    })}
+            {/* ── Country Selector (same as data add form) ── */}
+            {hostCountries && (
+                <div className="relative">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">
+                        🌐 {t('statsPage.countrySelect', '국가 선택')}
+                    </label>
+                    <button type="button"
+                        onClick={() => setShowCountryPicker(!showCountryPicker)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 hover:border-violet-400 transition-colors text-sm font-bold text-gray-800"
+                    >
+                        <span className="flex items-center gap-2">
+                            <span className="text-lg">{hostCountries.find(c => c.code === expCountry)?.flag || '🏳️'}</span>
+                            <span>{hostCountries.find(c => c.code === expCountry)?.name || expCountry}</span>
+                        </span>
+                        <ChevronDown size={16} className={`text-gray-400 transition-transform ${showCountryPicker ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showCountryPicker && (
+                        <div className="absolute z-10 mt-1 left-0 right-0 bg-white rounded-xl border border-gray-200 shadow-xl max-h-48 overflow-y-auto">
+                            {hostCountries.map(c => (
+                                <button
+                                    key={c.code}
+                                    type="button"
+                                    onClick={() => {
+                                        setExpCountry(c.code);
+                                        if (onCountryChange) onCountryChange(c.code);
+                                        setShowCountryPicker(false);
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${expCountry === c.code
+                                        ? 'bg-violet-50 text-violet-700 font-bold'
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <span className="text-lg">{c.flag}</span>
+                                    <span className="flex-1">{c.name}</span>
+                                    {expCountry === c.code && <Check size={14} className="text-violet-600" />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            </div>
-            {/* Payment Method */}
-            <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2">{t('statsPage.expPayment', '결제수단')}</label>
-                <div className="flex gap-2">
-                    {paymentMethods.map(pm => {
-                        const PMIcon = pm.icon;
-                        const selected = formData.payment_method === pm.key;
-                        return (
-                            <button key={pm.key}
-                                onClick={() => setFormData(f => ({ ...f, payment_method: pm.key }))}
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all border ${selected
-                                    ? 'bg-violet-600 text-white border-violet-600'
-                                    : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
-                                    }`}
-                            >
-                                <PMIcon size={14} />
-                                {pm.label}
-                            </button>
-                        );
-                    })}
+            )}
+
+            {/* ── Inline File Upload Area (not a separate tab) ── */}
+            {!initial && (
+                <div
+                    className={`relative border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${expDragOver ? 'border-violet-500 bg-violet-50 scale-[1.01]' : 'border-gray-200 bg-gray-50 hover:border-violet-300 hover:bg-violet-50/50'}`}
+                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setExpDragOver(true); }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setExpDragOver(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setExpDragOver(false); }}
+                    onDrop={(e) => {
+                        e.preventDefault(); e.stopPropagation(); setExpDragOver(false);
+                        const files = e.dataTransfer?.files;
+                        if (files && files.length > 0) { setUploadMode(true); handleExpenseFileParse(files[0]); }
+                    }}
+                    onClick={() => expFileInputRef.current?.click()}
+                >
+                    <input ref={expFileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) { setUploadMode(true); handleExpenseFileParse(file); }
+                            e.target.value = '';
+                        }} />
+                    <div className="flex items-center gap-4 pointer-events-none">
+                        <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <FolderUp className="text-white" size={22} />
+                        </div>
+                        <div className="text-left">
+                            <h4 className="font-bold text-gray-900 text-sm">{t('statsPage.uploadDragTitle', '파일을 드래그하거나 클릭하세요')}</h4>
+                            <p className="text-xs text-gray-500">Excel (.xlsx, .xls) · CSV {t('statsPage.expFileSupport', '파일 지원')}</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            {/* Memo */}
-            <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">{t('statsPage.expMemo', '메모')}</label>
-                <textarea value={formData.memo} placeholder={t('statsPage.expMemo', '메모')}
-                    onChange={e => setFormData(f => ({ ...f, memo: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm resize-none h-20" />
-            </div>
-            {/* Actions */}
-            <div className="flex gap-3 pt-2">
-                <button onClick={handleSubmit}
-                    className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-bold text-sm hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2">
-                    <Save size={16} />
-                    {t('statsPage.expSave', '저장')}
-                </button>
-                <button onClick={onCancel}
-                    className="px-5 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">
-                    {t('statsPage.expCancel', '취소')}
-                </button>
-            </div>
+            )}
+
+            {/* ═══ BULK UPLOAD STEPS (appear when file is parsed) ═══ */}
+            {uploadMode && !initial && expUploadStep !== 'select' ? (
+                <div className="space-y-3">
+                    {/* Step: File Select */}
+                    {expUploadStep === 'select' && (
+                        <div
+                            className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer ${expDragOver ? 'border-violet-500 bg-violet-50 scale-[1.01]' : 'border-gray-200 bg-gray-50 hover:border-violet-300 hover:bg-violet-50/50'}`}
+                            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setExpDragOver(true); }}
+                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setExpDragOver(true); }}
+                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) setExpDragOver(false); }}
+                            onDrop={(e) => {
+                                e.preventDefault(); e.stopPropagation(); setExpDragOver(false);
+                                const files = e.dataTransfer?.files;
+                                if (files && files.length > 0) handleExpenseFileParse(files[0]);
+                            }}
+                            onClick={() => expFileInputRef.current?.click()}
+                        >
+                            <input ref={expFileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleExpenseFileParse(file);
+                                    e.target.value = '';
+                                }} />
+                            <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl mx-auto mb-2.5 flex items-center justify-center pointer-events-none">
+                                <FolderUp className="text-white" size={28} />
+                            </div>
+                            <h3 className="font-extrabold text-gray-900 text-lg mb-2 pointer-events-none">
+                                {t('statsPage.uploadDragTitle', '파일을 드래그하거나 클릭하세요')}
+                            </h3>
+                            <p className="text-sm text-gray-500 pointer-events-none">
+                                Excel (.xlsx, .xls) · CSV {t('statsPage.expFileSupport', '파일 지원')}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Step: Column Mapping */}
+                    {expUploadStep === 'mapping' && (
+                        <div className="space-y-4">
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                <div className="flex items-center justify-between mb-2.5">
+                                    <h3 className="font-extrabold text-gray-900 flex items-center gap-2">
+                                        <FileText size={16} className="text-violet-600" />
+                                        {t('statsPage.uploadMappingTitle', '컬럼 매핑')}
+                                    </h3>
+                                    <button onClick={resetExpUpload} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                                        <X size={12} /> {t('statsPage.cancel')}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-2.5">
+                                    {t('statsPage.uploadMappingDesc', '파일: ')}{expUploadFile?.name} — {expParsedRows.length}{t('statsPage.uploadRows', '행 감지')}
+                                </p>
+
+                                {/* Column mapping table */}
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="border-b border-gray-100">
+                                                <th className="text-left py-2 pr-3 text-gray-500 font-bold">{t('statsPage.uploadFileCol', '파일 컬럼')}</th>
+                                                <th className="text-left py-2 pr-3 text-gray-500 font-bold">{t('statsPage.uploadSample', '데이터 샘플')}</th>
+                                                <th className="text-left py-2 text-gray-500 font-bold">{t('statsPage.uploadMapTo', '매핑 대상')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {expParsedHeaders.map((header, idx) => (
+                                                <tr key={idx} className="border-b border-gray-50">
+                                                    <td className="py-2 pr-3 font-bold text-gray-900">{header}</td>
+                                                    <td className="py-2 pr-3 text-gray-400 truncate max-w-[150px]">
+                                                        {expParsedRows[0]?.[idx] instanceof Date
+                                                            ? expParsedRows[0][idx].toISOString().slice(0, 10)
+                                                            : String(expParsedRows[0]?.[idx] ?? '').slice(0, 30)}
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <select
+                                                            value={expColumnMapping[idx] || ''}
+                                                            onChange={(e) => setExpColumnMapping(prev => ({ ...prev, [idx]: e.target.value }))}
+                                                            className={`w-full px-2 py-1.5 rounded-lg border text-xs font-medium ${expColumnMapping[idx] ? 'bg-violet-50 border-violet-200 text-violet-700'
+                                                                : 'bg-gray-50 border-gray-200 text-gray-500'
+                                                                }`}
+                                                        >
+                                                            {EXPENSE_FIELDS.map(f => (
+                                                                <option key={f.key} value={f.key}>{f.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Preview & Actions */}
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                                <h3 className="font-extrabold text-gray-900 text-sm mb-3">
+                                    {t('statsPage.uploadPreview', '미리보기')} ({Math.min(expParsedRows.length, 5)}/{expParsedRows.length}{t('statsPage.uploadRows', '행')})
+                                </h3>
+                                <div className="overflow-x-auto mb-2.5">
+                                    <table className="w-full text-[11px]">
+                                        <thead>
+                                            <tr className="bg-gray-50">
+                                                {Object.entries(expColumnMapping).filter(([, v]) => v).map(([idx, field]) => (
+                                                    <th key={idx} className="text-left py-1.5 px-2 font-bold text-violet-700">
+                                                        {EXPENSE_FIELDS.find(f => f.key === field)?.label || field}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {expParsedRows.slice(0, 5).map((row, ri) => (
+                                                <tr key={ri} className="border-b border-gray-50">
+                                                    {Object.entries(expColumnMapping).filter(([, v]) => v).map(([idx]) => (
+                                                        <td key={idx} className="py-1.5 px-2 text-gray-700">
+                                                            {row[parseInt(idx)] instanceof Date
+                                                                ? row[parseInt(idx)].toISOString().slice(0, 10)
+                                                                : String(row[parseInt(idx)] ?? '').slice(0, 40)}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={handleExpenseImport}
+                                        className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-bold text-sm hover:from-violet-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-2">
+                                        <Upload size={16} />
+                                        {t('statsPage.uploadImportBtn', `${expParsedRows.length}건 임포트`)}
+                                    </button>
+                                    <button onClick={resetExpUpload}
+                                        className="px-5 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">
+                                        {t('statsPage.cancel')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step: Importing */}
+                    {expUploadStep === 'importing' && (
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <Loader2 size={48} className="text-violet-500 animate-spin mb-2.5" />
+                            <p className="font-bold text-gray-900">{t('statsPage.uploadImporting', '임포트 중...')}</p>
+                            <p className="text-sm text-gray-500 mt-1">{expParsedRows.length}{t('statsPage.uploadImportingRows', '행 처리 중')}</p>
+                        </div>
+                    )}
+
+                    {/* Step: Done */}
+                    {expUploadStep === 'done' && expImportResult && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                            <div className="text-center mb-5">
+                                <div className="w-14 h-14 bg-violet-100 rounded-2xl mx-auto mb-2 flex items-center justify-center">
+                                    <CheckCircle size={28} className="text-violet-600" />
+                                </div>
+                                <h3 className="font-extrabold text-gray-900 text-lg mb-1">
+                                    {t('statsPage.uploadDoneTitle', '임포트 완료!')}
+                                </h3>
+                                <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+                                    <div className="bg-violet-50 rounded-xl p-2.5">
+                                        <p className="text-base font-extrabold text-violet-600">{expImportResult.inserted}</p>
+                                        <p className="text-[10px] text-violet-700 font-bold">{t('statsPage.uploadDoneInserted', '성공')}</p>
+                                    </div>
+                                    <div className="bg-amber-50 rounded-xl p-2.5">
+                                        <p className="text-base font-extrabold text-amber-600">{expImportResult.skipped}</p>
+                                        <p className="text-[10px] text-amber-700 font-bold">{t('statsPage.uploadDoneSkipped', '스킵')}</p>
+                                    </div>
+                                    <div className="bg-blue-50 rounded-xl p-2.5">
+                                        <p className="text-base font-extrabold text-blue-600">{expImportResult.total}</p>
+                                        <p className="text-[10px] text-blue-700 font-bold">{t('statsPage.uploadDoneTotal', '전체')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {expImportResult.errors?.length > 0 && (
+                                <div className="bg-red-50 rounded-xl p-3 mb-3 text-left">
+                                    <p className="text-xs font-bold text-red-600 mb-1">
+                                        <AlertCircle size={12} className="inline mr-1" />
+                                        {t('statsPage.uploadErrors', '에러')}
+                                    </p>
+                                    {expImportResult.errors.slice(0, 3).map((err, i) => (
+                                        <p key={i} className="text-[10px] text-red-500">Row {err.row}: {err.error}</p>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Category Classification Summary */}
+                            {expImportResult.categoryStats && Object.keys(expImportResult.categoryStats).length > 0 && (() => {
+                                const stats = expImportResult.categoryStats;
+                                const totalCat = Object.values(stats).reduce((s, v) => s + v, 0);
+                                const otherCount = stats['other'] || 0;
+                                const autoClassified = totalCat - otherCount;
+                                const successRate = totalCat > 0 ? Math.round((autoClassified / totalCat) * 100) : 0;
+                                // Sort: 'other' first, then by count desc
+                                const sortedCats = Object.entries(stats).sort((a, b) => {
+                                    if (a[0] === 'other') return -1;
+                                    if (b[0] === 'other') return 1;
+                                    return b[1] - a[1];
+                                });
+                                const maxCount = Math.max(...Object.values(stats));
+                                return (
+                                    <div className="mt-3 border-t border-gray-100 pt-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-extrabold text-gray-900 text-sm flex items-center gap-1.5">
+                                                📊 {t('statsPage.catClassResult', '카테고리 분류 결과')}
+                                            </h4>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${successRate >= 80 ? 'bg-emerald-100 text-emerald-700' : successRate >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                                {t('statsPage.catAutoRate', '자동분류')} {successRate}%
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {sortedCats.map(([catKey, count]) => {
+                                                const catMeta = allCategories.find(c => c.key === catKey) || { icon: FileText, bg: 'bg-slate-50', text: 'text-slate-600' };
+                                                const CIcon = catMeta.icon;
+                                                const label = catMeta.customLabel || getCatLabel(catKey);
+                                                const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                                                const isOther = catKey === 'other';
+                                                return (
+                                                    <div key={catKey} className={`flex items-center gap-2 p-1.5 rounded-lg ${isOther ? 'bg-amber-50 border border-amber-200' : 'hover:bg-gray-50'}`}>
+                                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center ${catMeta.bg}`}>
+                                                            <CIcon size={12} className={catMeta.text} />
+                                                        </div>
+                                                        <span className={`text-[11px] font-bold w-16 truncate ${isOther ? 'text-amber-700' : 'text-gray-700'}`}>
+                                                            {label}
+                                                        </span>
+                                                        <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full rounded-full transition-all ${isOther ? 'bg-amber-400' : 'bg-violet-400'}`}
+                                                                style={{ width: `${pct}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className={`text-[11px] font-extrabold min-w-[28px] text-right ${isOther ? 'text-amber-600' : 'text-gray-600'}`}>
+                                                            {count}{t('statsPage.units', '건')}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        {otherCount > 0 && (
+                                            <p className="text-[10px] text-amber-600 mt-2 font-medium">
+                                                💡 {t('statsPage.catOtherHint', '"기타"로 분류된 항목은 지출 탭에서 개별 편집하거나, 다음 업로드 시 "지출분류" 컬럼을 포함하면 자동 분류됩니다.')}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="mt-4 text-center">
+                                <button onClick={() => { resetExpUpload(); onCancel(); }}
+                                    className="px-8 py-3 bg-violet-600 text-white rounded-xl font-bold text-sm hover:bg-violet-700 transition-colors">
+                                    {t('statsPage.expClose', '닫기')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <>
+                    {/* ═══ SINGLE ENTRY MODE ═══ */}
+                    {/* Expense Date */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">{t('statsPage.expDate', '지출 날짜')}</label>
+                        <input type="date" value={formData.expense_date}
+                            onChange={e => setFormData(f => ({ ...f, expense_date: e.target.value }))}
+                            className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium" />
+                    </div>
+                    {/* Amount with currency */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">
+                            {t('statsPage.expAmount', '금액')} {countryCurrency && countryCurrency[expCountry] && (
+                                <span className="text-violet-600">({countryCurrency[expCountry].symbol})</span>
+                            )}
+                        </label>
+                        <NumberInput value={formData.amount} placeholder="0"
+                            onChange={val => setFormData(f => ({ ...f, amount: val }))}
+                            className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm font-bold text-right" />
+                    </div>
+                    {/* Category */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2">{t('statsPage.expCategory', '카테고리')}</label>
+                        <div className="grid grid-cols-4 gap-2">
+                            {allCategories.map(cat => {
+                                const CatIcon = cat.icon;
+                                const selected = formData.category === cat.key;
+                                const isOther = cat.key === 'other';
+                                return (
+                                    <button key={cat.key}
+                                        onClick={() => {
+                                            if (isOther) {
+                                                setShowCustomCatInput(true);
+                                            }
+                                            setFormData(f => ({ ...f, category: cat.key }));
+                                        }}
+                                        className={`flex flex-col items-center gap-1 p-2.5 rounded-xl text-[10px] font-bold transition-all border ${selected
+                                            ? `bg-gradient-to-br ${cat.color} text-white border-transparent shadow-md`
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <CatIcon size={16} />
+                                        <span className="truncate w-full text-center">{cat.customLabel || getCatLabel(cat.key)}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {/* Custom category input */}
+                        {showCustomCatInput && (
+                            <div className="mt-2 flex gap-2 items-center animate-in slide-in-from-top-1">
+                                <input type="text" value={customCatName} placeholder={t('statsPage.expCustomCatPlaceholder', '새 카테고리 이름 입력')}
+                                    onChange={e => setCustomCatName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') addCustomCategory(); }}
+                                    className="flex-1 px-3 py-2 bg-gray-50 rounded-lg border border-violet-200 text-sm focus:border-violet-400 focus:ring-1 focus:ring-violet-200 outline-none" autoFocus />
+                                <button onClick={addCustomCategory} disabled={!customCatName.trim()}
+                                    className="px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 transition-colors disabled:opacity-40">
+                                    <Plus size={14} />
+                                </button>
+                                <button onClick={() => { setShowCustomCatInput(false); setCustomCatName(''); }}
+                                    className="px-2 py-2 text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {/* Payment Method */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2">{t('statsPage.expPayment', '결제수단')}</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {allPaymentMethods.map(pm => {
+                                const PMIcon = pm.icon;
+                                const selected = formData.payment_method === pm.key;
+                                const isOther = pm.key === 'other';
+                                return (
+                                    <button key={pm.key}
+                                        onClick={() => {
+                                            if (isOther) {
+                                                setShowCustomPmInput(true);
+                                            }
+                                            setFormData(f => ({ ...f, payment_method: pm.key }));
+                                        }}
+                                        className={`flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all border ${selected
+                                            ? 'bg-violet-600 text-white border-violet-600'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
+                                            }`}
+                                    >
+                                        <PMIcon size={14} />
+                                        {pm.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {/* Custom payment method input */}
+                        {showCustomPmInput && (
+                            <div className="mt-2 flex gap-2 items-center animate-in slide-in-from-top-1">
+                                <input type="text" value={customPmName} placeholder={t('statsPage.expCustomPmPlaceholder', '새 결제수단 이름 입력')}
+                                    onChange={e => setCustomPmName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') addCustomPaymentMethod(); }}
+                                    className="flex-1 px-3 py-2 bg-gray-50 rounded-lg border border-violet-200 text-sm focus:border-violet-400 focus:ring-1 focus:ring-violet-200 outline-none" autoFocus />
+                                <button onClick={addCustomPaymentMethod} disabled={!customPmName.trim()}
+                                    className="px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 transition-colors disabled:opacity-40">
+                                    <Plus size={14} />
+                                </button>
+                                <button onClick={() => { setShowCustomPmInput(false); setCustomPmName(''); }}
+                                    className="px-2 py-2 text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {/* Memo */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">{t('statsPage.expMemo', '메모')}</label>
+                        <textarea value={formData.memo} placeholder={t('statsPage.expMemo', '메모')}
+                            onChange={e => setFormData(f => ({ ...f, memo: e.target.value }))}
+                            className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-sm resize-none h-20" />
+                    </div>
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-2">
+                        <button onClick={handleSubmit}
+                            className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-bold text-sm hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2">
+                            <Save size={16} />
+                            {t('statsPage.expSave', '저장')}
+                        </button>
+                        <button onClick={onCancel}
+                            className="px-5 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">
+                            {t('statsPage.expCancel', '취소')}
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

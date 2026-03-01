@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Mobile: Prevent page zoom (pinch/double-tap) ── */
+html {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ── Allow individual horizontal scroll on internal scrollable elements ── */
+.overflow-x-auto {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Leaflet z-index containment: prevent map from overlapping modals */
 .leaflet-container {
   isolation: isolate;

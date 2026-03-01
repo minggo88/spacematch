@@ -347,6 +347,29 @@ try {
             }
             break;
 
+        // ── BULK DELETE ──
+        case 'bulk_delete':
+            $ids = $input['ids'] ?? [];
+            if (!is_array($ids) || count($ids) === 0) {
+                echo json_encode(["success" => false, "message" => "삭제할 항목을 선택해주세요."]);
+                exit;
+            }
+            // Sanitize: only positive integers
+            $ids = array_filter(array_map('intval', $ids), function ($v) {
+                return $v > 0; });
+            if (count($ids) === 0) {
+                echo json_encode(["success" => false, "message" => "유효한 ID가 없습니다."]);
+                exit;
+            }
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $params = array_values($ids);
+            $params[] = $userId;
+            $stmt = $conn->prepare("DELETE FROM seller_stats WHERE id IN ($placeholders) AND user_id = ?");
+            $stmt->execute($params);
+            $deleted = $stmt->rowCount();
+            echo json_encode(["success" => true, "message" => "{$deleted}개 데이터가 삭제되었습니다.", "deleted" => $deleted]);
+            break;
+
 
         // ── TEMPLATES ──
         case 'templates':

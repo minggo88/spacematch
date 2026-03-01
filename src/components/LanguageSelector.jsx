@@ -113,26 +113,26 @@ const LanguageSelector = ({ compact = false }) => {
                         </div>
 
                         {/* Tabs */}
-                        <div className="px-6">
-                            <div className="flex bg-gray-100 dark:bg-gray-700/50 rounded-xl p-1 gap-1">
+                        <div className="px-6 pt-3 pb-1">
+                            <div className="relative flex bg-gray-100/80 dark:bg-gray-700/60 rounded-2xl p-1.5 gap-1.5">
                                 <button
                                     onClick={() => setTab('lang')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${tab === 'lang'
-                                        ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${tab === 'lang'
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/50 scale-[1.02]'
+                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-600/30'
                                         }`}
                                 >
-                                    <Languages size={15} />
+                                    <Languages size={16} />
                                     {t('selectLanguage')}
                                 </button>
                                 <button
                                     onClick={() => setTab('currency')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${tab === 'currency'
-                                        ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${tab === 'currency'
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/50 scale-[1.02]'
+                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-600/30'
                                         }`}
                                 >
-                                    <Coins size={15} />
+                                    <Coins size={16} />
                                     {t('selectCurrency')}
                                 </button>
                             </div>

@@ -222,6 +222,7 @@ const CommunityPage = ({ type = 'general' }) => {
 
     // Country filter — auto-landing on user's country
     const [countryFilter, setCountryFilter] = useState('all');
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
     // Notification highlight
     const [searchParams, setSearchParams] = useSearchParams();
@@ -1014,6 +1015,21 @@ const CommunityPage = ({ type = 'general' }) => {
                                 {tab.key === 'best' && <span className="text-[9px] text-amber-500 font-extrabold">🏅</span>}
                             </button>
                         ))}
+                        {/* 국가 설정 버튼 - 내 북마크 옆 */}
+                        <button
+                            onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${showCountryDropdown || countryFilter !== 'all'
+                                ? 'bg-white text-gray-900 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <Globe size={13} />
+                            {countryFilter !== 'all'
+                                ? (() => { const info = COUNTRY_FLAGS[countryFilter]; return info ? `${info.flag} ${i18n.language === 'ko' ? info.name : info.nameEn}` : t('countrySetting', '국가 설정'); })()
+                                : t('countrySetting', '국가 설정')
+                            }
+                            <ChevronDown size={11} className={`transition-transform duration-200 ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                        </button>
                     </div>
                 </div>
                 {/* Sort Dropdown */}
@@ -1061,39 +1077,41 @@ const CommunityPage = ({ type = 'general' }) => {
                 </div>
             )}
 
-            {/* 🌍 Country Filter Tabs */}
-            <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
-                <div className="flex items-center gap-1.5 py-1 min-w-max">
-                    <Globe size={14} className="text-gray-400 flex-shrink-0" />
-                    <button
-                        onClick={() => { setCountryFilter('all'); setPage(1); }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === 'all'
-                            ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                            }`}
-                    >
-                        🌍 {t('allCountries')}
-                    </button>
-                    {Object.entries(COUNTRY_FLAGS).map(([code, info]) => (
+            {/* 🌍 Country Filter Dropdown (toggled by 국가 설정 button) */}
+            {showCountryDropdown && (
+                <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide animate-in slide-in-from-top-1">
+                    <div className="flex items-center gap-1.5 py-1.5 min-w-max bg-gray-50/80 rounded-xl px-2">
+                        <Globe size={14} className="text-gray-400 flex-shrink-0" />
                         <button
-                            key={code}
-                            onClick={() => { setCountryFilter(code); setPage(1); }}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === code
+                            onClick={() => { setCountryFilter('all'); setPage(1); setShowCountryDropdown(false); }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === 'all'
                                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
-                                : code === user?.country
-                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                 }`}
                         >
-                            <span>{info.flag}</span>
-                            <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
-                            {code === user?.country && countryFilter !== code && (
-                                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                            )}
+                            🌍 {t('allCountries')}
                         </button>
-                    ))}
+                        {Object.entries(COUNTRY_FLAGS).map(([code, info]) => (
+                            <button
+                                key={code}
+                                onClick={() => { setCountryFilter(code); setPage(1); setShowCountryDropdown(false); }}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === code
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
+                                    : code === user?.country
+                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                    }`}
+                            >
+                                <span>{info.flag}</span>
+                                <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
+                                {code === user?.country && countryFilter !== code && (
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Search Bar */}
             <div className="relative">
@@ -2659,7 +2677,7 @@ const CommunityPage = ({ type = 'general' }) => {
                 !showWriteForm && user && (
                     <button
                         onClick={() => setShowWriteForm(true)}
-                        className={`fixed bottom-[5.5rem] right-6 w-14 h-14 ${config.buttonBg} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 hover:scale-110 active:scale-95`}
+                        className={`fixed bottom-[6rem] right-6 lg:bottom-[7.5rem] lg:right-10 w-14 h-14 lg:w-16 lg:h-16 ${config.buttonBg} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 hover:scale-110 active:scale-95`}
                         title={t('writePost')}
                     >
                         <PenLine size={22} />

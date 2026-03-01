@@ -214,6 +214,29 @@ try {
             }
             break;
 
+        // ── BULK DELETE ──
+        case 'bulk_delete':
+            $ids = $input['ids'] ?? [];
+            if (!is_array($ids) || count($ids) === 0) {
+                echo json_encode(["success" => false, "message" => "삭제할 ID가 없습니다."]);
+                exit;
+            }
+            // Sanitize IDs
+            $safeIds = array_map('intval', $ids);
+            $safeIds = array_filter($safeIds, function ($v) {
+                return $v > 0; });
+            if (count($safeIds) === 0) {
+                echo json_encode(["success" => false, "message" => "유효한 ID가 없습니다."]);
+                exit;
+            }
+            $placeholders = implode(',', array_fill(0, count($safeIds), '?'));
+            $params = array_merge($safeIds, [$userId]);
+            $stmt = $conn->prepare("DELETE FROM seller_expenses WHERE id IN ($placeholders) AND user_id = ?");
+            $stmt->execute($params);
+            $deleted = $stmt->rowCount();
+            echo json_encode(["success" => true, "message" => "{$deleted}건 삭제 완료", "deleted" => $deleted]);
+            break;
+
         // ── SUMMARY: 연간 지출 요약 (대시보드 연동) ──
         case 'summary':
             $year = $_GET['year'] ?? $input['year'] ?? date('Y');
