@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">SpaceMatch</string>
-    <string name="title_activity_main">SpaceMatch</string>
-    <string name="package_name">com.spacematch.app</string>
-    <string name="custom_url_scheme">com.spacematch.app</string>
-</resources>
