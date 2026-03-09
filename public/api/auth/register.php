@@ -3,7 +3,24 @@ ob_start(); // Catch any stray output/warnings
 include_once '../db_connect.php';
 include_once '../notifications/send_email.php';
 
+session_start();
+
 $data = json_decode(file_get_contents("php://input"));
+
+// Get client IP
+function getRegisterClientIP()
+{
+    $keys = ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'];
+    foreach ($keys as $k) {
+        if (!empty($_SERVER[$k])) {
+            $ip = trim(explode(',', $_SERVER[$k])[0]);
+            if (filter_var($ip, FILTER_VALIDATE_IP))
+                return $ip;
+        }
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+}
+$clientIP = getRegisterClientIP();
 
 if (!isset($data->email) || !isset($data->password) || !isset($data->name)) {
     ob_end_clean();
@@ -32,6 +49,45 @@ try {
         ob_end_clean();
         echo json_encode(array("success" => false, "message" => "이미 존재하는 이메일입니다."));
         exit;
+    }
+
+    // ── 2b. Verify email authentication (session-based) ──
+    $emailLower = strtolower(trim($data->email));
+    if (!isset($_SESSION['verified_email']) || strtolower($_SESSION['verified_email']) !== $emailLower) {
+        ob_end_clean();
+        echo json_encode(array("success" => false, "message" => "이메일 인증이 필요합니다. 인증 코드를 발송하고 확인해주세요."));
+        exit;
+    }
+    // Check verification was within last 30 minutes
+    if (!isset($_SESSION['email_verified_at']) || (time() - $_SESSION['email_verified_at']) > 1800) {
+        unset($_SESSION['verified_email'], $_SESSION['email_verified_at']);
+        ob_end_clean();
+        echo json_encode(array("success" => false, "message" => "이메일 인증이 만료되었습니다. 다시 인증해주세요."));
+        exit;
+    }
+
+    // ── 2c. IP duplicate registration check (24h) ──
+    try {
+        // Auto-migrate: add register_ip & email_verified columns if missing
+        $colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'register_ip'");
+        if ($colCheck->rowCount() === 0) {
+            $conn->exec("ALTER TABLE users ADD COLUMN register_ip VARCHAR(45) DEFAULT NULL");
+        }
+        $colCheck2 = $conn->query("SHOW COLUMNS FROM users LIKE 'email_verified'");
+        if ($colCheck2->rowCount() === 0) {
+            $conn->exec("ALTER TABLE users ADD COLUMN email_verified TINYINT(1) DEFAULT 0");
+        }
+
+        // Check if same IP registered within 24 hours (exclude demo accounts)
+        $ipCheckStmt = $conn->prepare("SELECT id, name, email FROM users WHERE register_ip = ? AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND (is_demo IS NULL OR is_demo = 0) LIMIT 1");
+        $ipCheckStmt->execute([$clientIP]);
+        if ($ipCheckStmt->rowCount() > 0) {
+            ob_end_clean();
+            echo json_encode(array("success" => false, "message" => "동일한 네트워크에서 최근 가입 이력이 있습니다. 24시간 후 다시 시도해주세요."));
+            exit;
+        }
+    } catch (PDOException $e) {
+        // Column may have different schema — skip IP check
     }
 
     // ── 3a. Fix status column: ENUM → VARCHAR to support 'pending' ──
@@ -68,6 +124,16 @@ try {
             // ignore — column may already exist
         }
     }
+    // Ensure register_ip and email_verified columns exist
+    try {
+        $c = $conn->query("SHOW COLUMNS FROM users LIKE 'register_ip'");
+        if ($c->rowCount() === 0)
+            $conn->exec("ALTER TABLE users ADD COLUMN register_ip VARCHAR(45) DEFAULT NULL");
+        $c2 = $conn->query("SHOW COLUMNS FROM users LIKE 'email_verified'");
+        if ($c2->rowCount() === 0)
+            $conn->exec("ALTER TABLE users ADD COLUMN email_verified TINYINT(1) DEFAULT 0");
+    } catch (PDOException $e) { /* ignore */
+    }
 
     // ── 4. Prepare data ──
     $name = htmlspecialchars(strip_tags($data->name));
@@ -97,8 +163,8 @@ try {
     }
 
     // ── 5. INSERT ──
-    $query = "INSERT INTO users (name, real_name, name_en, business_no, email, phone, password, role, category, country, instagram, description, status, marketing_agreed, venue_limit, keywords) 
-              VALUES (:name, :real_name, :name_en, :business_no, :email, :phone, :password, :role, :category, :country, :instagram, :description, :status, :marketing_agreed, 3, :keywords)";
+    $query = "INSERT INTO users (name, real_name, name_en, business_no, email, phone, password, role, category, country, instagram, description, status, marketing_agreed, venue_limit, keywords, register_ip, email_verified) 
+              VALUES (:name, :real_name, :name_en, :business_no, :email, :phone, :password, :role, :category, :country, :instagram, :description, :status, :marketing_agreed, 3, :keywords, :register_ip, 1)";
 
     $stmt = $conn->prepare($query);
     $stmt->bindParam(":name", $name);
@@ -116,6 +182,7 @@ try {
     $stmt->bindParam(":status", $initialStatus);
     $stmt->bindParam(":marketing_agreed", $marketing);
     $stmt->bindParam(":keywords", $keywords);
+    $stmt->bindParam(":register_ip", $clientIP);
 
     if ($stmt->execute()) {
         // ── 6. Notify admins ──
@@ -158,6 +225,9 @@ try {
         } catch (Exception $e) {
             // notification failure should not block registration
         }
+
+        // Clear email verification session
+        unset($_SESSION['verified_email'], $_SESSION['email_verified_at']);
 
         $successMsg = ($role === 'host')
             ? "회원가입이 완료되었습니다. 관리자 승인 후 로그인이 가능합니다."

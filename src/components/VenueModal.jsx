@@ -106,7 +106,7 @@ const VenueModal = ({
                             const parsed = typeof source.event_periods === 'string' ? JSON.parse(source.event_periods)
                                 : source.event_periods;
                             if (Array.isArray(parsed) && parsed.length > 0) periods = parsed;
-                        } catch { }
+                        } catch { /* ignored */ }
                     } else if (source.event_start || source.event_end) {
                         periods = [{ start: source.event_start || '', end: source.event_end || '' }];
                     }

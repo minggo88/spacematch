@@ -93,6 +93,36 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const sendVerification = async (email, country) => {
+        try {
+            const response = await fetch(`${API_BASE}/send_verification.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email, country })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("Send verification error", error);
+            return { success: false, message: "인증 코드 발송 중 오류" };
+        }
+    };
+
+    const verifyEmail = async (email, code) => {
+        try {
+            const response = await fetch(`${API_BASE}/verify_email.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email, code })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("Verify email error", error);
+            return { success: false, message: "인증 중 오류" };
+        }
+    };
+
     // Placeholder functions for now - Admin API logic needs dedicated endpoints if used often
     // Or we leave them as "Note: Implement API later" if not critical for now. 
     // Given the task scale, I'll log a warning or standard implementation if simple.
@@ -168,7 +198,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, signup, loading, updateUserProfile, refreshUser, toggleUserBlock, changePassword }}>
+        <AuthContext.Provider value={{ user, login, logout, signup, sendVerification, verifyEmail, loading, updateUserProfile, refreshUser, toggleUserBlock, changePassword }}>
             {!loading && children}
         </AuthContext.Provider>
     );

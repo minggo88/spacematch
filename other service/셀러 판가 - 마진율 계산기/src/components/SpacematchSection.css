@@ -1,0 +1,104 @@
+.spacematch-section {
+    position: relative;
+    background: linear-gradient(135deg, var(--primary-900), var(--primary-800));
+    overflow: hidden;
+}
+
+.spacematch-section__pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image:
+        radial-gradient(circle, rgba(255, 255, 255, 0.4) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+}
+
+.spacematch-section__inner {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+
+.spacematch-section__logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    margin: 0 auto 16px;
+}
+
+.spacematch-section__title {
+    color: var(--white);
+}
+
+.spacematch-section__subtitle {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 8px;
+    margin-bottom: 48px;
+}
+
+.spacematch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.spacematch-grid.visible .spacematch-card {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.spacematch-card {
+    padding: 32px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    transition: transform var(--transition-normal);
+}
+
+.spacematch-card:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.spacematch-card__icon {
+    font-size: 40px;
+    margin-bottom: 4px;
+}
+
+.spacematch-card__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--white);
+}
+
+.spacematch-card__desc {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+.spacematch-section__cta {
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .spacematch-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .spacematch-section__subtitle {
+        font-size: 15px;
+        margin-bottom: 32px;
+    }
+
+    .spacematch-section__cta {
+        width: 100%;
+    }
+}

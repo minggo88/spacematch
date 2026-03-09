@@ -678,7 +678,7 @@ const HostSellerDirectory = () => {
                                                     <div>
                                                         <p className="text-xs text-gray-400">{t('sellerDirectoryPage.instagramLabel')}</p>
                                                         {(isAdmin ? selectedSeller.instagram : unlockedContacts[selectedSeller.id]?.instagram) ? (
-                                                            <a href={`https://instagram.com/${(isAdmin ? selectedSeller.instagram : unlockedContacts[selectedSeller.id]?.instagram).replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors">
+                                                            <a href={`https://instagram.com/${((isAdmin ? selectedSeller.instagram : unlockedContacts[selectedSeller.id]?.instagram) || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors">
                                                                 {isAdmin ? selectedSeller.instagram : unlockedContacts[selectedSeller.id]?.instagram}
                                                             </a>
                                                         ) : (

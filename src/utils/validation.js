@@ -12,7 +12,7 @@ export const validateRealName = (value) => {
     if (trimmed.length < 2) return '실명은 2자 이상 입력해주세요.';
     if (trimmed.length > 20) return '실명은 20자 이하로 입력해주세요.';
     if (/[0-9]/.test(trimmed)) return '실명에 숫자를 포함할 수 없습니다.';
-    if (/[!@#$%^&*()_+=\[\]{};':"\\|,.<>/?`~]/.test(trimmed)) return '실명에 특수문자를 포함할 수 없습니다.';
+    if (/[!@#$%^&*()_+=[\]{};':"\\|,.<>/?`~]/.test(trimmed)) return '실명에 특수문자를 포함할 수 없습니다.';
     return null;
 };
 

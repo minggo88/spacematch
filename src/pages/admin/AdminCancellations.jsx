@@ -245,7 +245,7 @@ const AdminCancellations = () => {
 
                                     {/* Reason Preview (desktop) */}
                                     <p className="hidden lg:block text-xs text-gray-400 truncate max-w-[180px] flex-shrink-0 italic">
-                                        "{(req.reason || '').substring(0, 40)}{(req.reason || '').length > 40 ? '...' : ''}"
+                                        &quot;{(req.reason || '').substring(0, 40)}{(req.reason || '').length > 40 ? '...' : ''}&quot;
                                     </p>
 
                                     {/* Expand */}

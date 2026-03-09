@@ -767,6 +767,10 @@
     "slotHostCommunityFeed": "호스트 커뮤니티 피드 네이티브",
     "slotGeneralCommunityTop": "전체 커뮤니티 상단 배너",
     "slotGeneralCommunityFeed": "전체 커뮤니티 피드 네이티브",
+    "slotCalcTop": "마진율 계산기 상단 배너",
+    "slotCalcBetween": "계산기↔상세결과 사이 네이티브",
+    "slotCalcBottom": "마진율 계산기 하단 배너",
+    "slotSellerCalc": "마진율 계산기",
     "ratioApprox": "약",
     "bannerType": "배너형",
     "cardType": "카드형",
@@ -957,6 +961,9 @@
     "slotLandingA": "랜딩 A",
     "slotLandingB": "랜딩 B",
     "slotLandingB2": "랜딩 B2",
+    "slotCalcTop": "계산기 상단",
+    "slotCalcBetween": "계산기 중간",
+    "slotCalcBottom": "계산기 하단",
     "dailyDataNotReady": "일별 상세 데이터는 아직 집계되지 않았습니다.",
     "excelDownloadStarted": "엑셀 파일 다운로드가 시작됩니다.",
     "shareLinkCreated": "공유 링크가 생성되었습니다.",
@@ -1032,7 +1039,10 @@
     "slotGeneralCommunityFeed": "전체 피드",
     "slotLandingA": "랜딩 A",
     "slotLandingB": "랜딩 B",
-    "slotLandingB2": "랜딩 B2"
+    "slotLandingB2": "랜딩 B2",
+    "slotCalcTop": "계산기 상단",
+    "slotCalcBetween": "계산기 중간",
+    "slotCalcBottom": "계산기 하단"
   },
   "securityPage": {
     "title": "보안 설정",

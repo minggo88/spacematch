@@ -472,6 +472,201 @@ switch ($action) {
         ]);
         break;
 
+    // ─── Insert Row ──────────────────────────────────────
+    case 'insert_row':
+        $input = json_decode(file_get_contents('php://input'), true);
+        $table = $input['table'] ?? '';
+        $data = $input['data'] ?? [];
+
+        if (empty($table) || empty($data)) {
+            echo json_encode(["error" => "테이블명과 데이터가 필요합니다."]);
+            break;
+        }
+
+        $checkStmt = $dbConn->query("SHOW TABLES LIKE " . $dbConn->quote($table));
+        if (!$checkStmt->fetch()) {
+            echo json_encode(["error" => "존재하지 않는 테이블입니다."]);
+            break;
+        }
+
+        // Validate columns exist
+        $colStmt = $dbConn->query("SHOW COLUMNS FROM `{$table}`");
+        $validCols = array_column($colStmt->fetchAll(PDO::FETCH_ASSOC), 'Field');
+        $insertData = [];
+        foreach ($data as $field => $value) {
+            if (in_array($field, $validCols)) {
+                $insertData[$field] = $value;
+            }
+        }
+
+        if (empty($insertData)) {
+            echo json_encode(["error" => "유효한 컬럼 데이터가 없습니다."]);
+            break;
+        }
+
+        try {
+            $fields = array_keys($insertData);
+            $placeholders = array_fill(0, count($fields), '?');
+            $values = [];
+            foreach ($insertData as $field => $value) {
+                $values[] = ($value === '' || $value === '__NULL__') ? null : $value;
+            }
+
+            $sql = "INSERT INTO `{$table}` (`" . implode('`, `', $fields) . "`) VALUES (" . implode(', ', $placeholders) . ")";
+            $stmt = $dbConn->prepare($sql);
+            $result = $stmt->execute($values);
+            $newId = $dbConn->lastInsertId();
+
+            echo json_encode([
+                "success" => $result,
+                "message" => $result ? "행이 추가되었습니다." : "추가 실패",
+                "inserted_id" => $newId
+            ]);
+        } catch (PDOException $e) {
+            echo json_encode(["error" => "추가 중 오류: " . $e->getMessage()]);
+        }
+        break;
+
+    // ─── Optimize Table ──────────────────────────────────
+    case 'optimize_table':
+        $input = json_decode(file_get_contents('php://input'), true);
+        $table = $input['table'] ?? '';
+        $optimizeAll = $input['all'] ?? false;
+
+        try {
+            if ($optimizeAll) {
+                // Optimize all tables
+                $tablesStmt = $dbConn->query("SHOW TABLES");
+                $results = [];
+                while ($row = $tablesStmt->fetch(PDO::FETCH_NUM)) {
+                    $tName = $row[0];
+                    // Get size before
+                    $beforeStmt = $dbConn->prepare("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH)/1024, 2) AS size_kb FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?");
+                    $beforeStmt->execute([$dbConfig['name'], $tName]);
+                    $beforeSize = floatval($beforeStmt->fetch(PDO::FETCH_ASSOC)['size_kb'] ?? 0);
+
+                    $dbConn->exec("OPTIMIZE TABLE `{$tName}`");
+
+                    // Get size after
+                    $afterStmt = $dbConn->prepare("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH)/1024, 2) AS size_kb FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?");
+                    $afterStmt->execute([$dbConfig['name'], $tName]);
+                    $afterSize = floatval($afterStmt->fetch(PDO::FETCH_ASSOC)['size_kb'] ?? 0);
+
+                    $results[] = [
+                        'table' => $tName,
+                        'before_kb' => $beforeSize,
+                        'after_kb' => $afterSize,
+                        'saved_kb' => round($beforeSize - $afterSize, 2)
+                    ];
+                }
+                echo json_encode([
+                    "success" => true,
+                    "message" => count($results) . "개 테이블 최적화 완료",
+                    "results" => $results,
+                    "total_saved_kb" => round(array_sum(array_column($results, 'saved_kb')), 2)
+                ]);
+            } else {
+                if (empty($table)) {
+                    echo json_encode(["error" => "테이블명이 필요합니다."]);
+                    break;
+                }
+
+                $checkStmt = $dbConn->query("SHOW TABLES LIKE " . $dbConn->quote($table));
+                if (!$checkStmt->fetch()) {
+                    echo json_encode(["error" => "존재하지 않는 테이블입니다."]);
+                    break;
+                }
+
+                // Get size before
+                $beforeStmt = $dbConn->prepare("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH)/1024, 2) AS size_kb FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?");
+                $beforeStmt->execute([$dbConfig['name'], $table]);
+                $beforeSize = floatval($beforeStmt->fetch(PDO::FETCH_ASSOC)['size_kb'] ?? 0);
+
+                $dbConn->exec("OPTIMIZE TABLE `{$table}`");
+
+                // Get size after
+                $afterStmt = $dbConn->prepare("SELECT ROUND((DATA_LENGTH + INDEX_LENGTH)/1024, 2) AS size_kb FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?");
+                $afterStmt->execute([$dbConfig['name'], $table]);
+                $afterSize = floatval($afterStmt->fetch(PDO::FETCH_ASSOC)['size_kb'] ?? 0);
+
+                echo json_encode([
+                    "success" => true,
+                    "message" => "`{$table}` 최적화 완료",
+                    "table" => $table,
+                    "before_kb" => $beforeSize,
+                    "after_kb" => $afterSize,
+                    "saved_kb" => round($beforeSize - $afterSize, 2)
+                ]);
+            }
+        } catch (PDOException $e) {
+            echo json_encode(["error" => "최적화 중 오류: " . $e->getMessage()]);
+        }
+        break;
+
+    // ─── Export Table Data ────────────────────────────────
+    case 'export_table':
+        $table = $_GET['table'] ?? '';
+        $format = $_GET['format'] ?? 'csv';
+        $search = $_GET['search'] ?? '';
+
+        if (empty($table)) {
+            echo json_encode(["error" => "테이블명이 필요합니다."]);
+            break;
+        }
+
+        $checkStmt = $dbConn->query("SHOW TABLES LIKE " . $dbConn->quote($table));
+        if (!$checkStmt->fetch()) {
+            echo json_encode(["error" => "존재하지 않는 테이블입니다."]);
+            break;
+        }
+
+        // Columns
+        $colStmt = $dbConn->query("SHOW COLUMNS FROM `{$table}`");
+        $columns = $colStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Search
+        $whereClause = '';
+        $params = [];
+        if (!empty($search)) {
+            $searchConds = [];
+            foreach ($columns as $col) {
+                $searchConds[] = "`{$col['Field']}` LIKE ?";
+                $params[] = "%{$search}%";
+            }
+            $whereClause = 'WHERE ' . implode(' OR ', $searchConds);
+        }
+
+        // Fetch all matching data (limit 10000 for safety)
+        $dataStmt = $dbConn->prepare("SELECT * FROM `{$table}` {$whereClause} LIMIT 10000");
+        $dataStmt->execute($params);
+        $rows = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($format === 'csv') {
+            header('Content-Type: text/csv; charset=utf-8');
+            header("Content-Disposition: attachment; filename=\"{$table}_export.csv\"");
+            echo "\xEF\xBB\xBF"; // UTF-8 BOM for Excel
+
+            $output = fopen('php://output', 'w');
+            // Header row
+            if (!empty($rows)) {
+                fputcsv($output, array_keys($rows[0]));
+            }
+            foreach ($rows as $row) {
+                fputcsv($output, $row);
+            }
+            fclose($output);
+        } else {
+            header('Content-Type: application/json; charset=utf-8');
+            header("Content-Disposition: attachment; filename=\"{$table}_export.json\"");
+            echo json_encode([
+                'table' => $table,
+                'exported_at' => date('Y-m-d H:i:s'),
+                'row_count' => count($rows),
+                'data' => $rows
+            ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }
+        exit; // Don't output default JSON after file download
+
     default:
         echo json_encode(["error" => "올바른 action을 지정해주세요."]);
         break;

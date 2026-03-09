@@ -1,0 +1,348 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 25, 64, 0.7);
+    backdrop-filter: blur(4px);
+    animation: modalFadeIn 0.25s ease;
+    padding: 16px;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-card {
+    position: relative;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    max-width: 440px;
+    width: 100%;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(26, 25, 64, 0.3);
+    animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-card__bar {
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-800), var(--accent-primary));
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--neutral-600);
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+    z-index: 10;
+}
+
+.modal-close:hover {
+    background: var(--neutral-100);
+    color: var(--neutral-900);
+}
+
+.modal-card__body {
+    padding: 40px 32px 32px;
+    text-align: center;
+}
+
+.modal-card__logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    margin: 0 auto 16px;
+}
+
+.modal-card__title {
+    margin-bottom: 8px;
+}
+
+.modal-card__desc {
+    margin-bottom: 28px;
+    line-height: 1.6;
+}
+
+/* ─── Form ──────────────────────────────────────────── */
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+}
+
+.modal-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.modal-form .input-field {
+    padding: 14px 16px;
+    font-size: 15px;
+    border: 1.5px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    background: var(--primary-50);
+    transition: all var(--transition-fast);
+}
+
+.modal-form .input-field:focus {
+    border-color: var(--primary-800);
+    box-shadow: 0 0 0 3px rgba(42, 40, 97, 0.1);
+    background: var(--white);
+}
+
+.modal-form__error {
+    font-size: 13px;
+    color: var(--accent-warning);
+    margin: -4px 0;
+}
+
+/* ─── Agree ─────────────────────────────────────────── */
+.modal-form__agree {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.modal-form__agree input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--primary-800);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.modal-form__agree-text {
+    font-size: 13px;
+    color: var(--neutral-600);
+    line-height: 1.5;
+}
+
+/* 이용약관/개인정보처리방침 링크 버튼 */
+.modal-form__link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    color: var(--primary-800);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.modal-form__link:hover {
+    color: var(--primary-600);
+}
+
+.modal-form__submit {
+    width: 100%;
+    margin-top: 4px;
+}
+
+/* ─── Divider ───────────────────────────────────────── */
+.modal-card__divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    gap: 12px;
+}
+
+.modal-card__divider::before,
+.modal-card__divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--neutral-300);
+}
+
+.modal-card__divider span {
+    font-size: 12px;
+    color: var(--neutral-600);
+    font-weight: 500;
+}
+
+/* ─── Login Button ──────────────────────────────────── */
+.modal-card__login-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary-800);
+    background: var(--primary-50);
+    border: 1.5px solid var(--primary-300);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.modal-card__login-btn:hover {
+    background: var(--primary-100);
+    border-color: var(--primary-800);
+}
+
+/* ============================================================
+   Sub-Popup (이용약관 / 개인정보처리방침)
+   ============================================================ */
+.sub-popup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 25, 64, 0.5);
+    animation: modalFadeIn 0.2s ease;
+    padding: 16px;
+}
+
+.sub-popup {
+    position: relative;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    max-width: 520px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 80px rgba(26, 25, 64, 0.35);
+    animation: modalSlideUp 0.25s ease;
+    overflow: hidden;
+}
+
+.sub-popup__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--neutral-200);
+    flex-shrink: 0;
+}
+
+.sub-popup__header h3 {
+    margin: 0;
+}
+
+.sub-popup__header .modal-close {
+    position: static;
+    flex-shrink: 0;
+}
+
+.sub-popup__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.sub-popup__text {
+    font-family: var(--font-primary);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--neutral-900);
+    white-space: pre-wrap;
+    word-break: keep-all;
+    margin: 0;
+}
+
+.sub-popup__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid var(--neutral-200);
+    flex-shrink: 0;
+}
+
+.sub-popup__footer .btn {
+    padding: 10px 32px;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .modal-card__body {
+        padding: 32px 24px 28px;
+    }
+
+    .modal-card__title {
+        font-size: 18px;
+    }
+
+    .modal-card__desc {
+        font-size: 13px;
+        margin-bottom: 20px;
+    }
+
+    .modal-form .input-field {
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+
+    .modal-form__agree-text {
+        font-size: 12px;
+    }
+
+    .sub-popup {
+        max-height: 85vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-card__body {
+        padding: 28px 16px 20px;
+    }
+
+    .modal-card__logo {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 12px;
+    }
+
+    .modal-card__title {
+        font-size: 17px;
+    }
+
+    .sub-popup {
+        max-height: 90vh;
+    }
+
+    .sub-popup__body {
+        padding: 16px;
+    }
+
+    .sub-popup__text {
+        font-size: 12px;
+    }
+}

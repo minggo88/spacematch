@@ -1,0 +1,257 @@
+/* ============================================================
+   Detailed Result Section
+   ============================================================ */
+.detailed-section {
+    background: var(--white);
+}
+
+.detailed-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 36px;
+}
+
+.detailed-header__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--accent-secondary);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.detailed-header__title {
+    margin: 0;
+}
+
+.detailed-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+}
+
+.detailed-card {
+    padding: 28px;
+}
+
+.detailed-card__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--primary-100);
+}
+
+.detailed-card__icon {
+    font-size: 20px;
+}
+
+/* ─── Table ────────────────────────────────────────── */
+.detailed-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.detailed-table th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--neutral-300);
+}
+
+.detailed-table th:nth-child(2),
+.detailed-table th:nth-child(3) {
+    text-align: right;
+}
+
+.detailed-table td {
+    padding: 12px 0;
+    font-size: 14px;
+    color: var(--neutral-900);
+    border-bottom: 1px solid var(--neutral-100);
+}
+
+.detailed-table__number {
+    text-align: right;
+    font-family: var(--font-number);
+    font-weight: 600;
+}
+
+.detailed-table__pct {
+    text-align: right;
+    font-family: var(--font-number);
+    font-weight: 500;
+    color: var(--neutral-600);
+    width: 60px;
+}
+
+.detailed-table__total td {
+    font-weight: 700;
+    border-bottom: 2px solid var(--primary-100);
+    padding-top: 16px;
+}
+
+.detailed-table__profit td {
+    font-weight: 700;
+    font-size: 16px;
+    border-bottom: none;
+    padding-top: 12px;
+}
+
+/* ─── Insights ─────────────────────────────────────── */
+.insight-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.insight-item {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    background: var(--neutral-100);
+    transition: all var(--transition-fast);
+}
+
+.insight-item:hover {
+    background: var(--neutral-200);
+}
+
+.insight-item--good {
+    background: rgba(0, 201, 167, 0.08);
+}
+
+.insight-item--bad {
+    background: rgba(255, 71, 87, 0.08);
+}
+
+.insight-item--cta {
+    background: var(--primary-50);
+    border: 1px solid var(--primary-100);
+}
+
+.insight-item__icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.insight-item strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: var(--neutral-900);
+}
+
+.insight-item p {
+    font-size: 13px;
+    color: var(--neutral-600);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.insight-item__btn {
+    margin-top: 12px;
+    display: inline-block;
+    font-size: 13px;
+    padding: 8px 20px;
+}
+
+/* ─── Unlocked Badge (in calculator section) ──────── */
+.unlocked-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    background: rgba(0, 201, 167, 0.1);
+    color: var(--accent-secondary);
+    border: 1.5px solid var(--accent-secondary);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 16px;
+    animation: fadeInUp 0.4s ease;
+}
+
+/* ─── Responsive ───────────────────────────────────── */
+@media (max-width: 1024px) {
+    .detailed-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .detailed-header {
+        margin-bottom: 24px;
+    }
+
+    .detailed-card {
+        padding: 20px;
+    }
+
+    .detailed-card__title {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .detailed-table td {
+        padding: 10px 0;
+        font-size: 13px;
+    }
+
+    .detailed-table__pct {
+        width: 48px;
+    }
+
+    .insight-item {
+        padding: 14px;
+    }
+
+    .insight-item strong {
+        font-size: 13px;
+    }
+
+    .insight-item p {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .detailed-card {
+        padding: 16px;
+    }
+
+    .detailed-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .detailed-header__icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .insight-item {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .detailed-table {
+        font-size: 12px;
+    }
+
+    .detailed-table__number {
+        font-size: 13px;
+    }
+}

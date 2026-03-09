@@ -52,7 +52,7 @@ const SecurityGuard = () => {
             if (key === 'printscreen' || code === 44) {
                 e.preventDefault();
                 // Attempt to clear clipboard
-                try { navigator.clipboard?.writeText?.(''); } catch { }
+                try { navigator.clipboard?.writeText?.(''); } catch { /* ignored */ }
                 showSecurityAlert();
                 return false;
             }
@@ -138,7 +138,7 @@ const SecurityGuard = () => {
         document.addEventListener('keydown', handleKeyDown, true);
         document.addEventListener('keyup', (e) => {
             if (e.keyCode === 44) {
-                try { navigator.clipboard?.writeText?.(''); } catch { }
+                try { navigator.clipboard?.writeText?.(''); } catch { /* ignored */ }
             }
         }, true);
         document.addEventListener('dragstart', handleDragStart, true);
@@ -198,7 +198,7 @@ const SecurityGuard = () => {
             try {
                 const check = new Function('debugger');
                 check();
-            } catch { }
+            } catch { /* ignored */ }
             const elapsed = performance.now() - start;
             if (elapsed > 100) {
                 handleDevToolsDetected();

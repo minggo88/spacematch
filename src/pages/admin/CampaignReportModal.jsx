@@ -104,7 +104,7 @@ function ContribBar({ ads }) {
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate">{a.title}</p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500">{getSlotLabel(a.slot_id)}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500">{SLOT_KEY_MAP[a.slot_id] || a.slot_id}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-xs font-bold text-gray-900 dark:text-white">{v.toLocaleString()}</p>

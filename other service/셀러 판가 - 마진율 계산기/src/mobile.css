@@ -1,0 +1,727 @@
+/* ============================================================
+   Mobile-First UI Polish Override
+   모바일 UI 최적화: 390px ~ 768px 완벽 대응
+   ============================================================ */
+
+/* ─── Global: 모바일 section 간격 & body ────────────── */
+@media (max-width: 768px) {
+    body {
+        font-size: 15px;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    .section {
+        padding: 40px 0;
+    }
+
+    .container {
+        padding: 0 20px;
+    }
+
+    .h1 {
+        font-size: 28px;
+        letter-spacing: -0.03em;
+        word-break: keep-all;
+    }
+
+    .h2 {
+        font-size: 22px;
+        word-break: keep-all;
+    }
+
+    .h3 {
+        font-size: 18px;
+        word-break: keep-all;
+    }
+
+    .body-text {
+        font-size: 14px;
+    }
+
+    .number-display {
+        font-size: 32px;
+    }
+
+    .btn-cta {
+        padding: 14px 28px;
+        font-size: 15px;
+        border-radius: 12px;
+    }
+
+    .btn-primary {
+        padding: 10px 24px;
+        font-size: 14px;
+    }
+}
+
+/* ─── Hero: 모바일 풀 최적화 ────────────────────────── */
+@media (max-width: 768px) {
+    .hero {
+        min-height: auto;
+    }
+
+    .hero__inner {
+        padding-top: 72px;
+        padding-bottom: 48px;
+        gap: 20px;
+    }
+
+    .hero__text {
+        gap: 16px;
+    }
+
+    .hero__subtitle {
+        font-size: 14px;
+        line-height: 1.7;
+        max-width: 100%;
+    }
+
+    .hero__badge {
+        font-size: 12px;
+    }
+
+    /* CTA 모바일 최적화 */
+    .hero .btn-cta {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ─── Calculator: 모바일 완벽 피팅 ──────────────────── */
+@media (max-width: 768px) {
+    .calculator-section {
+        padding-top: 32px;
+        padding-bottom: 32px;
+    }
+
+    .calculator-section__title {
+        font-size: 20px;
+    }
+
+    .calculator-section__desc {
+        font-size: 13px;
+        margin-bottom: 20px;
+    }
+
+    .calc-tabs {
+        max-width: 100%;
+        padding: 3px;
+        margin-bottom: 20px;
+    }
+
+    .calc-tabs__item {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .calc-grid {
+        gap: 20px;
+    }
+
+    .calc-input-card {
+        border-radius: 16px;
+    }
+
+    .calc-input-card__header {
+        padding: 14px 16px;
+        gap: 10px;
+    }
+
+    .calc-input-card__header-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .calc-input-card__header h3 {
+        font-size: 15px;
+    }
+
+    .calc-input-card__inner {
+        padding: 16px;
+    }
+
+    .field-group {
+        padding: 12px 0;
+    }
+
+    .field-group__label-row {
+        margin-bottom: 8px;
+    }
+
+    .field-group__label-row .label {
+        font-size: 13px;
+    }
+
+    .field-group__label-row .caption {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    .input-wrap {
+        border-radius: 8px;
+    }
+
+    .input-prefix,
+    .input-suffix {
+        width: 38px;
+        font-size: 12px;
+    }
+
+    .calculator-section .input-field {
+        padding: 11px 12px;
+        font-size: 15px;
+    }
+
+    .calculator-section select.input-field {
+        font-size: 14px;
+        padding: 11px 12px;
+    }
+
+    .calc-input-card__actions {
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 4px;
+    }
+
+    .btn-reset,
+    .btn-calculate {
+        padding: 12px 16px;
+        font-size: 14px;
+        border-radius: 10px;
+    }
+
+    /* Result Card 모바일 */
+    .calc-result-card {
+        border-radius: 16px;
+    }
+
+    .calc-result-card__header {
+        padding: 14px 16px;
+    }
+
+    .calc-result-card__body {
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .result-metric--main {
+        padding: 14px;
+        border-radius: 10px;
+    }
+
+    .result-metric__label {
+        font-size: 11px;
+    }
+
+    .result-metric__value {
+        font-size: 20px;
+    }
+
+    /* Donut 차트 모바일 */
+    .donut-chart {
+        gap: 14px;
+    }
+
+    .donut-chart svg {
+        width: 170px !important;
+        height: 170px !important;
+    }
+
+    .donut-chart__center {
+        width: 170px;
+        height: 170px;
+    }
+
+    .donut-chart__center-label {
+        font-size: 11px;
+    }
+
+    .donut-chart__center-value {
+        font-size: 16px;
+    }
+
+    .donut-chart__legend {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+    }
+
+    .donut-chart__legend-item {
+        font-size: 12px;
+        gap: 5px;
+    }
+
+    .donut-chart__legend-dot {
+        width: 8px;
+        height: 8px;
+    }
+}
+
+/* ─── Blurred Result (잠금 화면) ─────────────────────── */
+@media (max-width: 768px) {
+    .blurred-result {
+        margin-top: 16px;
+    }
+
+    .blurred-result__content {
+        padding: 16px;
+    }
+
+    .fake-row {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .blurred-result__overlay {
+        padding: 20px 16px;
+        gap: 10px;
+    }
+
+    .blurred-result__lock {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 0;
+    }
+
+    .blurred-result__title {
+        font-size: 16px;
+    }
+
+    .blurred-result__desc {
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .blurred-result__overlay .btn-cta {
+        width: 100%;
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+/* ─── Detailed Result (상세 결과) ────────────────────── */
+@media (max-width: 768px) {
+    .detailed-section {
+        padding: 32px 0;
+    }
+
+    .detailed-header {
+        flex-direction: row;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .detailed-header__icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+    }
+
+    .detailed-header__title {
+        font-size: 18px;
+    }
+
+    .detailed-card {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .detailed-card__title {
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        font-size: 15px;
+    }
+
+    .detailed-table td {
+        padding: 8px 0;
+        font-size: 13px;
+    }
+
+    .detailed-table th {
+        font-size: 10px;
+        padding: 6px 0;
+    }
+
+    .detailed-table__number {
+        font-size: 13px;
+    }
+
+    .detailed-table__pct {
+        width: 44px;
+        font-size: 12px;
+    }
+
+    .insight-item {
+        padding: 12px;
+        gap: 10px;
+        border-radius: 10px;
+    }
+
+    .insight-item__icon {
+        font-size: 18px;
+    }
+
+    .insight-item strong {
+        font-size: 13px;
+    }
+
+    .insight-item p {
+        font-size: 12px;
+    }
+
+    .unlocked-badge {
+        padding: 10px 14px;
+        font-size: 13px;
+        gap: 6px;
+    }
+}
+
+/* ─── Dynamic Ad ─────────────────────────────────────── */
+@media (max-width: 768px) {
+    .dynamic-ad .container {
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .dynamic-ad__label {
+        font-size: 10px;
+    }
+
+    .dynamic-ad__content {
+        padding: 14px 16px;
+        gap: 10px;
+    }
+}
+
+/* ─── Ad Section ─────────────────────────────────────── */
+@media (max-width: 768px) {
+    .ad-section {
+        padding: 32px 0;
+    }
+
+    .ad-section__banner {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .ad-section__content {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .ad-section__text h3 {
+        font-size: 16px;
+    }
+
+    .ad-section__text p {
+        font-size: 13px;
+    }
+}
+
+/* ─── Trust Section ──────────────────────────────────── */
+@media (max-width: 768px) {
+    .trust-section {
+        padding: 36px 0;
+    }
+
+    .trust-section__title {
+        font-size: 20px;
+    }
+
+    .trust-section__desc {
+        font-size: 13px;
+        margin-bottom: 24px;
+    }
+
+    .trust-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    /* 카드: 세로 레이아웃 유지 (가로로 하면 제목 줄바꿈 발생) */
+    .trust-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 12px;
+        border-radius: 14px;
+        gap: 8px;
+    }
+
+    .trust-card__icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .trust-card__icon svg,
+    .trust-card__icon img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .trust-card__title {
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .trust-card__desc {
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--neutral-600);
+    }
+}
+
+/* ─── SpaceMatch Section ─────────────────────────────── */
+@media (max-width: 768px) {
+    .spacematch-section {
+        padding: 36px 0;
+    }
+
+    .spacematch-section__logo {
+        width: 44px;
+        height: 44px;
+        margin-bottom: 12px;
+    }
+
+    .spacematch-section__title {
+        font-size: 20px;
+    }
+
+    .spacematch-section__subtitle {
+        font-size: 13px;
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+
+    .spacematch-grid {
+        gap: 10px;
+        margin-bottom: 28px;
+    }
+
+    /* 카드: 세로 레이아웃 유지 (가로 배치 시 제목 줄바꿈 문제) */
+    .spacematch-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 14px;
+        border-radius: 14px;
+        gap: 8px;
+    }
+
+    .spacematch-card__icon {
+        font-size: 28px;
+        margin-bottom: 0;
+    }
+
+    .spacematch-card__title {
+        font-size: 15px;
+        white-space: nowrap;
+    }
+
+    .spacematch-card__desc {
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .spacematch-section__cta {
+        width: 100%;
+    }
+}
+
+/* ─── Footer ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .footer {
+        padding: 32px 0 20px;
+    }
+
+    .footer__inner {
+        gap: 24px;
+    }
+
+    .footer__tagline {
+        font-size: 13px;
+    }
+
+    .footer__links {
+        gap: 16px;
+    }
+
+    .footer__col {
+        gap: 6px;
+    }
+
+    .footer__col-title {
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+
+    .footer__col a,
+    .footer__link-btn {
+        font-size: 12px;
+    }
+
+    .footer__bottom {
+        padding-top: 16px;
+    }
+
+    .footer__bottom p {
+        font-size: 10px;
+    }
+
+    /* 법적 팝업 모바일 */
+    .legal-popup-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .legal-popup {
+        max-height: 88vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .legal-popup__header {
+        padding: 16px 20px;
+    }
+
+    .legal-popup__title {
+        font-size: 16px;
+    }
+
+    .legal-popup__body {
+        padding: 16px 20px;
+    }
+
+    .legal-popup__text {
+        font-size: 12px;
+        line-height: 1.7;
+    }
+
+    .legal-popup__footer {
+        padding: 12px 20px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .legal-popup__confirm {
+        width: 100%;
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+/* ─── Floating Bar: 모바일 최적화 ────────────────────── */
+@media (max-width: 768px) {
+    .floating-bar__inner {
+        padding: 10px 16px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        gap: 12px;
+    }
+
+    .floating-bar__metric {
+        white-space: nowrap;
+        min-width: 0;
+        flex-shrink: 0;
+    }
+
+    .floating-bar__label {
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    .floating-bar__value {
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .floating-bar__divider {
+        height: 24px;
+        flex-shrink: 0;
+    }
+
+    .floating-bar__btn {
+        padding: 8px 14px;
+        font-size: 12px;
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+}
+
+/* ─── ConversionModal: 모바일 개선 ───────────────────── */
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal-card {
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+        overflow-y: auto;
+    }
+
+    .modal-card__body {
+        padding: 28px 20px 24px;
+    }
+
+    .modal-card__logo {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 12px;
+    }
+
+    .modal-card__title {
+        font-size: 18px;
+    }
+
+    .modal-card__desc {
+        font-size: 13px;
+        margin-bottom: 20px;
+    }
+
+    .modal-form {
+        gap: 12px;
+    }
+
+    .modal-form .input-field {
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+
+    .modal-form__agree-text {
+        font-size: 12px;
+    }
+
+    .modal-form__submit {
+        font-size: 15px;
+        padding: 14px;
+    }
+
+    .sub-popup-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .sub-popup {
+        max-height: 85vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .sub-popup__header {
+        padding: 16px 20px;
+    }
+
+    .sub-popup__body {
+        padding: 16px 20px;
+    }
+
+    .sub-popup__text {
+        font-size: 12px;
+    }
+}
+
+/* ─── 콘텐츠 하단 여백 (FloatingBar 고려) ────────────── */
+@media (max-width: 1024px) {
+    .footer {
+        padding-bottom: 80px;
+    }
+}

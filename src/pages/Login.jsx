@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Lock, Mail, Home } from 'lucide-react';
@@ -11,11 +11,45 @@ const Login = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
     const { t } = useTranslation('auth');
+    const [searchParams] = useSearchParams();
+
+    // URL 파라미터에서 redirect_uri와 email 읽기
+    const redirectUri = searchParams.get('redirect_uri');
+    const prefillEmail = searchParams.get('email');
+
+    useEffect(() => {
+        if (prefillEmail) {
+            setEmail(prefillEmail);
+        }
+    }, [prefillEmail]);
+
+    /**
+     * 안전한 리다이렉트 URL인지 검증
+     * - 같은 도메인이거나 spacematch.net 서브도메인만 허용
+     */
+    const isSafeRedirect = (url) => {
+        try {
+            const parsed = new URL(url);
+            const currentHost = window.location.hostname;
+            return parsed.hostname === currentHost
+                || parsed.hostname === 'spacematch.net'
+                || parsed.hostname.endsWith('.spacematch.net');
+        } catch {
+            return false;
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         login(email, password).then(result => {
             if (result.success) {
+                // redirect_uri가 있고 안전한 URL이면 해당 페이지로 이동
+                if (redirectUri && isSafeRedirect(redirectUri)) {
+                    window.location.href = redirectUri;
+                    return;
+                }
+
+                // 기본 역할 기반 라우팅
                 const role = result.user?.role;
                 if (role === 'superadmin' || role === 'admin') {
                     navigate('/admin');
@@ -98,7 +132,10 @@ const Login = () => {
                 <div className="mt-4 text-center">
                     <p className="text-sm text-gray-600">
                         {t('noAccount')}{' '}
-                        <Link to="/signup" className="text-primary hover:underline font-medium">
+                        <Link
+                            to={`/signup${redirectUri ? `?redirect_uri=${encodeURIComponent(redirectUri)}${prefillEmail ? `&email=${encodeURIComponent(prefillEmail)}` : ''}` : ''}`}
+                            className="text-primary hover:underline font-medium"
+                        >
                             {t('signup')}
                         </Link>
                     </p>

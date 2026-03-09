@@ -5,7 +5,8 @@ import {
     Pencil, Trash2, Check, X, RefreshCw, Server, Shield, Key, Hash, Type, CheckSquare,
     Calendar, Link2, ArrowUpDown, ArrowUp, ArrowDown, Eye, Code, Columns3,
     Info, Filter, Layers, ChevronDown, CheckCircle, XCircle,
-    Wrench, Users, Cpu, FileX, FileText, AlertTriangle
+    Wrench, Users, Cpu, FileX, FileText, AlertTriangle,
+    Plus, Download, Zap
 } from 'lucide-react';
 import Toast from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
@@ -82,6 +83,19 @@ const SuperAdminDatabase = () => {
     const [loadingCache, setLoadingCache] = useState(false);
     const [clearingCache, setClearingCache] = useState({});
     const [clearConfirm, setClearConfirm] = useState(null);
+
+    // Insert row
+    const [showInsertModal, setShowInsertModal] = useState(false);
+    const [insertData, setInsertData] = useState({});
+    const [inserting, setInserting] = useState(false);
+
+    // Export
+    const [showExportMenu, setShowExportMenu] = useState(false);
+
+    // Optimize
+    const [optimizeResults, setOptimizeResults] = useState(null);
+    const [optimizing, setOptimizing] = useState(false);
+    const [optimizeConfirm, setOptimizeConfirm] = useState(null);
 
     // Toast notification
     const [toast, setToast] = useState(null);
@@ -268,16 +282,87 @@ const SuperAdminDatabase = () => {
         setBatchDeleting(false);
     };
 
+    // Insert new row
+    const openInsertModal = () => {
+        if (!tableData?.columns) return;
+        const defaults = {};
+        tableData.columns.forEach(col => {
+            if (col.Extra?.includes('auto_increment')) return;
+            defaults[col.Field] = col.Default !== null ? String(col.Default) : '';
+        });
+        setInsertData(defaults);
+        setShowInsertModal(true);
+    };
+    const handleInsert = async () => {
+        if (!selectedTable || isDevMode) return;
+        setInserting(true);
+        try {
+            const filteredData = {};
+            for (const [k, v] of Object.entries(insertData)) {
+                if (v !== '' && v !== undefined) filteredData[k] = v;
+            }
+            const res = await fetch(`${API_BASE}/database/database_info.php?action=insert_row&db=${dbEnv}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                body: JSON.stringify({ table: selectedTable, data: filteredData })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || t('superAdminDbPage.insertSuccess', '행이 추가되었습니다.'));
+                setShowInsertModal(false);
+                fetchTableData(selectedTable, currentPage, searchTerm, sortCol, sortDir);
+                fetchOverview();
+            } else {
+                showToast(data.error || t('superAdminDbPage.insertFailed', '추가 실패'), 'error');
+            }
+        } catch (e) { console.error(e); showToast(t('superAdminDbPage.insertError', '추가 중 오류'), 'error'); }
+        setInserting(false);
+    };
+
+    // Export table data
+    const handleExport = (format) => {
+        if (!selectedTable) return;
+        const params = new URLSearchParams({ action: 'export_table', db: dbEnv, table: selectedTable, format, search: searchTerm });
+        window.open(`${API_BASE}/database/database_info.php?${params}`, '_blank');
+        setShowExportMenu(false);
+    };
+
+    // Optimize table
+    const handleOptimize = async (tableName = null) => {
+        setOptimizing(true);
+        try {
+            const body = tableName ? { table: tableName } : { all: true };
+            const res = await fetch(`${API_BASE}/database/database_info.php?action=optimize_table&db=${dbEnv}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || t('superAdminDbPage.optimizeSuccess', '최적화 완료'));
+                setOptimizeResults(data);
+                fetchOverview();
+            } else {
+                showToast(data.error || t('superAdminDbPage.optimizeFailed', '최적화 실패'), 'error');
+            }
+        } catch (e) { console.error(e); showToast(t('superAdminDbPage.optimizeError', '최적화 중 오류'), 'error'); }
+        setOptimizing(false);
+        setOptimizeConfirm(null);
+    };
+
     // Dashboard - table categories
     const tableCategories = useMemo(() => {
         if (!overview?.tables) return [];
         const cats = {
-            [t('superAdminDbPage.catUsers')]: { icon: '\ud83d\udc64', tables: [], keywords: ['user', 'session', 'profile'] },
+            [t('superAdminDbPage.catUsers')]: { icon: '\ud83d\udc64', tables: [], keywords: ['user', 'session', 'profile', 'banned', 'seller_photo'] },
             [t('superAdminDbPage.catVenues')]: { icon: '\ud83c\udfe2', tables: [], keywords: ['venue', 'space', 'room'] },
-            [t('superAdminDbPage.catApplications')]: { icon: '\ud83d\udcdd', tables: [], keywords: ['application', 'apply', 'request'] },
-            [t('superAdminDbPage.catCommunity')]: { icon: '\ud83d\udcac', tables: [], keywords: ['community', 'post', 'comment'] },
-            [t('superAdminDbPage.catNotifications')]: { icon: '\ud83d\udd14', tables: [], keywords: ['notification', 'alert'] },
+            [t('superAdminDbPage.catApplications')]: { icon: '\ud83d\udcdd', tables: [], keywords: ['application', 'apply', 'cancellation'] },
+            [t('superAdminDbPage.catCommunity')]: { icon: '\ud83d\udcac', tables: [], keywords: ['community'] },
+            [t('superAdminDbPage.catNotifications')]: { icon: '\ud83d\udd14', tables: [], keywords: ['notification', 'alert', 'push_sub'] },
             [t('superAdminDbPage.catPromotions')]: { icon: '\ud83c\udf1f', tables: [], keywords: ['promotion', 'recruit', 'campaign'] },
+            [t('superAdminDbPage.catPayments', '결제/정산')]: { icon: '\ud83d\udcb3', tables: [], keywords: ['payment', 'settlement'] },
+            [t('superAdminDbPage.catChat', '채팅')]: { icon: '\ud83d\udcac', tables: [], keywords: ['chat_', 'conversation'] },
+            [t('superAdminDbPage.catAds', '광고')]: { icon: '\ud83d\udce2', tables: [], keywords: ['ads', 'adsense', 'ad_daily', 'ad_share'] },
+            [t('superAdminDbPage.catDistribution', '유통/배송')]: { icon: '\ud83d\ude9a', tables: [], keywords: ['proposal', 'shipment', 'distribution'] },
+            [t('superAdminDbPage.catStats', '매출통계')]: { icon: '\ud83d\udcca', tables: [], keywords: ['seller_stat'] },
             [t('superAdminDbPage.catOther')]: { icon: '\ud83d\udce6', tables: [], keywords: [] }
         };
         overview.tables.forEach(tbl => {
@@ -551,7 +636,7 @@ const SuperAdminDatabase = () => {
                                         {sortCol && <span> &middot; {t('superAdminDbPage.sortLabel')}: <span className="font-medium">{sortCol} {sortDir}</span></span>}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     {!isDevMode && tableData.primary_key && selectedRows.size > 0 && (
                                         batchDeleteConfirm ? (
                                             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
@@ -571,6 +656,32 @@ const SuperAdminDatabase = () => {
                                             </button>
                                         )
                                     )}
+                                    {/* Insert Row Button */}
+                                    {!isDevMode && (
+                                        <button onClick={openInsertModal}
+                                            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 border border-emerald-200 transition-colors">
+                                            <Plus size={13} />
+                                            {t('superAdminDbPage.addRow', '행 추가')}
+                                        </button>
+                                    )}
+                                    {/* Export Button */}
+                                    <div className="relative">
+                                        <button onClick={() => setShowExportMenu(!showExportMenu)}
+                                            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 border border-blue-200 transition-colors">
+                                            <Download size={13} />
+                                            {t('superAdminDbPage.export', '내보내기')}
+                                        </button>
+                                        {showExportMenu && (
+                                            <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]">
+                                                <button onClick={() => handleExport('csv')} className="w-full px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                                    <FileText size={13} className="text-emerald-500" /> CSV
+                                                </button>
+                                                <button onClick={() => handleExport('json')} className="w-full px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                                    <Code size={13} className="text-blue-500" /> JSON
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                     <button onClick={() => fetchTableData(selectedTable, currentPage, searchTerm, sortCol, sortDir)}
                                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw size={14} className="text-gray-400" /></button>
                                 </div>
@@ -1175,6 +1286,139 @@ const SuperAdminDatabase = () => {
                             <p className="text-gray-400 font-medium">{t('superAdminDbPage.maintenanceEmpty', '스캔 버튼을 클릭하여 캐시 현황을 확인하세요')}</p>
                         </div>
                     )}
+
+                    {/* OPTIMIZE TABLE Section */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Zap size={18} className="text-yellow-500" />
+                                    {t('superAdminDbPage.optimizeTitle', '테이블 최적화')}
+                                </h3>
+                                <p className="text-[11px] text-gray-400 mt-0.5">{t('superAdminDbPage.optimizeDesc', 'OPTIMIZE TABLE을 실행하여 디스크 공간을 회수하고 성능을 개선합니다')}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {optimizeConfirm === 'all' ? (
+                                    <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2">
+                                        <span className="text-xs font-bold text-yellow-700">{t('superAdminDbPage.optimizeAllConfirm', '전체 테이블을 최적화하시겠습니까?')}</span>
+                                        <button onClick={() => handleOptimize(null)} disabled={optimizing}
+                                            className="px-3 py-1 bg-yellow-500 text-white rounded-lg text-xs font-bold hover:bg-yellow-600 disabled:opacity-50 transition-colors">
+                                            {optimizing ? '...' : t('superAdminDbPage.confirm', '확인')}
+                                        </button>
+                                        <button onClick={() => setOptimizeConfirm(null)}
+                                            className="px-3 py-1 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-300 transition-colors">{t('superAdminDbPage.cancel', '취소')}</button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setOptimizeConfirm('all')}
+                                        className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-xl text-sm font-bold hover:from-yellow-500 hover:to-amber-600 transition-all shadow-md">
+                                        <Zap size={15} />
+                                        {t('superAdminDbPage.optimizeAll', '전체 최적화')}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {optimizing && (
+                            <div className="px-5 py-8 flex items-center justify-center">
+                                <RefreshCw size={24} className="animate-spin text-yellow-400 mr-3" />
+                                <span className="text-sm font-bold text-gray-500">{t('superAdminDbPage.optimizing', '최적화 중...')}</span>
+                            </div>
+                        )}
+
+                        {optimizeResults && !optimizing && (
+                            <div className="p-5">
+                                <div className="flex items-center gap-3 mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                    <CheckCircle size={18} className="text-emerald-500" />
+                                    <div>
+                                        <p className="text-sm font-bold text-emerald-800">{optimizeResults.message}</p>
+                                        {optimizeResults.total_saved_kb !== undefined && (
+                                            <p className="text-xs text-emerald-600 mt-0.5">
+                                                {t('superAdminDbPage.savedSpace', '절약 용량')}: {formatSize(Math.abs(optimizeResults.total_saved_kb))}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                                {optimizeResults.results && (
+                                    <div className="max-h-60 overflow-y-auto space-y-1">
+                                        {optimizeResults.results.map((r, i) => (
+                                            <div key={i} className="flex items-center justify-between text-xs px-3 py-2 hover:bg-gray-50 rounded-lg">
+                                                <span className="font-bold text-gray-700">{r.table}</span>
+                                                <div className="flex items-center gap-3 text-gray-400">
+                                                    <span>{formatSize(r.before_kb)}</span>
+                                                    <span className="text-gray-300">→</span>
+                                                    <span>{formatSize(r.after_kb)}</span>
+                                                    {r.saved_kb > 0 && <span className="text-emerald-500 font-bold">-{formatSize(r.saved_kb)}</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {!optimizeResults && !optimizing && (
+                            <div className="p-5 text-center text-gray-400 text-xs">
+                                <Zap size={24} className="mx-auto mb-2 text-gray-300" />
+                                {t('superAdminDbPage.optimizeHint', '전체 최적화 버튼을 클릭하여 모든 테이블을 최적화하세요')}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* INSERT ROW MODAL */}
+            {showInsertModal && tableData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowInsertModal(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="font-extrabold text-gray-900 flex items-center gap-2">
+                                <Plus size={18} className="text-emerald-500" />
+                                {t('superAdminDbPage.insertTitle', '새 행 추가')} — {selectedTable}
+                            </h3>
+                            <button onClick={() => setShowInsertModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                                <X size={16} className="text-gray-400" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[60vh] space-y-3">
+                            {tableData.columns.map(col => {
+                                const isAutoIncrement = col.Extra?.includes('auto_increment');
+                                const isNullable = col.Null === 'YES';
+                                return (
+                                    <div key={col.Field}>
+                                        <label className="flex items-center gap-1.5 text-xs font-bold text-gray-600 mb-1">
+                                            {col.Key === 'PRI' && <Key size={10} className="text-amber-500" />}
+                                            {col.Field}
+                                            <span className={`px-1 py-0.5 rounded text-[9px] border ${typeColor(col.Type)}`}>{col.Type}</span>
+                                            {isNullable && <span className="text-[9px] text-gray-300">NULL OK</span>}
+                                            {isAutoIncrement && <span className="text-[9px] text-gray-300 italic">AUTO</span>}
+                                        </label>
+                                        {isAutoIncrement ? (
+                                            <input type="text" disabled value="(자동 생성)" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-400 cursor-not-allowed" />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={insertData[col.Field] || ''}
+                                                onChange={e => setInsertData(prev => ({ ...prev, [col.Field]: e.target.value }))}
+                                                placeholder={col.Default !== null ? `기본: ${col.Default}` : (isNullable ? 'NULL (비워 두기 가능)' : '필수 입력')}
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300 transition-all"
+                                            />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-2">
+                            <button onClick={() => setShowInsertModal(false)}
+                                className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">
+                                {t('superAdminDbPage.cancel', '취소')}
+                            </button>
+                            <button onClick={handleInsert} disabled={inserting}
+                                className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                                {inserting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
+                                {inserting ? t('superAdminDbPage.inserting', '추가 중...') : t('superAdminDbPage.insertBtn', '행 추가')}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

@@ -156,8 +156,11 @@ const SellerDashboard = () => {
     const [countryFilter, setCountryFilter] = useState(user?.country || 'all');
     const [sortOrder, setSortOrder] = useState('latest');
     const [heroIndex, setHeroIndex] = useState(0);
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+    const [detectedCountry, setDetectedCountry] = useState(null);
     const trendingRef = useRef(null);
     const hotPromoRef = useRef(null);
+    const countryDropdownRef = useRef(null);
 
     // Promotions from API — separated by type
     const [curatedVenues, setCuratedVenues] = useState([]); // hot_top: 엄선된 모집 정보
@@ -193,6 +196,31 @@ const SellerDashboard = () => {
     useEffect(() => {
         setFilterLocation('all');
     }, [countryFilter]);
+
+    // IP 기반 국가 자동 감지
+    useEffect(() => {
+        if (user?.country) return; // 이미 사용자 국가가 설정되어 있으면 스킵
+        fetch('/api/auth/detect_country.php', { credentials: 'include' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.country_code) {
+                    setDetectedCountry(data.country_code);
+                    setCountryFilter(data.country_code);
+                }
+            })
+            .catch(() => { /* 실패 시 기본값 유지 */ });
+    }, []);
+
+    // 드롭다운 바깥 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target)) {
+                setShowCountryDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const fetchHotPlaces = async () => {
         try {
@@ -843,6 +871,52 @@ const SellerDashboard = () => {
                         <Globe size={20} className="text-indigo-500" />
                         {t('countryFilter')}
                     </h2>
+                    {/* 🔽 국가 선택 드롭다운 버튼 */}
+                    <div className="relative" ref={countryDropdownRef}>
+                        <button
+                            onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${showCountryDropdown
+                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-md'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 shadow-sm'
+                                }`}
+                        >
+                            <span>{countryFilter === 'all' ? '🌍' : (COUNTRY_FLAGS[countryFilter]?.flag || '🌍')}</span>
+                            <span>{countryFilter === 'all'
+                                ? t('allCountries')
+                                : (i18n.language === 'ko' ? COUNTRY_FLAGS[countryFilter]?.name : COUNTRY_FLAGS[countryFilter]?.nameEn) || t('allCountries')
+                            }</span>
+                            <ChevronDown size={14} className={`transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showCountryDropdown && (
+                            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <button
+                                    onClick={() => { setCountryFilter('all'); setShowCountryDropdown(false); }}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-colors ${countryFilter === 'all' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    <span>🌍</span>
+                                    <span className="flex-1 text-left">{t('allCountries')}</span>
+                                    <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 rounded-md text-gray-500">{venues.length}</span>
+                                </button>
+                                <div className="h-px bg-gray-100 my-1" />
+                                {Object.entries(COUNTRY_FLAGS).map(([code, info]) => {
+                                    const cnt = venues.filter(v => v.owner_country === code).length;
+                                    const isDetected = code === detectedCountry;
+                                    return (
+                                        <button
+                                            key={code}
+                                            onClick={() => { setCountryFilter(code); setShowCountryDropdown(false); }}
+                                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-colors ${countryFilter === code ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                                        >
+                                            <span>{info.flag}</span>
+                                            <span className="flex-1 text-left">{i18n.language === 'ko' ? info.name : info.nameEn}</span>
+                                            {isDetected && <span className="text-[9px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full font-bold">IP</span>}
+                                            <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 rounded-md text-gray-500">{cnt}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
                     {/* Sort Dropdown */}
                     <select
@@ -855,43 +929,6 @@ const SellerDashboard = () => {
                         <option value="priceDesc">{t('sortPriceDesc')}</option>
                         <option value="popular">{t('sortPopular')}</option>
                     </select>
-                </div>
-                <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
-                    <div className="flex items-center gap-2 pb-2 min-w-max">
-                        <button
-                            onClick={() => setCountryFilter('all')}
-                            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${countryFilter === 'all'
-                                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
-                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                                }`}
-                        >
-                            🌍 {t('allCountries')}
-                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-md text-[11px]">{venues.length}</span>
-                        </button>
-                        {Object.entries(COUNTRY_FLAGS).map(([code, info]) => {
-                            const cnt = venues.filter(v => v.owner_country === code).length;
-                            return (
-                                <button
-                                    key={code}
-                                    onClick={() => setCountryFilter(code)}
-                                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${countryFilter === code
-                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
-                                        : code === user?.country
-                                            ? 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <span>{info.flag}</span>
-                                    <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
-                                    <span className={`ml-0.5 px-1.5 py-0.5 rounded-md text-[11px] ${countryFilter === code ? 'bg-white/20' : 'bg-gray-100 text-gray-500'
-                                        }`}>{cnt}</span>
-                                    {code === user?.country && countryFilter !== code && (
-                                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
                 </div>
 
                 {/* Country Stats Summary Card */}

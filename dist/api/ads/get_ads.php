@@ -27,7 +27,7 @@ try {
     }
 
     $stmt = $conn->prepare("
-        SELECT id, slot_id, title, image_url, click_url
+        SELECT id, slot_id, title, image_url, mobile_image_url, click_url
         FROM ads
         WHERE slot_id = :slot_id
           AND is_active = 1

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     CreditCard, Banknote, Copy, CheckCircle, Clock, XCircle, Send,
     AlertTriangle, X, Sparkles, Star, Package, ChevronRight, ChevronDown,
-    Layers, Tag, ShoppingBag, Zap, Crown
+    Layers, Tag, ShoppingBag, Zap, Crown, Calendar, CalendarDays
 } from 'lucide-react';
 import { countryToLang } from '../../utils/translateText';
 
@@ -47,6 +47,8 @@ const SellerPayments = () => {
 
     // Collapsed category sections
     const [collapsedCats, setCollapsedCats] = useState({});
+    // Billing period toggle
+    const [billingPeriod, setBillingPeriod] = useState('monthly');
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -150,6 +152,24 @@ const SellerPayments = () => {
         return result;
     }, [plans]);
 
+    // Filter plans by billing period
+    const filteredGroupedPlans = useMemo(() => {
+        return groupedPlans.map(group => ({
+            ...group,
+            plans: group.plans.filter(plan => {
+                if (billingPeriod === 'all') return true;
+                return plan.period === billingPeriod;
+            })
+        })).filter(group => group.plans.length > 0);
+    }, [groupedPlans, billingPeriod]);
+
+    // Count plans by period
+    const periodCounts = useMemo(() => {
+        const counts = { monthly: 0, yearly: 0, once: 0, all: plans.length };
+        plans.forEach(p => { if (counts[p.period] !== undefined) counts[p.period]++; });
+        return counts;
+    }, [plans]);
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -240,8 +260,92 @@ const SellerPayments = () => {
             {/* ═══ Plans Tab — Category Grouped ═══ */}
             {activeTab === 'plans' && (
                 <div className="space-y-6">
-                    {groupedPlans.length > 0 ? (
-                        groupedPlans.map(group => {
+                    {/* 💳 Billing Period Toggle */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                    <Calendar size={18} className="text-indigo-600" />
+                                </div>
+                                <h3 className="font-bold text-gray-900">{t('paymentsPage.billingPeriod', '결제 주기')}</h3>
+                            </div>
+                            <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
+                                <button
+                                    onClick={() => setBillingPeriod('monthly')}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${billingPeriod === 'monthly'
+                                        ? 'bg-white text-indigo-700 shadow-md border border-indigo-100'
+                                        : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <Calendar size={15} />
+                                    {t('paymentsPage.periodMonthly')}
+                                    {periodCounts.monthly > 0 && (
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${billingPeriod === 'monthly' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}>{periodCounts.monthly}</span>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setBillingPeriod('yearly')}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all relative ${billingPeriod === 'yearly'
+                                        ? 'bg-white text-emerald-700 shadow-md border border-emerald-100'
+                                        : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <CalendarDays size={15} />
+                                    {t('paymentsPage.periodYearly')}
+                                    {periodCounts.yearly > 0 && (
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${billingPeriod === 'yearly' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-500'}`}>{periodCounts.yearly}</span>
+                                    )}
+                                    {periodCounts.yearly > 0 && (
+                                        <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-[9px] font-black shadow-md">
+                                            SAVE
+                                        </span>
+                                    )}
+                                </button>
+                                {periodCounts.once > 0 && (
+                                    <button
+                                        onClick={() => setBillingPeriod('once')}
+                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${billingPeriod === 'once'
+                                            ? 'bg-white text-amber-700 shadow-md border border-amber-100'
+                                            : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        <Sparkles size={15} />
+                                        {t('paymentsPage.periodOnce')}
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${billingPeriod === 'once' ? 'bg-amber-100 text-amber-600' : 'bg-gray-200 text-gray-500'}`}>{periodCounts.once}</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setBillingPeriod('all')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${billingPeriod === 'all'
+                                        ? 'bg-white text-gray-700 shadow-md border border-gray-200'
+                                        : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    {t('paymentsPage.periodAll', '전체')}
+                                </button>
+                            </div>
+                        </div>
+                        {/* Period description */}
+                        <div className="mt-4 flex items-center gap-3">
+                            {billingPeriod === 'monthly' && (
+                                <p className="text-sm text-gray-500 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-indigo-400 rounded-full" />
+                                    {t('paymentsPage.monthlyDesc', '매월 자동 결제되는 요금제입니다. 언제든지 해지 가능합니다.')}
+                                </p>
+                            )}
+                            {billingPeriod === 'yearly' && (
+                                <p className="text-sm text-emerald-600 flex items-center gap-2 font-medium">
+                                    <span className="w-2 h-2 bg-emerald-400 rounded-full" />
+                                    {t('paymentsPage.yearlyDesc', '연간 결제 시 할인된 요금이 적용됩니다.')}
+                                </p>
+                            )}
+                            {billingPeriod === 'once' && (
+                                <p className="text-sm text-amber-600 flex items-center gap-2 font-medium">
+                                    <span className="w-2 h-2 bg-amber-400 rounded-full" />
+                                    {t('paymentsPage.onceDesc', '한 번만 결제하면 영구적으로 이용 가능합니다.')}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {filteredGroupedPlans.length > 0 ? (
+                        filteredGroupedPlans.map(group => {
                             const catMeta = CATEGORY_META[group.category] || DEFAULT_CAT_META;
                             const CatIcon = catMeta.icon;
                             const isCollapsed = collapsedCats[group.category];
@@ -305,6 +409,12 @@ const SellerPayments = () => {
                                                                 ₩{parseInt(plan.amount || 0).toLocaleString()}
                                                                 <span className="text-sm text-gray-400 font-medium ml-1">/ {PERIOD_LABEL[plan.period] || t('paymentsPage.periodMonthly')}</span>
                                                             </p>
+                                                            {plan.period === 'yearly' && (
+                                                                <p className="text-xs text-emerald-600 mt-1 font-bold flex items-center gap-1">
+                                                                    <CheckCircle size={12} />
+                                                                    {t('paymentsPage.yearlySaving', '월간 결제 대비 할인 적용')}
+                                                                </p>
+                                                            )}
                                                             {isPackage && (
                                                                 <p className="text-xs text-amber-600 mt-1 font-medium">{t('paymentsPage.packageDesc')}</p>
                                                             )}

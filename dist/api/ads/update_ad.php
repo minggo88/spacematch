@@ -33,7 +33,32 @@ if (empty($slot_id) || empty($title)) {
     exit();
 }
 
-// Handle optional image update
+// Detect app base path dynamically
+$doc_root = $_SERVER['DOCUMENT_ROOT'];
+$app_base = '';
+if (preg_match('#(/[^/]+)(/api/|/uploads/)#', $_SERVER['SCRIPT_NAME'], $m)) {
+    $app_base = $m[1];
+}
+
+$upload_dir = $doc_root . $app_base . '/uploads/ads/';
+if (!is_dir($upload_dir)) {
+    @mkdir($upload_dir, 0755, true);
+}
+
+// Fallback to relative path if DOCUMENT_ROOT-based path fails
+if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
+    $upload_dir = dirname(dirname(__DIR__)) . '/uploads/ads/';
+    if (!is_dir($upload_dir)) {
+        @mkdir($upload_dir, 0755, true);
+    }
+}
+
+// Fetch old record for cleanup
+$old = $conn->prepare("SELECT image_url, mobile_image_url FROM ads WHERE id = :id");
+$old->execute([':id' => $ad_id]);
+$old_row = $old->fetch(PDO::FETCH_ASSOC);
+
+// Handle optional PC image update
 $image_sql = '';
 $image_url = null;
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
@@ -42,26 +67,6 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     if (!in_array($_FILES['image']['type'], $allowed)) {
         echo json_encode(['success' => false, 'message' => '허용된 이미지 형식: JPG, PNG, GIF, WebP']);
         exit();
-    }
-
-    // Detect app base path dynamically
-    $doc_root = $_SERVER['DOCUMENT_ROOT'];
-    $app_base = '';
-    if (preg_match('#(/[^/]+)(/api/|/uploads/)#', $_SERVER['SCRIPT_NAME'], $m)) {
-        $app_base = $m[1];
-    }
-
-    $upload_dir = $doc_root . $app_base . '/uploads/ads/';
-    if (!is_dir($upload_dir)) {
-        @mkdir($upload_dir, 0755, true);
-    }
-
-    // Fallback to relative path if DOCUMENT_ROOT-based path fails
-    if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
-        $upload_dir = dirname(dirname(__DIR__)) . '/uploads/ads/';
-        if (!is_dir($upload_dir)) {
-            @mkdir($upload_dir, 0755, true);
-        }
     }
 
     $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
@@ -73,16 +78,45 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $image_sql = ', image_url = :image_url';
 
         // Delete old image
-        $old = $conn->prepare("SELECT image_url FROM ads WHERE id = :id");
-        $old->execute([':id' => $ad_id]);
-        $old_row = $old->fetch(PDO::FETCH_ASSOC);
         if ($old_row && $old_row['image_url']) {
             $old_path = $doc_root . $old_row['image_url'];
             if (file_exists($old_path)) {
                 @unlink($old_path);
             } else {
-                // Fallback: try relative path
                 $old_path_rel = dirname(dirname(__DIR__)) . str_replace($app_base, '', $old_row['image_url']);
+                if (file_exists($old_path_rel))
+                    @unlink($old_path_rel);
+            }
+        }
+    }
+}
+
+// Handle optional mobile image update
+$mobile_image_sql = '';
+$mobile_image_url = null;
+if (isset($_FILES['mobile_image']) && $_FILES['mobile_image']['error'] === UPLOAD_ERR_OK) {
+
+    $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($_FILES['mobile_image']['type'], $allowed)) {
+        echo json_encode(['success' => false, 'message' => '모바일 이미지: 허용된 형식 JPG, PNG, GIF, WebP']);
+        exit();
+    }
+
+    $ext = pathinfo($_FILES['mobile_image']['name'], PATHINFO_EXTENSION);
+    $filename = 'ad_mobile_' . time() . '_' . uniqid() . '.' . $ext;
+    $filepath = $upload_dir . $filename;
+
+    if (move_uploaded_file($_FILES['mobile_image']['tmp_name'], $filepath)) {
+        $mobile_image_url = $app_base . '/uploads/ads/' . $filename;
+        $mobile_image_sql = ', mobile_image_url = :mobile_image_url';
+
+        // Delete old mobile image
+        if ($old_row && $old_row['mobile_image_url']) {
+            $old_path = $doc_root . $old_row['mobile_image_url'];
+            if (file_exists($old_path)) {
+                @unlink($old_path);
+            } else {
+                $old_path_rel = dirname(dirname(__DIR__)) . str_replace($app_base, '', $old_row['mobile_image_url']);
                 if (file_exists($old_path_rel))
                     @unlink($old_path_rel);
             }
@@ -93,7 +127,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 try {
     $sql = "UPDATE ads SET slot_id = :slot_id, title = :title, click_url = :click_url,
             start_date = :start_date, end_date = :end_date, is_active = :is_active,
-            priority = :priority, campaign_id = :campaign_id, target_countries = :target_countries $image_sql WHERE id = :id";
+            priority = :priority, campaign_id = :campaign_id, target_countries = :target_countries $image_sql $mobile_image_sql WHERE id = :id";
 
     $params = [
         ':slot_id' => $slot_id,
@@ -110,6 +144,10 @@ try {
 
     if ($image_url) {
         $params[':image_url'] = $image_url;
+    }
+
+    if ($mobile_image_url) {
+        $params[':mobile_image_url'] = $mobile_image_url;
     }
 
     $stmt = $conn->prepare($sql);

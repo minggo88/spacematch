@@ -67,7 +67,7 @@ const SellerProfile = () => {
             if (user.keywords) {
                 return typeof user.keywords === 'string' ? JSON.parse(user.keywords) : user.keywords;
             }
-        } catch (e) { }
+        } catch (e) { /* ignore parse error */ }
         return [];
     });
     const [saving, setSaving] = useState(false);
@@ -103,7 +103,7 @@ const SellerProfile = () => {
             if (user.keywords) {
                 setKeywords(typeof user.keywords === 'string' ? JSON.parse(user.keywords) : user.keywords);
             }
-        } catch (e) { }
+        } catch (e) { /* ignore parse error */ }
         if (user.profile_image) {
             setPreviewImage(user.profile_image);
         }

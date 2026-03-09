@@ -27,7 +27,28 @@ if (empty($slot_id) || empty($title)) {
     exit();
 }
 
-// Handle image upload
+// Detect app base path dynamically
+$doc_root = $_SERVER['DOCUMENT_ROOT'];
+$script_dir = dirname($_SERVER['SCRIPT_FILENAME']);
+$app_base = '';
+if (preg_match('#(/[^/]+)(/api/|/uploads/)#', $_SERVER['SCRIPT_NAME'], $m)) {
+    $app_base = $m[1]; // e.g. '/spacematch'
+}
+
+$upload_dir = $doc_root . $app_base . '/uploads/ads/';
+if (!is_dir($upload_dir)) {
+    @mkdir($upload_dir, 0755, true);
+}
+
+// Fallback to relative path if DOCUMENT_ROOT-based path fails
+if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
+    $upload_dir = dirname(dirname(__DIR__)) . '/uploads/ads/';
+    if (!is_dir($upload_dir)) {
+        @mkdir($upload_dir, 0755, true);
+    }
+}
+
+// Handle PC image upload (required)
 $image_url = '';
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 
@@ -35,27 +56,6 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     if (!in_array($_FILES['image']['type'], $allowed)) {
         echo json_encode(['success' => false, 'message' => '허용된 이미지 형식: JPG, PNG, GIF, WebP']);
         exit();
-    }
-
-    // Detect app base path dynamically
-    $doc_root = $_SERVER['DOCUMENT_ROOT'];
-    $script_dir = dirname($_SERVER['SCRIPT_FILENAME']);
-    $app_base = '';
-    if (preg_match('#(/[^/]+)(/api/|/uploads/)#', $_SERVER['SCRIPT_NAME'], $m)) {
-        $app_base = $m[1]; // e.g. '/spacematch'
-    }
-
-    $upload_dir = $doc_root . $app_base . '/uploads/ads/';
-    if (!is_dir($upload_dir)) {
-        @mkdir($upload_dir, 0755, true);
-    }
-
-    // Fallback to relative path if DOCUMENT_ROOT-based path fails
-    if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
-        $upload_dir = dirname(dirname(__DIR__)) . '/uploads/ads/';
-        if (!is_dir($upload_dir)) {
-            @mkdir($upload_dir, 0755, true);
-        }
     }
 
     $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
@@ -73,15 +73,35 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     exit();
 }
 
+// Handle mobile image upload (optional)
+$mobile_image_url = null;
+if (isset($_FILES['mobile_image']) && $_FILES['mobile_image']['error'] === UPLOAD_ERR_OK) {
+
+    $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($_FILES['mobile_image']['type'], $allowed)) {
+        echo json_encode(['success' => false, 'message' => '모바일 이미지: 허용된 형식 JPG, PNG, GIF, WebP']);
+        exit();
+    }
+
+    $ext = pathinfo($_FILES['mobile_image']['name'], PATHINFO_EXTENSION);
+    $filename = 'ad_mobile_' . time() . '_' . uniqid() . '.' . $ext;
+    $filepath = $upload_dir . $filename;
+
+    if (move_uploaded_file($_FILES['mobile_image']['tmp_name'], $filepath)) {
+        $mobile_image_url = $app_base . '/uploads/ads/' . $filename;
+    }
+}
+
 try {
     $stmt = $conn->prepare("
-        INSERT INTO ads (slot_id, title, image_url, click_url, start_date, end_date, is_active, priority, campaign_id, target_countries)
-        VALUES (:slot_id, :title, :image_url, :click_url, :start_date, :end_date, :is_active, :priority, :campaign_id, :target_countries)
+        INSERT INTO ads (slot_id, title, image_url, mobile_image_url, click_url, start_date, end_date, is_active, priority, campaign_id, target_countries)
+        VALUES (:slot_id, :title, :image_url, :mobile_image_url, :click_url, :start_date, :end_date, :is_active, :priority, :campaign_id, :target_countries)
     ");
     $stmt->execute([
         ':slot_id' => $slot_id,
         ':title' => $title,
         ':image_url' => $image_url,
+        ':mobile_image_url' => $mobile_image_url,
         ':click_url' => $click_url,
         ':start_date' => $start_date,
         ':end_date' => $end_date,

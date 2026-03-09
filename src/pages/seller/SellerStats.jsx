@@ -432,11 +432,11 @@ const SellerStats = ({ userRole = 'seller' }) => {
         // Phase 1: Exact match
         headers.forEach((h, idx) => {
             if (mapping[idx]) return;
-            const hl = h.toLowerCase().trim().replace(/[\s_\-]+/g, '');
+            const hl = h.toLowerCase().trim().replace(/[\s_-]+/g, '');
             for (const [field, kw] of Object.entries(EXPENSE_FIELD_KEYWORDS)) {
                 if (usedFields.has(field)) continue;
                 const matched = kw.exact.some(k => {
-                    const kn = k.toLowerCase().replace(/[\s_\-]+/g, '');
+                    const kn = k.toLowerCase().replace(/[\s_-]+/g, '');
                     return hl === kn;
                 });
                 if (matched) {
@@ -6822,7 +6822,7 @@ tr:last-child td{border-bottom:none}
                                         RU: {
                                             overview: { title: t('statsPage.infoRUOverviewTitle', '러시아 세금 체계'), items: [t('statsPage.infoRUOverview0', 'НДС(VAT): 20% (경감 10%)'), t('statsPage.infoRUOverview1', 'НДФЛ(PIT): 13%~15%'), t('statsPage.infoRUOverview2', '간이과세(USN): 매출 6% 또는 이익 15%'), t('statsPage.infoRUOverview3', '자영업세(НПД): 4%/6%')] },
                                             registration: { title: t('statsPage.infoRURegTitle', '사업자 등록'), items: [t('statsPage.infoRUReg0', '연방세무서(ФНС)에 ИП 등록'), t('statsPage.infoRUReg1', '세금 체계 선택: 일반/USN/НПД'), t('statsPage.infoRUReg2', 'Госуслуги 포털에서 온라인 등록'), t('statsPage.infoRUReg3', 'ИНН(납세자번호) 자동 발급')] },
-                                            deductions: { title: t('statsPage.infoRUDeductTitle', '주요 공제 항목'), items: [t('statsPage.infoRUDeduct0', '표준 공제: 최대 3,000루블/월'), t('statsPage.infoRUDeduct1', '사회 공제(교육, 의료): 최대 120,000루블/년'), t('statsPage.infoRUDeduct2', '재산 공제(주택 구매)'), t('statsPage.infoRUDeduct3', 'USN \"소득-경비\" 시 사업 경비'), t('statsPage.infoRUDeduct4', '사회보험료(고정 기여금)')] },
+                                            deductions: { title: t('statsPage.infoRUDeductTitle', '주요 공제 항목'), items: [t('statsPage.infoRUDeduct0', '표준 공제: 최대 3,000루블/월'), t('statsPage.infoRUDeduct1', '사회 공제(교육, 의료): 최대 120,000루블/년'), t('statsPage.infoRUDeduct2', '재산 공제(주택 구매)'), t('statsPage.infoRUDeduct3', 'USN "소득-경비" 시 사업 경비'), t('statsPage.infoRUDeduct4', '사회보험료(고정 기여금)')] },
                                             deadlines: { title: t('statsPage.infoRUDeadlineTitle', '주요 신고 기한'), items: [t('statsPage.infoRUDeadline0', 'НДФЛ 연간 신고(3-НДФЛ): 4월 30일'), t('statsPage.infoRUDeadline1', 'USN 연간 신고: 4월 30일(ИП)/3월 31일(법인)'), t('statsPage.infoRUDeadline2', 'НДС 분기 신고: 분기 종료 후 25일'), t('statsPage.infoRUDeadline3', '사회보험료: 매월 15일')] },
                                             links: [
                                                 { label: t('statsPage.infoRULink0', '러시아 연방세무서'), url: 'https://www.nalog.gov.ru' },
@@ -8828,10 +8828,10 @@ const ExpenseFormInner = ({ initial, onSave, onCancel, categories, paymentMethod
         const usedFields = new Set();
         // Phase 1: Exact match
         headers.forEach((h, idx) => {
-            const hl = h.toLowerCase().trim().replace(/[\s_\-]+/g, '');
+            const hl = h.toLowerCase().trim().replace(/[\s_-]+/g, '');
             for (const [field, kw] of Object.entries(FIELD_KW)) {
                 if (usedFields.has(field)) continue;
-                if (kw.exact.some(k => hl === k.toLowerCase().replace(/[\s_\-]+/g, ''))) {
+                if (kw.exact.some(k => hl === k.toLowerCase().replace(/[\s_-]+/g, ''))) {
                     if (!kw.exclude.some(ex => hl.includes(ex.toLowerCase()))) {
                         mapping[idx] = field;
                         usedFields.add(field);

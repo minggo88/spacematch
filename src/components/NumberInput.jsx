@@ -59,7 +59,7 @@ const NumberInput = ({
         let input = e.target.value;
 
         // Allow only digits, commas, and optionally decimal/negative
-        let pattern = allowDecimal ? /[^0-9,.\-]/g : /[^0-9,\-]/g;
+        let pattern = allowDecimal ? /[^0-9,.-]/g : /[^0-9,-]/g;
         if (!allowNegative) {
             pattern = allowDecimal ? /[^0-9,.]/g : /[^0-9,]/g;
         }

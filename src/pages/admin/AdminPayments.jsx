@@ -141,7 +141,7 @@ const AdminPayments = () => {
     const openPlanModal = (plan = null) => {
         if (plan) {
             const cat = plan.category || '';
-            const isCustom = cat && !CATEGORY_OPTIONS.includes(cat);
+            const isCustom = cat && !CATEGORY_KEY_OPTIONS.includes(cat);
             setPlanForm({
                 name: plan.name || '', description: plan.description || '', amount: plan.amount || 0,
                 period: plan.period || 'monthly', features: plan.features || [], target_role: plan.target_role || 'all',

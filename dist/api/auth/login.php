@@ -10,7 +10,7 @@ if (isset($data->email) && isset($data->password)) {
     $base_cols = "id, name, role, status, password, email, phone, profile_image, venue_limit";
 
     // Dynamically include optional columns (same as me.php)
-    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country', 'is_demo', 'name_en', 'keywords', 'company_name', 'address', 'website', 'categories'];
+    $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country', 'is_demo', 'name_en', 'keywords', 'company_name', 'address', 'website', 'categories', 'email_verified'];
     foreach ($opt_cols as $oc) {
         $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
         if ($chk->fetch())
@@ -53,6 +53,14 @@ if (isset($data->email) && isset($data->password)) {
             }
             if ($row['status'] === 'blocked') {
                 echo json_encode(array("success" => false, "message" => "차단된 계정입니다. 관리자에게 문의하세요."));
+                exit;
+            }
+
+            // Check email verification
+            $emailVerified = isset($row['email_verified']) ? intval($row['email_verified']) : 1;
+            $isDemo = isset($row['is_demo']) ? intval($row['is_demo']) : 0;
+            if ($emailVerified === 0 && $isDemo === 0 && !in_array($row['role'], ['admin', 'superadmin'])) {
+                echo json_encode(array("success" => false, "message" => "이메일 인증을 완료해주세요. 가입 시 입력한 이메일의 인증 코드를 확인해주세요.", "email_not_verified" => true));
                 exit;
             }
 

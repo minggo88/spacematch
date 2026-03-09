@@ -397,7 +397,7 @@ const RecruitmentDashboard = () => {
                             onClick={async (e) => {
                                 e.stopPropagation();
                                 const shareUrl = `${window.location.origin}${window.location.pathname}?venue=${venue.venue_id || venue.id}`;
-                                try { await navigator.clipboard.writeText(shareUrl); showToast(t('linkCopied')); } catch { }
+                                try { await navigator.clipboard.writeText(shareUrl); showToast(t('linkCopied')); } catch { /* ignored */ }
                             }}
                             className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-400 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
                             title={t('share')}
@@ -537,7 +537,7 @@ const RecruitmentDashboard = () => {
                             onClick={async (e) => {
                                 e.stopPropagation();
                                 const shareUrl = `${window.location.origin}${window.location.pathname}?venue=${venue.id || venue.venue_id}`;
-                                try { await navigator.clipboard.writeText(shareUrl); showToast(t('linkCopied')); } catch { }
+                                try { await navigator.clipboard.writeText(shareUrl); showToast(t('linkCopied')); } catch { /* ignored */ }
                             }}
                             className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-indigo-500 hover:border-indigo-200 transition-all"
                             title={t('share')}
@@ -655,7 +655,7 @@ const RecruitmentDashboard = () => {
                                     if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
                                         try {
                                             await navigator.share({ title: `SpaceMatch - ${venue.name}`, text: shareText, url: shareUrl });
-                                        } catch (e) { }
+                                        } catch (e) { /* ignored */ }
                                     } else {
                                         try {
                                             await navigator.clipboard.writeText(shareUrl);

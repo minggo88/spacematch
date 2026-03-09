@@ -76,7 +76,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                 text: `${venue.name} - ${venue.location}`,
                 url: venueUrl
             });
-        } catch { }
+        } catch { /* ignored */ }
         setShowShareMenu(false);
     };
 
@@ -391,7 +391,7 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                                         try {
                                             const parsed = typeof venue.event_periods === 'string' ? JSON.parse(venue.event_periods) : venue.event_periods;
                                             if (Array.isArray(parsed)) periods = parsed.filter(p => p.start || p.end);
-                                        } catch { }
+                                        } catch { /* ignored */ }
                                     }
                                     if (periods.length === 0 && (venue.event_start || venue.event_end)) {
                                         periods = [{ start: venue.event_start || '', end: venue.event_end || '' }];

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Lock, Building, Tag, Instagram, Phone, AlertCircle, Globe, Home } from 'lucide-react';
+import { User, Mail, Lock, Building, Tag, Instagram, Phone, AlertCircle, Globe, Home, CheckCircle2, Loader2 } from 'lucide-react';
 import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
 import KeywordSelector from '../components/KeywordSelector';
 import {
@@ -14,8 +14,13 @@ import { getBusinessRegConfig } from '../utils/businessRegConfig';
 
 const Signup = () => {
     const navigate = useNavigate();
-    const { signup, login } = useAuth();
+    const { signup, login, sendVerification, verifyEmail } = useAuth();
     const { t } = useTranslation('auth');
+    const [searchParams] = useSearchParams();
+
+    // URL 파라미터에서 redirect_uri와 email 읽기
+    const redirectUri = searchParams.get('redirect_uri');
+    const prefillEmail = searchParams.get('email');
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -30,10 +35,41 @@ const Signup = () => {
         description: '',
         keywords: []
     });
+
+    // URL 파라미터에서 이메일 미리 채우기
+    useEffect(() => {
+        if (prefillEmail) {
+            setFormData(prev => ({ ...prev, email: prefillEmail }));
+        }
+    }, [prefillEmail]);
+
+    /**
+     * 안전한 리다이렉트 URL인지 검증
+     */
+    const isSafeRedirect = (url) => {
+        try {
+            const parsed = new URL(url);
+            const currentHost = window.location.hostname;
+            return parsed.hostname === currentHost
+                || parsed.hostname === 'spacematch.net'
+                || parsed.hostname.endsWith('.spacematch.net');
+        } catch {
+            return false;
+        }
+    };
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [agreements, setAgreements] = useState({ terms: false, privacy: false, marketing: false });
+
+    // Email verification state
+    const [emailVerified, setEmailVerified] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [verificationSent, setVerificationSent] = useState(false);
+    const [verificationLoading, setVerificationLoading] = useState(false);
+    const [verificationError, setVerificationError] = useState('');
+    const [cooldown, setCooldown] = useState(0);
+    const [expiresIn, setExpiresIn] = useState(0);
 
     // Validate single field
     const validateField = (name, value) => {
@@ -79,6 +115,61 @@ const Signup = () => {
         setFieldErrors(prev => ({ ...prev, [name]: err }));
     };
 
+    // Email verification handlers
+    const handleSendVerification = async () => {
+        const emailErr = validateEmail(formData.email);
+        if (emailErr) {
+            setFieldErrors(prev => ({ ...prev, email: emailErr }));
+            setTouched(prev => ({ ...prev, email: true }));
+            return;
+        }
+        setVerificationLoading(true);
+        setVerificationError('');
+        const result = await sendVerification(formData.email, formData.country);
+        setVerificationLoading(false);
+        if (result.success) {
+            setVerificationSent(true);
+            setCooldown(60);
+            setExpiresIn(result.expires_in || 600);
+        } else {
+            setVerificationError(result.message);
+            if (result.cooldown) setCooldown(result.cooldown);
+        }
+    };
+
+    const handleVerifyCode = async () => {
+        if (verificationCode.length !== 6) return;
+        setVerificationLoading(true);
+        setVerificationError('');
+        const result = await verifyEmail(formData.email, verificationCode);
+        setVerificationLoading(false);
+        if (result.success && result.verified) {
+            setEmailVerified(true);
+        } else {
+            setVerificationError(result.message);
+        }
+    };
+
+    // Cooldown & expires timers
+    React.useEffect(() => {
+        if (cooldown <= 0) return;
+        const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+        return () => clearTimeout(t);
+    }, [cooldown]);
+    React.useEffect(() => {
+        if (expiresIn <= 0 || emailVerified) return;
+        const t = setTimeout(() => setExpiresIn(e => e - 1), 1000);
+        return () => clearTimeout(t);
+    }, [expiresIn, emailVerified]);
+
+    // Reset verification if email changes
+    React.useEffect(() => {
+        setEmailVerified(false);
+        setVerificationSent(false);
+        setVerificationCode('');
+        setVerificationError('');
+    }, [formData.email]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
@@ -101,6 +192,11 @@ const Signup = () => {
         signup({ ...formData, marketing_agreed: agreements.marketing }).then(result => {
             if (result.success) {
                 login(formData.email, formData.password).then(() => {
+                    // redirect_uri가 있으면 해당 페이지로 이동
+                    if (redirectUri && isSafeRedirect(redirectUri)) {
+                        window.location.href = redirectUri;
+                        return;
+                    }
                     navigate('/seller');
                 });
             } else {
@@ -129,7 +225,7 @@ const Signup = () => {
         }`;
 
     const hasFormErrors = Object.values(fieldErrors).some(e => e);
-    const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'seller');
+    const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'seller') && emailVerified;
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900 py-10 px-4">
@@ -257,21 +353,67 @@ const Signup = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('email')} <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input
-                                type="email"
-                                name="email"
-                                required
-                                value={formData.email}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                className={inputClass('email')}
-                                placeholder="contact@brand.com"
-                            />
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="email"
+                                    name="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    disabled={emailVerified}
+                                    className={`${inputClass('email')} ${emailVerified ? 'bg-green-50 dark:bg-green-900/20 border-green-400 dark:border-green-600' : ''}`}
+                                    placeholder="contact@brand.com"
+                                />
+                                {emailVerified && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" size={18} />}
+                            </div>
+                            {!emailVerified && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendVerification}
+                                    disabled={verificationLoading || cooldown > 0 || !formData.email}
+                                    className="px-4 py-3 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex items-center gap-1.5"
+                                >
+                                    {verificationLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                                    {cooldown > 0 ? `${cooldown}s` : (verificationSent ? t('resendCode', '재발송') : t('sendVerification', '인증'))}
+                                </button>
+                            )}
                         </div>
                         <FieldError name="email" />
+                        {emailVerified && <p className="flex items-center gap-1 mt-1 text-xs text-green-600 dark:text-green-400"><CheckCircle2 size={12} />{t('emailVerified', '이메일 인증 완료')}</p>}
                     </div>
+
+                    {/* Verification code input */}
+                    {verificationSent && !emailVerified && (
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl p-4 space-y-3">
+                            <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">
+                                📧 {t('verificationSentMsg', '인증 코드가 이메일로 발송되었습니다.')}
+                                {expiresIn > 0 && <span className="text-xs ml-2 text-indigo-400">({Math.floor(expiresIn / 60)}:{String(expiresIn % 60).padStart(2, '0')})</span>}
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={verificationCode}
+                                    onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    className="flex-1 px-4 py-3 border border-indigo-200 dark:border-indigo-600 rounded-lg text-center text-lg font-mono tracking-[0.3em] bg-white dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-indigo-300 outline-none"
+                                    placeholder="000000"
+                                    maxLength={6}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleVerifyCode}
+                                    disabled={verificationCode.length !== 6 || verificationLoading}
+                                    className="px-5 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                                >
+                                    {verificationLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                                    {t('verify', '확인')}
+                                </button>
+                            </div>
+                            {verificationError && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} />{verificationError}</p>}
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('password')} <span className="text-red-500">*</span></label>

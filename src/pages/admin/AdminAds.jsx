@@ -46,33 +46,39 @@ const SLOT_OPTIONS_RAW = [
     { value: 'host_community_feed', labelKey: 'slotHostCommunityFeed', pageKey: 'slotVendorCommunity' },
     { value: 'general_community_top', labelKey: 'slotGeneralCommunityTop', pageKey: 'slotGeneralCommunity' },
     { value: 'general_community_feed', labelKey: 'slotGeneralCommunityFeed', pageKey: 'slotGeneralCommunity' },
+    { value: 'calc_top', labelKey: 'slotCalcTop', pageKey: 'slotSellerCalc' },
+    { value: 'calc_between', labelKey: 'slotCalcBetween', pageKey: 'slotSellerCalc' },
+    { value: 'calc_bottom', labelKey: 'slotCalcBottom', pageKey: 'slotSellerCalc' },
 ];
 
 const SLOT_SIZE_GUIDE = {
-    home_top: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    home_a: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    home_a2: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    home_b: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    home_b2: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    home_b3: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    home_b4: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    home_c: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    home_d: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    home_e: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    home_f: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    directory_c: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    directory_c2: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    directory_d: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    directory_d2: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    seller_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    seller_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    host_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    host_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    general_community_top: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    general_community_feed: { format: 'native', size: '1200 × 240px', ratio: '5:1' },
-    landing_a: { format: 'banner', size: '1200 × 250px', ratio: '~5:1' },
-    landing_b: { format: 'card', size: '800 × 450px', ratio: '16:9' },
-    landing_b2: { format: 'card', size: '800 × 450px', ratio: '16:9' },
+    home_top: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    home_a: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    home_a2: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    home_b: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    home_b2: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    home_b3: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    home_b4: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    home_c: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    home_d: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    home_e: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    home_f: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    directory_c: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    directory_c2: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    directory_d: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    directory_d2: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    seller_community_top: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    seller_community_feed: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    host_community_top: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    host_community_feed: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    general_community_top: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    general_community_feed: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    landing_a: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    landing_b: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    landing_b2: { format: 'card', pc: { size: '800 × 450px', ratio: '16:9' }, mobile: { size: '480 × 270px', ratio: '16:9' } },
+    calc_top: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
+    calc_between: { format: 'native', pc: { size: '1200 × 240px', ratio: '5:1' }, mobile: { size: '720 × 144px', ratio: '5:1' } },
+    calc_bottom: { format: 'banner', pc: { size: '1200 × 250px', ratio: '~5:1' }, mobile: { size: '720 × 150px', ratio: '~5:1' } },
 };
 
 const AdminAds = () => {
@@ -122,6 +128,8 @@ const AdminAds = () => {
     });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [mobileImageFile, setMobileImageFile] = useState(null);
+    const [mobileImagePreview, setMobileImagePreview] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
     const [adsenseForm, setAdsenseForm] = useState({ client_id: '', is_enabled: 0, slot_configs: {} });
@@ -149,7 +157,7 @@ const AdminAds = () => {
             if (data.success && data.config) {
                 setAdsenseForm({ client_id: data.config.client_id || '', is_enabled: data.config.is_enabled || 0, slot_configs: data.config.slot_configs || {} });
             }
-        } catch { /* silent */ }
+        } catch { /* silent - adsense config optional */ }
     }, []);
 
     const fetchCampaigns = useCallback(async () => {
@@ -160,7 +168,7 @@ const AdminAds = () => {
                 setCampaigns(data.campaigns || []);
                 setUnassignedAds(data.unassigned_ads || []);
             }
-        } catch { /* silent */ }
+        } catch { /* silent - campaigns optional */ }
     }, []);
 
     useEffect(() => { fetchAds(); }, [fetchAds]);
@@ -217,12 +225,12 @@ const AdminAds = () => {
             });
             const data = await res.json();
             if (data.success) { fetchCampaigns(); fetchAds(); }
-        } catch { /* silent */ }
+        } catch { /* silent - unassign error */ }
     };
 
     const resetForm = () => {
         setForm({ slot_id: 'home_a', title: '', click_url: '', start_date: '', end_date: '', is_active: 1, priority: 0, target_countries: 'all' });
-        setImageFile(null); setImagePreview(null); setEditingAd(null);
+        setImageFile(null); setImagePreview(null); setMobileImageFile(null); setMobileImagePreview(null); setEditingAd(null);
     };
 
     const handleOpenForm = (ad = null) => {
@@ -230,6 +238,7 @@ const AdminAds = () => {
             setEditingAd(ad);
             setForm({ slot_id: ad.slot_id, title: ad.title, click_url: ad.click_url || '', start_date: ad.start_date || '', end_date: ad.end_date || '', is_active: ad.is_active, priority: ad.priority || 0, target_countries: ad.target_countries || 'all' });
             setImagePreview(ad.image_url);
+            setMobileImagePreview(ad.mobile_image_url || null);
         } else { resetForm(); }
         setShowForm(true);
     };
@@ -242,6 +251,14 @@ const AdminAds = () => {
         reader.readAsDataURL(file);
     };
 
+    const handleMobileImageChange = (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        setMobileImageFile(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => setMobileImagePreview(ev.target.result);
+        reader.readAsDataURL(file);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.title.trim()) { showToast(t('adsPage.adTitleRequired'), 'error'); return; }
@@ -251,6 +268,7 @@ const AdminAds = () => {
         if (editingAd) formData.append('id', editingAd.id);
         Object.entries(form).forEach(([k, v]) => formData.append(k, v));
         if (imageFile) formData.append('image', imageFile);
+        if (mobileImageFile) formData.append('mobile_image', mobileImageFile);
         try {
             const url = editingAd ? `${API_BASE}/update_ad.php` : `${API_BASE}/create_ad.php`;
             const res = await fetch(url, { method: 'POST', credentials: 'include', body: formData });
@@ -1244,15 +1262,70 @@ const AdminAds = () => {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('adsPage.adTitle')}</label>
                                 <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder={t('adsPage.adTitlePlaceholder')} className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 focus:border-indigo-500 outline-none text-sm font-medium" required />
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('adsPage.adImage')} {editingAd ? t('adsPage.adImageOptional') : ''}</label>
-                                {(() => { const guide = SLOT_SIZE_GUIDE[form.slot_id]; if (!guide) return null; const fl = guide.format === 'banner' ? t('adsPage.bannerType') : guide.format === 'card' ? t('adsPage.cardType') : t('adsPage.nativeType'); return (<p className="text-[11px] text-indigo-400 font-medium mb-1.5 flex items-center gap-1">{t('adsPage.recommendedSize', { size: guide.size, ratio: guide.ratio, format: fl })}</p>); })()}
-                                {imagePreview && (<div className="relative mb-2 rounded-xl overflow-hidden border border-gray-200"><img src={imagePreview} alt={t('adsPage.preview')} className="w-full h-32 object-cover" /><button type="button" onClick={() => { setImageFile(null); setImagePreview(editingAd?.image_url || null); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-lg text-white hover:bg-black/70"><X size={14} /></button></div>)}
-                                <label className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
-                                    <ImageIcon size={18} className="text-gray-400" /><span className="text-sm text-gray-500 font-medium">{t('adsPage.selectImage')}</span>
-                                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                                </label>
-                            </div>
+                            {/* ── PC / 모바일 이미지 업로드 영역 ── */}
+                            {(() => {
+                                const guide = SLOT_SIZE_GUIDE[form.slot_id];
+                                const fl = guide ? (guide.format === 'banner' ? t('adsPage.bannerType') : guide.format === 'card' ? t('adsPage.cardType') : t('adsPage.nativeType')) : '';
+                                return (
+                                    <div className="space-y-3">
+                                        {/* 🖥️ PC용 이미지 */}
+                                        <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Monitor size={16} className="text-blue-600" />
+                                                <label className="text-xs font-bold text-blue-700 uppercase">{t('adsPage.pcImage', 'PC용 광고 이미지')}</label>
+                                                {!editingAd && <span className="text-[10px] text-red-400 font-bold">*{t('adsPage.required', '필수')}</span>}
+                                                {editingAd && <span className="text-[10px] text-gray-400 font-medium">{t('adsPage.adImageOptional')}</span>}
+                                            </div>
+                                            {guide && (
+                                                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-100/60 rounded-lg border border-blue-200/60">
+                                                    <span className="text-[11px] text-blue-600 font-bold">📐 {t('adsPage.recommendedSizeLabel', '권장 사이즈')}:</span>
+                                                    <span className="text-[12px] text-blue-800 font-extrabold">{guide.pc.size}</span>
+                                                    <span className="text-[10px] text-blue-500 font-medium">({t('adsPage.ratioLabel', '비율')} {guide.pc.ratio} · {fl})</span>
+                                                </div>
+                                            )}
+                                            {imagePreview && (
+                                                <div className="relative mb-2 rounded-xl overflow-hidden border border-blue-200">
+                                                    <img src={imagePreview} alt={t('adsPage.preview')} className="w-full h-32 object-cover" />
+                                                    <button type="button" onClick={() => { setImageFile(null); setImagePreview(editingAd?.image_url || null); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-lg text-white hover:bg-black/70"><X size={14} /></button>
+                                                </div>
+                                            )}
+                                            <label className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl border-2 border-dashed border-blue-300 cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-colors">
+                                                <ImageIcon size={18} className="text-blue-400" /><span className="text-sm text-blue-600 font-medium">{t('adsPage.selectPcImage', 'PC용 이미지 선택')}</span>
+                                                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                                            </label>
+                                        </div>
+
+                                        {/* 📱 모바일용 이미지 */}
+                                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Smartphone size={16} className="text-emerald-600" />
+                                                <label className="text-xs font-bold text-emerald-700 uppercase">{t('adsPage.mobileImage', '모바일용 광고 이미지')}</label>
+                                                <span className="text-[10px] text-gray-400 font-medium">({t('adsPage.optional', '선택')})</span>
+                                            </div>
+                                            {guide && (
+                                                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-emerald-100/60 rounded-lg border border-emerald-200/60">
+                                                    <span className="text-[11px] text-emerald-600 font-bold">📐 {t('adsPage.recommendedSizeLabel', '권장 사이즈')}:</span>
+                                                    <span className="text-[12px] text-emerald-800 font-extrabold">{guide.mobile.size}</span>
+                                                    <span className="text-[10px] text-emerald-500 font-medium">({t('adsPage.ratioLabel', '비율')} {guide.mobile.ratio} · {fl})</span>
+                                                </div>
+                                            )}
+                                            {mobileImagePreview && (
+                                                <div className="relative mb-2 rounded-xl overflow-hidden border border-emerald-200">
+                                                    <img src={mobileImagePreview} alt={t('adsPage.mobilePreview', '모바일 미리보기')} className="w-full h-28 object-cover" />
+                                                    <button type="button" onClick={() => { setMobileImageFile(null); setMobileImagePreview(editingAd?.mobile_image_url || null); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-lg text-white hover:bg-black/70"><X size={14} /></button>
+                                                </div>
+                                            )}
+                                            <label className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl border-2 border-dashed border-emerald-300 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/50 transition-colors">
+                                                <ImageIcon size={18} className="text-emerald-400" /><span className="text-sm text-emerald-600 font-medium">{t('adsPage.selectMobileImage', '모바일용 이미지 선택')}</span>
+                                                <input type="file" accept="image/*" onChange={handleMobileImageChange} className="hidden" />
+                                            </label>
+                                            <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+                                                💡 {t('adsPage.mobileImageHint', '모바일 이미지를 등록하지 않으면 PC용 이미지가 모바일에서도 사용됩니다.')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t('adsPage.clickUrl')}</label>
                                 <div className="relative"><Link2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} /><input type="url" value={form.click_url} onChange={e => setForm({ ...form, click_url: e.target.value })} placeholder="https://example.com" className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 focus:border-indigo-500 outline-none text-sm font-medium" /></div>

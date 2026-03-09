@@ -225,8 +225,6 @@ const Layout = () => {
         navigate('/login');
     };
 
-    if (!user) return <Navigate to="/login" replace />;
-
     const adminLinks = [
         { to: '/admin', icon: Home, label: t('sidebar.home') },
         { to: '/admin/dashboard', icon: LayoutDashboard, label: t('sidebar.adminDashboard') },
@@ -255,7 +253,7 @@ const Layout = () => {
         { to: '/admin/trash', icon: Trash2, label: t('sidebar.trash') },
         { to: '/admin/profile', icon: UserCircle, label: t('sidebar.myProfile') },
         { to: '/admin/notification-settings', icon: Bell, label: t('sidebar.notificationSettings', '알림 설정') },
-        ...(user.role === 'superadmin' ? [{ to: '/admin/database', icon: Database, label: t('sidebar.dbManagement') }] : []),
+        ...(user?.role === 'superadmin' ? [{ to: '/admin/database', icon: Database, label: t('sidebar.dbManagement') }] : []),
     ];
 
     const adminCommunityLinks = [
@@ -325,9 +323,9 @@ const Layout = () => {
         { to: '/vendor/notification-settings', icon: Bell, label: t('sidebar.notificationSettings', '알림 설정') },
     ];
 
-    const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-    const isHost = user.role === 'host';
-    const isVendor = user.role === 'vendor';
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const isHost = user?.role === 'host';
+    const isVendor = user?.role === 'vendor';
     const filterHidden = (items) => isAdmin ? items.filter(l => l.to === '/admin/marketing' ? !hiddenMenus.includes(l.to) : true) : items.filter(l => !hiddenMenus.includes(l.to));
     const links = filterHidden(isAdmin ? adminLinks : (isHost ? hostLinks : (isVendor ? vendorLinks : sellerLinks)));
     const managementLinks = filterHidden(isAdmin ? adminManagementLinks : (isHost ? hostManagementLinks : []));
@@ -338,7 +336,7 @@ const Layout = () => {
     const allVisibleLinks = [...links, ...managementLinks, ...communityLinks, ...bottomLinks];
 
     useEffect(() => {
-        if (isAdmin || hiddenMenus.length === 0 || allVisibleLinks.length === 0) return;
+        if (!user || isAdmin || hiddenMenus.length === 0 || allVisibleLinks.length === 0) return;
         const currentPath = location.pathname;
         // Check if current path is the base index or a hidden menu
         const isIndex = currentPath === basePath || currentPath === basePath + '/';
@@ -349,7 +347,9 @@ const Layout = () => {
                 navigate(firstVisible.to, { replace: true });
             }
         }
-    }, [hiddenMenus, location.pathname, allVisibleLinks, basePath, isAdmin]);
+    }, [hiddenMenus, location.pathname, allVisibleLinks, basePath, isAdmin, user]);
+
+    if (!user) return <Navigate to="/login" replace />;
 
     const renderSidebar = () => (
         <div className="flex flex-col h-full">

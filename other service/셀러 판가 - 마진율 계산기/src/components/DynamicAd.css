@@ -1,0 +1,73 @@
+/* ============================================================
+   Dynamic Ad Component
+   ============================================================ */
+.dynamic-ad {
+    padding: 0;
+}
+
+.dynamic-ad .container {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.dynamic-ad__label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.dynamic-ad__banner {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: 1px solid var(--neutral-200);
+}
+
+.dynamic-ad__banner:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.dynamic-ad__img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.dynamic-ad__content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #fefce8, #fff7ed);
+}
+
+.dynamic-ad__badge {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    background: var(--accent-primary);
+    color: var(--white);
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+}
+
+.dynamic-ad__text h3 {
+    margin: 0;
+    color: var(--neutral-900);
+}
+
+.dynamic-ad__cta {
+    margin-left: auto;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-800);
+    white-space: nowrap;
+}

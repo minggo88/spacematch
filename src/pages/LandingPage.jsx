@@ -13,6 +13,43 @@ import {
     MessageCircle, Flame, Clock, Eye, Heart, Share2
 } from 'lucide-react';
 
+/* ── Counter animation hook ── */
+const useCountUp = (target, duration = 2000, start = false) => {
+    const [count, setCount] = useState(0);
+    const numericTarget = parseInt(target.replace(/[^0-9]/g, ''));
+    useEffect(() => {
+        if (!start || !numericTarget) return;
+        let startTime;
+        const animate = (ts) => {
+            if (!startTime) startTime = ts;
+            const progress = Math.min((ts - startTime) / duration, 1);
+            setCount(Math.floor(progress * numericTarget));
+            if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }, [start, numericTarget, duration]);
+    const suffix = target.replace(/[0-9,]/g, '');
+    const formatted = count.toLocaleString();
+    return `${formatted}${suffix}`;
+};
+
+/* ── Stat Card component (enables hook use at top level) ── */
+const StatCard = ({ stat, c, isStatsVisible }) => {
+    const displayed = useCountUp(stat.value, 1800, isStatsVisible);
+    return (
+        <div className="text-center group bg-white dark:bg-gray-800/80 rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-gray-700/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-500">
+            <div className={`w-12 h-12 mx-auto mb-4 rounded-xl ${c.iconBg} flex items-center justify-center ${c.iconText} group-hover:scale-110 transition-all duration-300`}>
+                {stat.icon}
+            </div>
+            <p className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-1 tabular-nums">{displayed}</p>
+            <p className="text-gray-400 text-xs md:text-sm font-medium">{stat.label}</p>
+            <div className="mt-4 mx-auto w-12 h-1 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                <div className={`h-full rounded-full ${c.bar} transition-all duration-[2000ms] ${isStatsVisible ? 'w-full' : 'w-0'}`} />
+            </div>
+        </div>
+    );
+};
+
 const LandingPage = () => {
     const { user } = useAuth();
     const { t } = useTranslation('landing');
@@ -90,26 +127,6 @@ const LandingPage = () => {
     };
 
     const isVisible = (id) => visibleSections.has(id);
-
-    /* ── Counter animation hook ── */
-    const useCountUp = (target, duration = 2000, start = false) => {
-        const [count, setCount] = useState(0);
-        const numericTarget = parseInt(target.replace(/[^0-9]/g, ''));
-        useEffect(() => {
-            if (!start || !numericTarget) return;
-            let startTime;
-            const animate = (ts) => {
-                if (!startTime) startTime = ts;
-                const progress = Math.min((ts - startTime) / duration, 1);
-                setCount(Math.floor(progress * numericTarget));
-                if (progress < 1) requestAnimationFrame(animate);
-            };
-            requestAnimationFrame(animate);
-        }, [start, numericTarget, duration]);
-        const suffix = target.replace(/[0-9,]/g, '');
-        const formatted = count.toLocaleString();
-        return `${formatted}${suffix}`;
-    };
 
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden">
@@ -628,7 +645,6 @@ const LandingPage = () => {
                             { value: '10,000+', label: t('stats.salesRecords'), icon: <TrendingUp size={22} />, color: 'emerald' },
                             { value: '98%', label: t('stats.satisfaction'), icon: <Star size={22} />, color: 'amber' },
                         ].map((stat, i) => {
-                            const displayed = useCountUp(stat.value, 1800, isVisible('stats'));
                             const colors = {
                                 indigo: { iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconText: 'text-indigo-600 dark:text-indigo-400', bar: 'bg-indigo-500' },
                                 violet: { iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconText: 'text-violet-600 dark:text-violet-400', bar: 'bg-violet-500' },
@@ -637,16 +653,7 @@ const LandingPage = () => {
                             };
                             const c = colors[stat.color];
                             return (
-                                <div key={i} className="text-center group bg-white dark:bg-gray-800/80 rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-gray-700/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-500">
-                                    <div className={`w-12 h-12 mx-auto mb-4 rounded-xl ${c.iconBg} flex items-center justify-center ${c.iconText} group-hover:scale-110 transition-all duration-300`}>
-                                        {stat.icon}
-                                    </div>
-                                    <p className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-1 tabular-nums">{displayed}</p>
-                                    <p className="text-gray-400 text-xs md:text-sm font-medium">{stat.label}</p>
-                                    <div className="mt-4 mx-auto w-12 h-1 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                                        <div className={`h-full rounded-full ${c.bar} transition-all duration-[2000ms] ${isVisible('stats') ? 'w-full' : 'w-0'}`} />
-                                    </div>
-                                </div>
+                                <StatCard key={i} stat={stat} c={c} isStatsVisible={isVisible('stats')} />
                             );
                         })}
                     </div>

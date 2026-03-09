@@ -1,0 +1,335 @@
+/* ============================================================
+   셀러 판가 · 마진율 계산기 — Design System
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. CSS Custom Properties (Design Tokens)
+   ---------------------------------------------------------- */
+:root {
+  /* Primary (Deep Navy Purple) */
+  --primary-900: #1a1940;
+  --primary-800: #2a2861;
+  --primary-700: #35327a;
+  --primary-600: #433f96;
+  --primary-100: #eeedfa;
+  --primary-50:  #f6f5fc;
+
+  /* Accent */
+  --accent-primary:   #FF6B35;
+  --accent-hover:     #E85A28;
+  --accent-secondary: #00C9A7;
+  --accent-warning:   #FF4757;
+
+  /* Neutral */
+  --neutral-900: #1a1a2e;
+  --neutral-600: #6b6b80;
+  --neutral-300: #c8c8d4;
+  --neutral-100: #f0f0f5;
+  --white:       #FFFFFF;
+
+  /* Chart Colors */
+  --chart-material:  #433f96;
+  --chart-labor:     #6c63ff;
+  --chart-packaging: #00C9A7;
+  --chart-shipping:  #45B7D1;
+  --chart-fee:       #FFA07A;
+  --chart-tax:       #c8c8d4;
+  --chart-profit:    #FF6B35;
+
+  /* Shadows */
+  --shadow-sm:   0 2px 8px rgba(42, 40, 97, 0.06);
+  --shadow-md:   0 4px 20px rgba(42, 40, 97, 0.08);
+  --shadow-lg:   0 12px 40px rgba(42, 40, 97, 0.12);
+  --shadow-xl:   0 20px 60px rgba(26, 25, 64, 0.4);
+  --shadow-glow: 0 8px 24px rgba(255, 107, 53, 0.35);
+
+  /* Radius */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+
+  /* Transitions */
+  --transition-fast:   0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow:   0.5s ease;
+
+  /* Typography */
+  --font-primary: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  --font-number:  'Poppins', sans-serif;
+}
+
+/* ----------------------------------------------------------
+   2. Reset & Base
+   ---------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--neutral-900);
+  background: var(--primary-50);
+  overflow-x: hidden;
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+input, select {
+  font-family: inherit;
+  outline: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ----------------------------------------------------------
+   3. Typography Scale
+   ---------------------------------------------------------- */
+.h1 {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.h2 {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--primary-800);
+}
+
+.h3 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--primary-800);
+}
+
+.body-text {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--neutral-900);
+}
+
+.caption {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--neutral-600);
+}
+
+.number-display {
+  font-family: var(--font-number);
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-800);
+}
+
+/* ----------------------------------------------------------
+   4. Layout Utilities
+   ---------------------------------------------------------- */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section {
+  padding: 80px 0;
+}
+
+/* ----------------------------------------------------------
+   5. Button Styles
+   ---------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.btn-cta {
+  padding: 16px 48px;
+  font-size: 18px;
+  background: var(--accent-primary);
+  color: var(--white);
+  border-radius: var(--radius-md);
+}
+
+.btn-cta:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  padding: 12px 32px;
+  font-size: 16px;
+  background: var(--primary-800);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background: var(--primary-700);
+  transform: translateY(-1px);
+}
+
+/* ----------------------------------------------------------
+   6. Card Base
+   ---------------------------------------------------------- */
+.card {
+  background: var(--white);
+  border: 1px solid var(--neutral-300);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+}
+
+/* ----------------------------------------------------------
+   7. Input Styles
+   ---------------------------------------------------------- */
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  background: var(--primary-50);
+  border: 1px solid var(--neutral-300);
+  border-radius: var(--radius-sm);
+  color: var(--neutral-900);
+  transition: all var(--transition-fast);
+}
+
+.input-field:focus {
+  border-color: var(--primary-800);
+  box-shadow: 0 0 0 3px rgba(42, 40, 97, 0.12);
+}
+
+.input-field::placeholder {
+  color: var(--neutral-600);
+}
+
+/* ----------------------------------------------------------
+   8. Animations
+   ---------------------------------------------------------- */
+
+/* CTA Pulse */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Fade In Up (scroll reveal) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.fade-in-up.visible {
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+/* Count Up shimmer */
+@keyframes shimmer {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Donut chart drawing */
+@keyframes drawDonut {
+  from { stroke-dashoffset: var(--circumference); }
+  to   { stroke-dashoffset: var(--dash-offset); }
+}
+
+/* ----------------------------------------------------------
+   9. Responsive
+   ---------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .h1 { font-size: 40px; }
+  .h2 { font-size: 28px; }
+  .number-display { font-size: 44px; }
+  .section { padding: 60px 0; }
+}
+
+@media (max-width: 768px) {
+  .h1 { font-size: 32px; }
+  .h2 { font-size: 24px; }
+  .h3 { font-size: 20px; }
+  .number-display { font-size: 36px; }
+  .section { padding: 48px 0; }
+  .container { padding: 0 16px; }
+
+  .btn-cta {
+    padding: 14px 32px;
+    font-size: 16px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .h1 { font-size: 28px; }
+  .number-display { font-size: 32px; }
+}

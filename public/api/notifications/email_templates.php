@@ -572,4 +572,29 @@ function emailTemplateAccountNotice($type, $userName = '', $siteUrl = '', $lang 
         return emailBaseTemplate($t['title'], $body, $siteUrl . '/admin/users', $t['cta'], $lang);
     }
 }
+
+/**
+ * 이메일 인증 코드 템플릿
+ */
+function emailTemplateVerificationCode($code, $lang = 'ko')
+{
+    $t = _t([
+        'ko' => ['title' => '이메일 인증 코드', 'body' => 'SpaceMatch 회원가입을 위한 이메일 인증 코드입니다.', 'code_label' => '인증 코드', 'expires' => '이 코드는 10분간 유효합니다.', 'warn' => '본인이 요청하지 않은 경우, 이 이메일을 무시해주세요.'],
+        'en' => ['title' => 'Email Verification Code', 'body' => 'Here is your email verification code for SpaceMatch registration.', 'code_label' => 'Verification Code', 'expires' => 'This code is valid for 10 minutes.', 'warn' => 'If you did not request this, please ignore this email.'],
+        'ja' => ['title' => 'メール認証コード', 'body' => 'SpaceMatch登録用のメール認証コードです。', 'code_label' => '認証コード', 'expires' => 'このコードは10分間有効です。', 'warn' => 'このリクエストに心当たりがない場合は無視してください。'],
+        'vi' => ['title' => 'Mã xác minh email', 'body' => 'Đây là mã xác minh email để đăng ký SpaceMatch.', 'code_label' => 'Mã xác minh', 'expires' => 'Mã này có hiệu lực trong 10 phút.', 'warn' => 'Nếu bạn không yêu cầu, hãy bỏ qua email này.'],
+        'th' => ['title' => 'รหัสยืนยันอีเมล', 'body' => 'นี่คือรหัสยืนยันอีเมลสำหรับการลงทะเบียน SpaceMatch', 'code_label' => 'รหัสยืนยัน', 'expires' => 'รหัสนี้ใช้ได้ 10 นาที', 'warn' => 'หากคุณไม่ได้ขอ กรุณาเพิกเฉยอีเมลนี้'],
+    ], $lang);
+
+    $body = "
+        <p style='color: #333333;'>{$t['body']}</p>
+        <div style='background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 2px solid rgba(99,102,241,0.3); border-radius: 16px; padding: 28px; margin: 24px 0; text-align: center;'>
+            <p style='margin: 0 0 8px 0; color: #818cf8; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;'>{$t['code_label']}</p>
+            <p style='margin: 0; color: #4f46e5; font-size: 36px; font-weight: 800; letter-spacing: 8px; font-family: monospace;'>{$code}</p>
+        </div>
+        <p style='color: #999999; font-size: 13px;'>⏱ {$t['expires']}</p>
+        <p style='color: #bbbbbb; font-size: 12px;'>{$t['warn']}</p>
+    ";
+    return emailBaseTemplate("🔐 {$t['title']}", $body, null, null, $lang);
+}
 ?>

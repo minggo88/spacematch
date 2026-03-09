@@ -12,7 +12,15 @@ const AdSlot = ({ slotId, format = 'banner', className = '', country = '' }) => 
     const [ad, setAd] = useState(null);
     const [loading, setLoading] = useState(true);
     const [adsenseConfig, setAdsenseConfig] = useState(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const containerRef = useRef(null);
+
+    // Detect mobile viewport
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -48,6 +56,13 @@ const AdSlot = ({ slotId, format = 'banner', className = '', country = '' }) => 
         fetchAd();
         return () => { cancelled = true; };
     }, [slotId, country]);
+
+    // Determine which image URL to use (mobile-first if available)
+    const getImageUrl = () => {
+        if (!ad) return null;
+        if (isMobile && ad.mobile_image_url) return ad.mobile_image_url;
+        return ad.image_url;
+    };
 
     const handleClick = async () => {
         if (!ad) return;
@@ -104,7 +119,7 @@ const AdSlot = ({ slotId, format = 'banner', className = '', country = '' }) => 
                         <span className="text-[9px] font-bold text-gray-300 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded">광고 · AD</span>
                     </div>
                     <img
-                        src={ad.image_url}
+                        src={getImageUrl()}
                         alt={ad.title}
                         className="w-full aspect-[16/9] object-cover group-hover:scale-[1.02] transition-transform duration-300"
                     />
@@ -134,10 +149,10 @@ const AdSlot = ({ slotId, format = 'banner', className = '', country = '' }) => 
                             {ad.title}
                         </h4>
                         {/* Image */}
-                        {ad.image_url && (
+                        {getImageUrl() && (
                             <div className="relative rounded-xl overflow-hidden mb-3">
                                 <img
-                                    src={ad.image_url}
+                                    src={getImageUrl()}
                                     alt={ad.title}
                                     className="w-full max-h-[240px] object-cover group-hover:scale-[1.02] transition-transform duration-500"
                                 />
@@ -165,7 +180,7 @@ const AdSlot = ({ slotId, format = 'banner', className = '', country = '' }) => 
                         <span className="text-[9px] font-bold text-gray-300 bg-white/70 backdrop-blur-sm px-1.5 py-0.5 rounded">광고 · AD</span>
                     </div>
                     <img
-                        src={ad.image_url}
+                        src={getImageUrl()}
                         alt={ad.title}
                         className="w-full h-[150px] md:h-[250px] object-cover rounded-2xl border border-gray-200 group-hover:shadow-lg transition-shadow duration-300"
                     />

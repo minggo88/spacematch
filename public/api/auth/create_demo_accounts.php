@@ -38,6 +38,14 @@ try {
             'role' => 'host',
             'brand_name' => 'Demo Venue Provider',
             'description' => '이 계정은 데모 전용입니다. 기능 체험만 가능합니다.'
+        ],
+        [
+            'name' => '데모 관리자',
+            'email' => 'demo-admin@spacematch.net',
+            'password' => 'demo1234',
+            'role' => 'admin',
+            'brand_name' => 'SpaceMatch Admin',
+            'description' => '이 계정은 데모 전용입니다. 관리자 기능 체험만 가능합니다.'
         ]
     ];
 
@@ -47,10 +55,14 @@ try {
         $check->execute([$account['email']]);
 
         if ($check->rowCount() > 0) {
+            // 이미 존재하면 role, is_demo, description, brand_name을 올바른 값으로 업데이트
+            $upd = $conn->prepare("UPDATE users SET role = ?, is_demo = 1, description = ?, brand_name = ?, name = ? WHERE email = ?");
+            $upd->execute([$account['role'], $account['description'], $account['brand_name'], $account['name'], $account['email']]);
             $results[] = [
                 'email' => $account['email'],
-                'status' => 'already_exists',
-                'message' => '이미 존재합니다.'
+                'role' => $account['role'],
+                'status' => 'updated',
+                'message' => '기존 계정 업데이트 완료!'
             ];
             continue;
         }

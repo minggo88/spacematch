@@ -143,7 +143,7 @@ const Analytics = () => {
             const res = await fetch(`${API_BASE}/users/seller_stats_public.php`, { credentials: 'include' });
             const json = await res.json();
             if (json.success) setSellerData(json.data);
-        } catch { }
+        } catch { /* ignored */ }
         finally { setSellerLoading(false); }
     };
 

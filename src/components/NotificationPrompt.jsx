@@ -101,7 +101,7 @@ const NotificationPrompt = () => {
         if (dismissData) {
             try {
                 count = JSON.parse(dismissData).count + 1;
-            } catch (e) { }
+            } catch (e) { /* ignored */ }
         }
         localStorage.setItem('spacematch_notif_dismiss', JSON.stringify({
             count,

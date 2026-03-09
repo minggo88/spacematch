@@ -43,6 +43,13 @@ const HostAnalyticsReport = () => {
             .catch(() => { setHasAccess(false); setLoading(false); });
     }, []);
 
+    const CATEGORY_LABELS = {
+        fashion: '패션', beauty: '뷰티', food: '푸드', living: '리빙',
+        art: '아트', stationery: '문구', digital: '디지털', activity: '액티비티',
+        eco: '에코', pet: '반려동물', kids: '키즈', handmade: '핸드메이드',
+        vintage: '빈티지', perfume: '향수', book: '도서'
+    };
+
     const getCatLabel = (cat) => CATEGORY_LABELS[cat] || cat || '기타';
 
     // CSV export helper
