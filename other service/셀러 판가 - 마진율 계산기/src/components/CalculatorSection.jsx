@@ -4,7 +4,7 @@ import DonutChart from './DonutChart'
 import BlurredResult from './BlurredResult'
 import './CalculatorSection.css'
 
-export default function CalculatorSection({ onUnlock, onResultChange, isUnlocked }) {
+export default function CalculatorSection({ onUnlock, onResultChange, isUnlocked, onRefreshAnalysis }) {
     const {
         mode, setMode,
         inputs, updateInput, resetInputs,
@@ -36,17 +36,28 @@ export default function CalculatorSection({ onUnlock, onResultChange, isUnlocked
 
     const isPositive = (val) => val >= 0
 
+    /* 현재 계산 데이터를 모아주는 헬퍼 */
+    const gatherCalcData = () => ({
+        mode,
+        inputs: { ...inputs },
+        feeRate,
+        analysisResult: { ...analysisResult },
+        reverseResult: { ...reverseResult },
+        breakdown: currentResult.breakdown,
+    })
+
     /* 상세 결과 보기 시도: 현재 계산 데이터 전체를 부모에 전달 */
     const handleUnlockClick = () => {
-        const calcData = {
-            mode,
-            inputs: { ...inputs },
-            feeRate,
-            analysisResult: { ...analysisResult },
-            reverseResult: { ...reverseResult },
-            breakdown: currentResult.breakdown,
-        }
-        onUnlock(calcData)
+        onUnlock(gatherCalcData())
+    }
+
+    /* 새로 상세 분석하기: 수정된 입력으로 상세 분석 갱신 */
+    const handleRefreshClick = () => {
+        onRefreshAnalysis?.(gatherCalcData())
+        // 상세 분석 영역으로 스크롤
+        setTimeout(() => {
+            document.querySelector('.detailed-result')?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
     }
 
     return (
@@ -332,14 +343,24 @@ export default function CalculatorSection({ onUnlock, onResultChange, isUnlocked
                             <BlurredResult onUnlock={handleUnlockClick} />
                         )}
 
-                        {/* 잠금 해제 후 뱃지 */}
+                        {/* 잠금 해제 후 뱃지 + 새로 분석하기 버튼 */}
                         {isUnlocked && (
-                            <div className="unlocked-badge">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                    <rect x="3" y="11" width="18" height="11" rx="2" />
-                                </svg>
-                                상세 분석이 해제되었습니다 — 아래에서 확인하세요
+                            <div className="unlocked-area">
+                                <div className="unlocked-badge">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                                    </svg>
+                                    상세 분석이 해제되었습니다 — 아래에서 확인하세요
+                                </div>
+                                <button className="btn btn-refresh-analysis" onClick={handleRefreshClick}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="23 4 23 10 17 10" />
+                                        <polyline points="1 20 1 14 7 14" />
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                                    </svg>
+                                    새로 상세 분석하기
+                                </button>
                             </div>
                         )}
                     </div>

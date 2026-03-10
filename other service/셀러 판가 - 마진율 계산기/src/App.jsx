@@ -67,6 +67,12 @@ function App() {
     setIsModalOpen(true)
   }
 
+  /* ── 새로 상세 분석하기 → calcData 갱신 ──────── */
+  const handleRefreshAnalysis = (newCalcData) => {
+    setCalcData(newCalcData)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newCalcData))
+  }
+
   const scrollToCalculator = () => {
     document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -82,6 +88,7 @@ function App() {
         onUnlock={handleUnlockAttempt}
         onResultChange={handleResultChange}
         isUnlocked={isUnlocked}
+        onRefreshAnalysis={handleRefreshAnalysis}
       />
 
       {/* 광고 슬롯: 계산기 ↔ 상세 분석 결과 사이 */}
