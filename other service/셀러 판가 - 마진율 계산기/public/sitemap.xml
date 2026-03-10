@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://spacematch.net/seller-calc/</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://spacematch.net/seller-calc/og-thumbnail.png</image:loc>
+      <image:title>판가 계산기 · 마진율 계산기 — 이커머스 셀러 필수 무료 도구</image:title>
+      <image:caption>매입가, 배송비, 택배비, 플랫폼 수수료를 입력하면 마진율과 적정 판매가를 즉시 계산하는 무료 온라인 도구</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://spacematch.net/seller-calc/logo.png</image:loc>
+      <image:title>스페이스매치 로고</image:title>
+    </image:image>
+  </url>
+</urlset>

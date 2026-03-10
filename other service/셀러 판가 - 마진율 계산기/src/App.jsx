@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import HeroSection from './components/HeroSection'
 import CalculatorSection from './components/CalculatorSection'
 import TrustSection from './components/TrustSection'
-import AdSection from './components/AdSection'
+// AdSection removed — replaced by DynamicAd system
 import SpacematchSection from './components/SpacematchSection'
 import Footer from './components/Footer'
 import ConversionModal from './components/ConversionModal'
@@ -74,6 +74,10 @@ function App() {
   return (
     <div className="app">
       <HeroSection onCtaClick={scrollToCalculator} />
+
+      {/* 광고 슬롯: 계산기 상단 */}
+      <DynamicAd slotId="calc_top" />
+
       <CalculatorSection
         onUnlock={handleUnlockAttempt}
         onResultChange={handleResultChange}
@@ -89,8 +93,11 @@ function App() {
       )}
 
       <TrustSection />
-      <AdSection />
       <SpacematchSection />
+
+      {/* 광고 슬롯: 하단 */}
+      <DynamicAd slotId="calc_bottom" />
+
       <Footer />
 
       {isModalOpen && (

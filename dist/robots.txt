@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /host/
+Disallow: /vendor/
+Disallow: /api/
+Disallow: /login
+Disallow: /signup/
+Disallow: /reset-password
+Disallow: /find-email
+
+# Sitemap
+Sitemap: https://spacematch.net/sitemap.xml

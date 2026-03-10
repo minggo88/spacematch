@@ -12,19 +12,12 @@ export default function DynamicAd({ slotId }) {
 
     const fetchAd = async () => {
         try {
-            const res = await fetch(`${API_BASE}/list_ads.php?slot_id=${slotId}&active_only=1`)
+            const res = await fetch(`${API_BASE}/get_ads.php?slot_id=${slotId}`)
             const data = await res.json()
-            if (data.success && data.ads?.length > 0) {
-                // Pick highest priority active ad
-                const sorted = data.ads
-                    .filter(a => a.is_active == 1)
-                    .sort((a, b) => (parseInt(b.priority) || 0) - (parseInt(a.priority) || 0))
-                const picked = sorted[0]
-                if (picked) {
-                    setAd(picked)
-                    // Track impression
-                    trackEvent(picked.id, 'view')
-                }
+            if (data.success && data.ad) {
+                setAd(data.ad)
+                // Track impression
+                trackEvent(data.ad.id, 'view')
             }
         } catch {
             // Silent fail — no ad shown
@@ -59,7 +52,12 @@ export default function DynamicAd({ slotId }) {
                 <span className="dynamic-ad__label">추천 서비스</span>
                 <div className="dynamic-ad__banner" onClick={handleClick} role="button" tabIndex={0}>
                     {ad.image_url ? (
-                        <img src={ad.image_url} alt={ad.title} className="dynamic-ad__img" />
+                        <picture>
+                            {ad.mobile_image_url && (
+                                <source media="(max-width: 768px)" srcSet={ad.mobile_image_url} />
+                            )}
+                            <img src={ad.image_url} alt={ad.title} className="dynamic-ad__img" />
+                        </picture>
                     ) : (
                         <div className="dynamic-ad__content">
                             <span className="dynamic-ad__badge">AD</span>

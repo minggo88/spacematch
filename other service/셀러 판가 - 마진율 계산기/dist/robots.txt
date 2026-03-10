@@ -1,0 +1,6 @@
+# robots.txt — 판가 계산기 · 마진율 계산기 (SpaceMatch)
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://spacematch.net/seller-calc/sitemap.xml

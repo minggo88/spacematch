@@ -10,9 +10,9 @@ $results = [];
 $columns_to_add = [
     ['name' => 'mobile_image_url', 'definition' => 'VARCHAR(500) DEFAULT NULL AFTER image_url'],
     ['name' => 'target_countries', 'definition' => "VARCHAR(500) DEFAULT 'all' AFTER priority"],
-    ['name' => 'campaign_id', 'definition' => 'INT DEFAULT NULL AFTER target_countries'],
-    ['name' => 'view_count', 'definition' => 'INT DEFAULT 0'],
-    ['name' => 'click_count', 'definition' => 'INT DEFAULT 0'],
+    ['name' => 'campaign_id',     'definition' => 'INT DEFAULT NULL AFTER target_countries'],
+    ['name' => 'view_count',      'definition' => 'INT DEFAULT 0'],
+    ['name' => 'click_count',     'definition' => 'INT DEFAULT 0'],
 ];
 
 try {
