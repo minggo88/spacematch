@@ -208,9 +208,15 @@ export default function ConversionModal({ onClose }) {
                     <div className="modal-card__divider"><span>또는</span></div>
 
                     <a
-                        href="https://spacematch.net/login"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={(() => {
+                            const currentOrigin = window.location.origin
+                            const returnPath = window.location.pathname
+                            const redirectUri = `${currentOrigin}${returnPath}?unlocked=true`
+                            const loginUrl = new URL('https://spacematch.net/login')
+                            loginUrl.searchParams.set('redirect_uri', redirectUri)
+                            loginUrl.searchParams.set('ref', 'seller-calc')
+                            return loginUrl.toString()
+                        })()}
                         className="btn modal-card__login-btn"
                     >
                         이미 계정이 있으신가요? 로그인
