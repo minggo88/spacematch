@@ -27,7 +27,7 @@ export default function SpacematchSection() {
             <div className="spacematch-section__pattern" />
             <div className="container spacematch-section__inner">
                 <img src="/seller-calc/logo.png" alt="SpaceMatch" className="spacematch-section__logo" />
-                <h2 className="h2 spacematch-section__title">
+                <h2 className="h2 spacematch-section__title" style={{ color: '#ffffff' }}>
                     이 도구를 만든 <span style={{ color: 'var(--accent-primary)' }}>스페이스매치</span>
                 </h2>
                 <p className="spacematch-section__subtitle">
