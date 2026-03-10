@@ -8,6 +8,13 @@
     # ── API 요청은 SPA 라우팅에서 완전 제외 (.php 파일 직접 실행) ──
     RewriteRule ^api/ - [L]
 
+    # ── SEO 정적 파일 (robots.txt, sitemap.xml 등) 직접 서빙 ──
+    RewriteRule ^robots\.txt$ - [L]
+    RewriteRule ^sitemap\.xml$ - [L]
+    RewriteRule ^favicon\.png$ - [L]
+    RewriteRule ^og-image\.png$ - [L]
+    RewriteRule ^manifest\.json$ - [L]
+
     RewriteRule ^index\.html$ - [L]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
