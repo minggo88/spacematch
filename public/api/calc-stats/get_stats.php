@@ -7,7 +7,8 @@ include_once '../db_connect.php';
 session_start();
 
 // 인증 체크
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'superadmin'])) {
+$userRole = $_SESSION['user_role'] ?? '';
+if (!isset($_SESSION['user_id']) || !in_array($userRole, ['admin', 'superadmin'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => '관리자 권한이 필요합니다']);
     exit();
