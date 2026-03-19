@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { trackPageView, trackEvent } from './utils/tracker'
 import HeroSection from './components/HeroSection'
 import CalculatorSection from './components/CalculatorSection'
 import TrustSection from './components/TrustSection'
@@ -20,13 +21,18 @@ function App() {
   const [calcResult, setCalcResult] = useState({ marginRate: 0, marginAmount: 0 })
   const [calcData, setCalcData] = useState(null) // 전체 계산 데이터
 
-  /* ── 페이지 로드 시: URL 파라미터 체크 ────────────── */
+  /* ── 페이지 로드 시: 트래킹 + URL 파라미터 체크 ────── */
   useEffect(() => {
+    // 페이지뷰 트래킹
+    trackPageView()
+
     const params = new URLSearchParams(window.location.search)
     const unlocked = params.get('unlocked')
 
     if (unlocked === 'true') {
-      // SpaceMatch 로그인 후 복귀
+      // SpaceMatch 로그인 후 복귀 → 전환 이벤트 트래킹
+      trackEvent('conversion')
+
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         try {
@@ -52,13 +58,20 @@ function App() {
     }
   }, [])
 
-  /* ── 계산 데이터 변경 시 LocalStorage에 저장 ──────── */
+  /* ── 계산 데이터 변경 시 LocalStorage에 저장 + 트래킹 */
   const handleResultChange = (result) => {
     setCalcResult(result)
+    // 마진율이 0이 아닐 때만 계산 이벤트 기록 (초기 렌더 제외)
+    if (result.marginRate !== 0) {
+      trackEvent('calculate', { marginRate: result.marginRate })
+    }
   }
 
   /* ── 상세 결과 보기 시도 → 데이터 저장 후 모달 열기 ─ */
   const handleUnlockAttempt = (currentCalcData) => {
+    // 잠금 해제 시도 트래킹
+    trackEvent('unlock_attempt')
+
     // 현재 계산 데이터를 localStorage에 저장
     if (currentCalcData) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(currentCalcData))

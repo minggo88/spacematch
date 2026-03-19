@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, Navigate, useLocation } from 'react-route
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Store, ClipboardList, LogOut, UserCircle, Bell, Menu, X, Users, Building, ShoppingBag, MessageSquare, Flame, Home, Database, ChevronDown, Settings, AlertTriangle, Megaphone, Shield, AtSign, Heart, UserCheck, UserPlus, XCircle, CheckCircle2, BarChart3, Moon, Sun, CreditCard, TrendingUp, Monitor, ExternalLink, Trash2, MessageCircle, Headphones, Eye, Package, Send, Inbox, Wallet, Truck } from 'lucide-react';
+import { LayoutDashboard, Store, ClipboardList, LogOut, UserCircle, Bell, Menu, X, Users, Building, ShoppingBag, MessageSquare, Flame, Home, Database, ChevronDown, Settings, AlertTriangle, Megaphone, Shield, AtSign, Heart, UserCheck, UserPlus, XCircle, CheckCircle2, BarChart3, Moon, Sun, CreditCard, TrendingUp, Monitor, ExternalLink, Trash2, MessageCircle, Headphones, Eye, Package, Send, Inbox, Wallet, Truck, Calculator } from 'lucide-react';
 import NotificationPrompt from './NotificationPrompt';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -240,6 +240,7 @@ const Layout = () => {
         { to: '/admin/promotions', icon: Flame, label: t('sidebar.recruitmentManagement') },
         { to: '/admin/users', icon: Users, label: t('sidebar.userManagement') },
         { to: '/admin/seller-stats', icon: TrendingUp, label: t('sidebar.sellerStatsManagement') },
+        { to: '/admin/calc-stats', icon: Calculator, label: t('sidebar.calcStats', '계산기 통계') },
         { to: '/admin/payments', icon: CreditCard, label: t('sidebar.paymentManagement') },
         { to: '/admin/host-report', icon: BarChart3, label: t('sidebar.analyticsReport') },
         { to: '/admin/ads', icon: Megaphone, label: t('sidebar.adManagement') },

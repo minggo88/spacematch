@@ -37,6 +37,7 @@ const AdminPopups = React.lazy(() => import('./pages/admin/AdminPopups'));
 const AdminSecurity = React.lazy(() => import('./pages/admin/AdminSecurity'));
 const AdminPayments = React.lazy(() => import('./pages/admin/AdminPayments'));
 const AdminSellerStats = React.lazy(() => import('./pages/admin/AdminSellerStats'));
+const AdminCalcStats = React.lazy(() => import('./pages/admin/AdminCalcStats'));
 const SellerDashboard = React.lazy(() => import('./pages/seller/SellerDashboard'));
 const SellerApplications = React.lazy(() => import('./pages/seller/SellerApplications'));
 const SellerProfile = React.lazy(() => import('./pages/seller/SellerProfile'));
@@ -131,6 +132,7 @@ function App() {
                                         <Route path="security" element={<AdminSecurity />} />
                                         <Route path="payments" element={<AdminPayments />} />
                                         <Route path="seller-stats" element={<AdminSellerStats />} />
+                                        <Route path="calc-stats" element={<AdminCalcStats />} />
                                         <Route path="community/seller" element={<SellerCommunity />} />
                                         <Route path="community/host" element={<HostCommunity />} />
                                         <Route path="community/general" element={<GeneralCommunity />} />
