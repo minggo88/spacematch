@@ -37,6 +37,11 @@ try {
   $has_vs = $col_vs->fetch() ? true : false;
   $verified_col .= $has_vs ? ", u.verified_start, u.verified_end" : ", NULL as verified_start, NULL as verified_end";
 
+  // Check if email_verified column exists
+  $col_ev = $conn->query("SHOW COLUMNS FROM users LIKE 'email_verified'");
+  $has_ev = $col_ev->fetch() ? true : false;
+  $email_verified_col = $has_ev ? ", u.email_verified" : ", 1 as email_verified";
+
   $search = isset($_GET['search']) ? trim($_GET['search']) : '';
   $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 0;
 
@@ -44,7 +49,8 @@ try {
     $query = "SELECT 
                     u.id, u.name, u.business_no, u.email, u.phone, u.role, u.status, u.venue_limit, u.created_at, u.profile_image, u.country
                     {$featured_col}
-                    {$verified_col},
+                    {$verified_col}
+                    {$email_verified_col},
                     (SELECT COUNT(*) FROM venues v WHERE v.owner_id = u.id) as venue_count,
                     (SELECT COUNT(*) FROM applications a WHERE a.user_id = u.id) as app_count
                   FROM users u 
@@ -53,7 +59,8 @@ try {
     $query = "SELECT 
                     u.id, u.name, u.business_no, u.email, u.phone, u.role, u.status, u.venue_limit, u.created_at, u.profile_image, u.country
                     {$featured_col}
-                    {$verified_col},
+                    {$verified_col}
+                    {$email_verified_col},
                     (SELECT COUNT(*) FROM venues v WHERE v.owner_id = u.id) as venue_count,
                     (SELECT COUNT(*) FROM applications a WHERE a.user_id = u.id) as app_count
                   FROM users u 

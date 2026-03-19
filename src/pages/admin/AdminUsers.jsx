@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
     UserPlus, Search, Shield, ShieldAlert, Store, Ban, MoreHorizontal, X,
     AlertTriangle, Eye, Users, Briefcase, ShoppingBag, Filter, CheckCircle, Edit3, Crown, XCircle,
-    Lock, Unlock, UserCheck, BadgeCheck, Calendar, Clock, Settings, Truck
+    Lock, Unlock, UserCheck, BadgeCheck, Calendar, Clock, Settings, Truck, Mail, MailX
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
@@ -440,6 +440,33 @@ const AdminUsers = () => {
             .finally(() => setActionLoading(false));
     };
 
+    const handleToggleEmailVerified = (userId, currentStatus) => {
+        setActionLoading(true);
+        const newVal = currentStatus ? 0 : 1;
+        fetch(`${API_BASE}/users/toggle_email_verified.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: userId, email_verified: newVal })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setUsers(prev => prev.map(u =>
+                        u.id === userId ? { ...u, email_verified: data.email_verified ?? newVal } : u
+                    ));
+                    if (selectedUser && selectedUser.id === userId) {
+                        setSelectedUser(prev => ({ ...prev, email_verified: data.email_verified ?? newVal }));
+                    }
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message || '이메일 인증 변경 실패', 'error');
+                }
+            })
+            .catch(() => showToast('네트워크 오류', 'error'))
+            .finally(() => setActionLoading(false));
+    };
+
     // Filter Logic
     const filteredUsers = useMemo(() => {
         return users.filter(u => {
@@ -450,7 +477,8 @@ const AdminUsers = () => {
             const matchesStatus = statusFilter === 'all' ||
                 (statusFilter === 'pending' ? u.status === 'pending' :
                     statusFilter === 'blocked' ? u.status === 'blocked' :
-                        statusFilter === 'active' ? u.status === 'active' : true);
+                        statusFilter === 'active' ? u.status === 'active' :
+                            statusFilter === 'unverified' ? parseInt(u.email_verified) === 0 : true);
 
             return matchesRole && matchesSearch && matchesStatus;
         });
@@ -552,6 +580,7 @@ const AdminUsers = () => {
                                 <option value="active">{t('usersPage.filterActive')}</option>
                                 <option value="pending">{t('usersPage.filterPending')}</option>
                                 <option value="blocked">{t('usersPage.filterBlocked')}</option>
+                                <option value="unverified">이메일 미인증</option>
                             </select>
                             <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         </div>
@@ -642,15 +671,26 @@ const AdminUsers = () => {
                                             )}
                                         </td>
                                         <td className="p-6">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${user.status === 'blocked'
-                                                ? 'bg-red-50 text-red-600'
-                                                : user.status === 'pending'
-                                                    ? 'bg-amber-50 text-amber-600'
-                                                    : 'bg-emerald-50 text-emerald-600'
-                                                }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'blocked' ? 'bg-red-500' : user.status === 'pending' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                                                {user.status === 'blocked' ? t('usersPage.statusBlocked') : user.status === 'pending' ? t('usersPage.statusPending') : t('usersPage.statusActive')}
-                                            </span>
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${user.status === 'blocked'
+                                                    ? 'bg-red-50 text-red-600'
+                                                    : user.status === 'pending'
+                                                        ? 'bg-amber-50 text-amber-600'
+                                                        : 'bg-emerald-50 text-emerald-600'
+                                                    }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'blocked' ? 'bg-red-500' : user.status === 'pending' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                                    {user.status === 'blocked' ? t('usersPage.statusBlocked') : user.status === 'pending' ? t('usersPage.statusPending') : t('usersPage.statusActive')}
+                                                </span>
+                                                {parseInt(user.email_verified) === 1 ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-50 text-sky-600 border border-sky-200 rounded-full text-[10px] font-extrabold">
+                                                        <Mail size={10} /> 인증완료
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 text-rose-500 border border-rose-200 rounded-full text-[10px] font-extrabold">
+                                                        <MailX size={10} /> 미인증
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="p-6 text-right">
                                             <div className="flex justify-end items-center gap-2">
@@ -717,6 +757,11 @@ const AdminUsers = () => {
                                                 )}
                                                 {parseInt(u.is_verified) === 1 && (
                                                     <BadgeCheck size={12} className="text-emerald-500 flex-shrink-0" />
+                                                )}
+                                                {parseInt(u.email_verified) === 1 ? (
+                                                    <Mail size={11} className="text-sky-500 flex-shrink-0" />
+                                                ) : (
+                                                    <MailX size={11} className="text-rose-400 flex-shrink-0" />
                                                 )}
                                             </div>
                                             <p className="text-[11px] text-gray-400 truncate mt-0.5">{u.email}</p>
@@ -1000,6 +1045,42 @@ const AdminUsers = () => {
                                     )}
                                 </div>
                             )}
+
+                            {/* Email Verification Management */}
+                            <div className="p-5 bg-gradient-to-r from-sky-50 to-blue-50 rounded-2xl border border-sky-200">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${parseInt(selectedUser.email_verified) === 1 ? 'bg-gradient-to-br from-sky-400 to-blue-500 shadow-sky-200' : 'bg-gradient-to-br from-rose-400 to-red-500 shadow-rose-200'}`}>
+                                            {parseInt(selectedUser.email_verified) === 1 ? <Mail size={20} className="text-white" /> : <MailX size={20} className="text-white" />}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-extrabold text-gray-900">이메일 인증 관리</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                {parseInt(selectedUser.email_verified) === 1 ? '이메일 인증 완료된 사용자입니다' : '이메일 미인증 사용자 — 로그인이 차단됩니다'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleToggleEmailVerified(selectedUser.id, parseInt(selectedUser.email_verified))}
+                                        disabled={actionLoading}
+                                        className={`relative w-14 h-7 rounded-full transition-all duration-300 ${parseInt(selectedUser.email_verified) === 1
+                                            ? 'bg-gradient-to-r from-sky-400 to-blue-500 shadow-lg shadow-sky-200'
+                                            : 'bg-gray-200'
+                                            }`}
+                                    >
+                                        <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
+                                            style={{ left: parseInt(selectedUser.email_verified) === 1 ? '1.875rem' : '0.125rem' }} />
+                                    </button>
+                                </div>
+                                {parseInt(selectedUser.email_verified) === 0 && (
+                                    <div className="mt-3 px-3 py-2 bg-rose-50 rounded-xl border border-rose-100">
+                                        <p className="text-xs font-bold text-rose-600 flex items-center gap-1.5">
+                                            <AlertTriangle size={12} />
+                                            인증 처리 시 이 사용자는 이메일 인증 없이 로그인할 수 있습니다
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Seller Contact Access Settings (Vendor Only) */}
                             {selectedUser.role === 'host' && (
