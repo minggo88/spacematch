@@ -823,66 +823,66 @@ const AdminUsers = () => {
             {/* Manage Modal */}
             {showManageModal && selectedUser && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                             <div>
-                                <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                                    <Briefcase size={20} className="text-indigo-600" />
+                                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Briefcase size={20} className="text-indigo-600 dark:text-indigo-400" />
                                     {t('usersPage.accountManage')}
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1 font-medium">{selectedUser.name}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{selectedUser.name}</p>
                             </div>
-                            <button onClick={() => setShowManageModal(false)} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <button onClick={() => setShowManageModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
 
                         <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
                             {/* Content Edit Section */}
-                            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                            <div className="p-4 bg-blue-50/50 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-800">
                                 <button
                                     onClick={() => setShowEditContent(!showEditContent)}
-                                    className="w-full flex items-center justify-between text-sm font-bold text-gray-700"
+                                    className="w-full flex items-center justify-between text-sm font-bold text-gray-700 dark:text-gray-200"
                                 >
                                     <span className="flex items-center gap-2">
-                                        <Edit3 size={16} className="text-blue-600" />
+                                        <Edit3 size={16} className="text-blue-600 dark:text-blue-400" />
                                         {t('usersPage.contentEdit')}
                                     </span>
-                                    <span className="text-xs text-blue-500">{showEditContent ? t('usersPage.fold') : t('usersPage.expand')}</span>
+                                    <span className="text-xs text-blue-500 dark:text-blue-400">{showEditContent ? t('usersPage.fold') : t('usersPage.expand')}</span>
                                 </button>
                                 {showEditContent && (
                                     <div className="mt-4 space-y-3">
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 block mb-1">{t('usersPage.labelName')}</label>
+                                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('usersPage.labelName')}</label>
                                             <input
                                                 type="text"
                                                 value={editContent.name}
                                                 onChange={e => setEditContent({ ...editContent, name: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-sm"
+                                                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 block mb-1">{t('usersPage.labelEmail')}</label>
+                                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('usersPage.labelEmail')}</label>
                                             <input
                                                 type="email"
                                                 value={editContent.email}
                                                 onChange={e => setEditContent({ ...editContent, email: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-sm"
+                                                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 block mb-1">{t('usersPage.labelPhone')}</label>
+                                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">{t('usersPage.labelPhone')}</label>
                                             <input
                                                 type="text"
                                                 value={editContent.phone}
                                                 onChange={e => setEditContent({ ...editContent, phone: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-sm"
+                                                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                             />
                                         </div>
                                         <button
                                             onClick={handleSaveContent}
                                             disabled={actionLoading}
-                                            className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200"
+                                            className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200 dark:shadow-blue-900"
                                         >
                                             {t('usersPage.save')}
                                         </button>
@@ -892,8 +892,8 @@ const AdminUsers = () => {
 
                             {/* Venue Limit Settings (Vendor Only) */}
                             {selectedUser.role === 'host' && (
-                                <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                                    <label className="text-sm font-bold text-gray-700 block mb-3 flex items-center gap-2">
+                                <div className="p-5 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-800">
+                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-200 block mb-3 flex items-center gap-2">
                                         <Store size={16} className="text-indigo-600" />
                                         {t('usersPage.venueLimitSetting')}
                                     </label>
@@ -902,7 +902,7 @@ const AdminUsers = () => {
                                             type="number"
                                             value={editLimit}
                                             onChange={(e) => setEditLimit(e.target.value)}
-                                            className="flex-1 px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-gray-800"
+                                            className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800"
                                             min="0"
                                         />
                                         <button
@@ -922,15 +922,15 @@ const AdminUsers = () => {
 
                             {/* Featured / Premium Toggle (Vendor & Seller Only) */}
                             {(selectedUser.role === 'host' || selectedUser.role === 'seller') && (
-                                <div className="p-5 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border border-amber-200">
+                                <div className="p-5 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 rounded-2xl border border-amber-200 dark:border-amber-800">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-200">
                                                 <Crown size={20} className="text-white" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-extrabold text-gray-900">{t('usersPage.premiumExposure')}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                <p className="text-sm font-extrabold text-gray-900 dark:text-white">{t('usersPage.premiumExposure')}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                                     {selectedUser.role === 'host' ? t('usersPage.premiumVenueSearch') : t('usersPage.premiumHostSearch')}{t('usersPage.premiumTopExposure')}
                                                 </p>
                                             </div>
@@ -940,7 +940,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className={`relative w-14 h-7 rounded-full transition-all duration-300 ${parseInt(selectedUser.is_featured) === 1
                                                 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-200'
-                                                : 'bg-gray-200'
+                                                : 'bg-gray-200 dark:bg-gray-600'
                                                 }`}
                                         >
                                             <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
@@ -950,7 +950,7 @@ const AdminUsers = () => {
                                     {parseInt(selectedUser.is_featured) === 1 && (
                                         <div className="mt-4 space-y-3">
                                             {/* Period Date Inputs */}
-                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
                                                 <Calendar size={12} className="text-amber-600" />
                                                 <span>{t('usersPage.periodSetting')}</span>
                                                 {featuredEndDate && (() => {
@@ -964,15 +964,15 @@ const AdminUsers = () => {
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <input type="date" value={featuredStartDate} onChange={e => setFeaturedStartDate(e.target.value)}
-                                                    className="px-3 py-2 border border-amber-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-amber-300/30 bg-white/80" />
+                                                    className="px-3 py-2 border border-amber-200 dark:border-amber-700 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-amber-300/30 bg-white/80 dark:bg-gray-700/80" />
                                                 <input type="date" value={featuredEndDate} onChange={e => setFeaturedEndDate(e.target.value)}
-                                                    className="px-3 py-2 border border-amber-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-amber-300/30 bg-white/80" />
+                                                    className="px-3 py-2 border border-amber-200 dark:border-amber-700 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-amber-300/30 bg-white/80 dark:bg-gray-700/80" />
                                             </div>
                                             {/* Quick Period Buttons */}
                                             <div className="flex flex-wrap gap-1.5">
                                                 {[{ l: t('usersPage.days7'), d: 7 }, { l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days180'), d: 180 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
                                                     <button key={p.d} onClick={() => setQuickPeriod(setFeaturedStartDate, setFeaturedEndDate, p.d)}
-                                                        className="px-2.5 py-1 bg-white/70 border border-amber-200 rounded-lg text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">{p.l}</button>
+                                                        className="px-2.5 py-1 bg-white/70 dark:bg-gray-700/70 border border-amber-200 dark:border-amber-700 rounded-lg text-[10px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">{p.l}</button>
                                                 ))}
                                             </div>
                                             <button onClick={() => handleSaveFeaturedPeriod(selectedUser.id)} disabled={actionLoading}
@@ -986,15 +986,15 @@ const AdminUsers = () => {
 
                             {/* Verified Badge Toggle (Vendor & Seller Only) */}
                             {(selectedUser.role === 'host' || selectedUser.role === 'seller') && (
-                                <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200">
+                                <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
                                                 <BadgeCheck size={20} className="text-white" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-extrabold text-gray-900">{t('usersPage.verifiedBadge')}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{t('usersPage.verifiedDesc')}</p>
+                                                <p className="text-sm font-extrabold text-gray-900 dark:text-white">{t('usersPage.verifiedBadge')}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('usersPage.verifiedDesc')}</p>
                                             </div>
                                         </div>
                                         <button
@@ -1002,7 +1002,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className={`relative w-14 h-7 rounded-full transition-all duration-300 ${parseInt(selectedUser.is_verified) === 1
                                                 ? 'bg-gradient-to-r from-emerald-400 to-green-500 shadow-lg shadow-emerald-200'
-                                                : 'bg-gray-200'
+                                                : 'bg-gray-200 dark:bg-gray-600'
                                                 }`}
                                         >
                                             <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
@@ -1012,7 +1012,7 @@ const AdminUsers = () => {
                                     {parseInt(selectedUser.is_verified) === 1 && (
                                         <div className="mt-4 space-y-3">
                                             {/* Period Date Inputs */}
-                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
                                                 <Calendar size={12} className="text-emerald-600" />
                                                 <span>{t('usersPage.periodSetting')}</span>
                                                 {verifiedEndDate && (() => {
@@ -1026,15 +1026,15 @@ const AdminUsers = () => {
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <input type="date" value={verifiedStartDate} onChange={e => setVerifiedStartDate(e.target.value)}
-                                                    className="px-3 py-2 border border-emerald-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-emerald-300/30 bg-white/80" />
+                                                    className="px-3 py-2 border border-emerald-200 dark:border-emerald-700 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-emerald-300/30 bg-white/80 dark:bg-gray-700/80" />
                                                 <input type="date" value={verifiedEndDate} onChange={e => setVerifiedEndDate(e.target.value)}
-                                                    className="px-3 py-2 border border-emerald-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-emerald-300/30 bg-white/80" />
+                                                    className="px-3 py-2 border border-emerald-200 dark:border-emerald-700 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-emerald-300/30 bg-white/80 dark:bg-gray-700/80" />
                                             </div>
                                             {/* Quick Period Buttons */}
                                             <div className="flex flex-wrap gap-1.5">
                                                 {[{ l: t('usersPage.days7'), d: 7 }, { l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days180'), d: 180 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
                                                     <button key={p.d} onClick={() => setQuickPeriod(setVerifiedStartDate, setVerifiedEndDate, p.d)}
-                                                        className="px-2.5 py-1 bg-white/70 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">{p.l}</button>
+                                                        className="px-2.5 py-1 bg-white/70 dark:bg-gray-700/70 border border-emerald-200 dark:border-emerald-700 rounded-lg text-[10px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">{p.l}</button>
                                                 ))}
                                             </div>
                                             <button onClick={() => handleSaveVerifiedPeriod(selectedUser.id)} disabled={actionLoading}
@@ -1047,15 +1047,15 @@ const AdminUsers = () => {
                             )}
 
                             {/* Email Verification Management */}
-                            <div className="p-5 bg-gradient-to-r from-sky-50 to-blue-50 rounded-2xl border border-sky-200">
+                            <div className="p-5 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 rounded-2xl border border-sky-200 dark:border-sky-800">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${parseInt(selectedUser.email_verified) === 1 ? 'bg-gradient-to-br from-sky-400 to-blue-500 shadow-sky-200' : 'bg-gradient-to-br from-rose-400 to-red-500 shadow-rose-200'}`}>
                                             {parseInt(selectedUser.email_verified) === 1 ? <Mail size={20} className="text-white" /> : <MailX size={20} className="text-white" />}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-extrabold text-gray-900">이메일 인증 관리</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">
+                                            <p className="text-sm font-extrabold text-gray-900 dark:text-white">이메일 인증 관리</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                                 {parseInt(selectedUser.email_verified) === 1 ? '이메일 인증 완료된 사용자입니다' : '이메일 미인증 사용자 — 로그인이 차단됩니다'}
                                             </p>
                                         </div>
@@ -1065,7 +1065,7 @@ const AdminUsers = () => {
                                         disabled={actionLoading}
                                         className={`relative w-14 h-7 rounded-full transition-all duration-300 ${parseInt(selectedUser.email_verified) === 1
                                             ? 'bg-gradient-to-r from-sky-400 to-blue-500 shadow-lg shadow-sky-200'
-                                            : 'bg-gray-200'
+                                            : 'bg-gray-200 dark:bg-gray-600'
                                             }`}
                                     >
                                         <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
@@ -1073,7 +1073,7 @@ const AdminUsers = () => {
                                     </button>
                                 </div>
                                 {parseInt(selectedUser.email_verified) === 0 && (
-                                    <div className="mt-3 px-3 py-2 bg-rose-50 rounded-xl border border-rose-100">
+                                    <div className="mt-3 px-3 py-2 bg-rose-50 dark:bg-rose-950/30 rounded-xl border border-rose-100 dark:border-rose-800">
                                         <p className="text-xs font-bold text-rose-600 flex items-center gap-1.5">
                                             <AlertTriangle size={12} />
                                             인증 처리 시 이 사용자는 이메일 인증 없이 로그인할 수 있습니다
@@ -1084,15 +1084,15 @@ const AdminUsers = () => {
 
                             {/* Seller Contact Access Settings (Vendor Only) */}
                             {selectedUser.role === 'host' && (
-                                <div className="p-5 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-2xl border border-cyan-200">
+                                <div className="p-5 bg-gradient-to-r from-cyan-50 to-sky-50 dark:from-cyan-950/30 dark:to-sky-950/30 rounded-2xl border border-cyan-200 dark:border-cyan-800">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-sky-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-200">
                                                 {contactAccess.can_view ? <Unlock size={20} className="text-white" /> : <Lock size={20} className="text-white" />}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-extrabold text-gray-900">{t('usersPage.sellerContactAccess')}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{t('usersPage.sellerContactDesc')}</p>
+                                                <p className="text-sm font-extrabold text-gray-900 dark:text-white">{t('usersPage.sellerContactAccess')}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('usersPage.sellerContactDesc')}</p>
                                             </div>
                                         </div>
                                         <button
@@ -1104,7 +1104,7 @@ const AdminUsers = () => {
                                             disabled={actionLoading}
                                             className={`relative w-14 h-7 rounded-full transition-all duration-300 ${contactAccess.can_view
                                                 ? 'bg-gradient-to-r from-cyan-500 to-sky-600 shadow-lg shadow-cyan-200'
-                                                : 'bg-gray-200'
+                                                : 'bg-gray-200 dark:bg-gray-600'
                                                 }`}
                                         >
                                             <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300`}
@@ -1115,7 +1115,7 @@ const AdminUsers = () => {
                                     {contactAccess.can_view ? (
                                         <div className="space-y-3">
                                             {/* Period Date Inputs */}
-                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
                                                 <Calendar size={12} className="text-cyan-600" />
                                                 <span>{t('usersPage.accessPeriod')}</span>
                                                 {contactEndDate && (() => {
@@ -1129,20 +1129,20 @@ const AdminUsers = () => {
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <input type="date" value={contactStartDate} onChange={e => setContactStartDate(e.target.value)}
-                                                    className="px-3 py-2 border border-cyan-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-cyan-300/30 bg-white/80" />
+                                                    className="px-3 py-2 border border-cyan-200 dark:border-cyan-700 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-cyan-300/30 bg-white/80 dark:bg-gray-700/80" />
                                                 <input type="date" value={contactEndDate} onChange={e => setContactEndDate(e.target.value)}
-                                                    className="px-3 py-2 border border-cyan-200 rounded-xl text-xs font-medium text-gray-700 outline-none focus:ring-2 focus:ring-cyan-300/30 bg-white/80" />
+                                                    className="px-3 py-2 border border-cyan-200 dark:border-cyan-700 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-cyan-300/30 bg-white/80 dark:bg-gray-700/80" />
                                             </div>
                                             {/* Quick Period Buttons */}
                                             <div className="flex flex-wrap gap-1.5">
                                                 {[{ l: t('usersPage.days7'), d: 7 }, { l: t('usersPage.days30'), d: 30 }, { l: t('usersPage.days90'), d: 90 }, { l: t('usersPage.days180'), d: 180 }, { l: t('usersPage.days365'), d: 365 }].map(p => (
                                                     <button key={p.d} onClick={() => setQuickPeriod(setContactStartDate, setContactEndDate, p.d)}
-                                                        className="px-2.5 py-1 bg-white/70 border border-cyan-200 rounded-lg text-[10px] font-bold text-cyan-700 hover:bg-cyan-100 transition-colors">{p.l}</button>
+                                                        className="px-2.5 py-1 bg-white/70 dark:bg-gray-700/70 border border-cyan-200 dark:border-cyan-700 rounded-lg text-[10px] font-bold text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors">{p.l}</button>
                                                 ))}
                                             </div>
 
                                             {/* View Limit */}
-                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
                                                 <Eye size={12} className="text-cyan-600" />
                                                 <span>{t('usersPage.maxViews')}</span>
                                             </div>
@@ -1151,7 +1151,7 @@ const AdminUsers = () => {
                                                     type="number"
                                                     value={editContactLimit}
                                                     onChange={(e) => setEditContactLimit(parseInt(e.target.value) || 0)}
-                                                    className="flex-1 px-4 py-2 border border-cyan-200 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500/20 font-bold text-gray-800 text-sm"
+                                                    className="flex-1 px-4 py-2 border border-cyan-200 dark:border-cyan-700 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500/20 font-bold text-gray-800 dark:text-gray-200 text-sm bg-white dark:bg-gray-800"
                                                     min="0"
                                                     placeholder={t('usersPage.viewsPlaceholder')}
                                                 />
@@ -1167,8 +1167,8 @@ const AdminUsers = () => {
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="px-3 py-2 bg-white/60 rounded-xl">
-                                            <p className="text-xs font-bold text-gray-400">{t('usersPage.accessDisabled')}</p>
+                                        <div className="px-3 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl">
+                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500">{t('usersPage.accessDisabled')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -1370,7 +1370,7 @@ const AdminUsers = () => {
 
                             {/* Status Actions */}
                             <div className="space-y-4">
-                                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                     <ColorsIcon status={selectedUser.status} />
                                     {t('usersPage.accountStatus')}
                                 </h4>
@@ -1380,7 +1380,7 @@ const AdminUsers = () => {
                                         <button
                                             onClick={() => handleStatusAction('approve')}
                                             disabled={actionLoading}
-                                            className="w-full py-3.5 bg-white border-2 border-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 hover:border-indigo-200 flex items-center justify-center gap-2 transition-all"
+                                            className="w-full py-3.5 bg-white dark:bg-gray-800 border-2 border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-2xl font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 flex items-center justify-center gap-2 transition-all"
                                         >
                                             <CheckCircle size={18} /> {t('usersPage.approveVendor')}
                                         </button>
@@ -1389,7 +1389,7 @@ const AdminUsers = () => {
                                         <button
                                             onClick={() => handleStatusAction('unblock')}
                                             disabled={actionLoading}
-                                            className="w-full py-3.5 bg-white border-2 border-emerald-100 text-emerald-600 rounded-2xl font-bold hover:bg-emerald-50 hover:border-emerald-200 flex items-center justify-center gap-2 transition-all"
+                                            className="w-full py-3.5 bg-white dark:bg-gray-800 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-2xl font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:border-emerald-200 flex items-center justify-center gap-2 transition-all"
                                         >
                                             <Shield size={18} /> {t('usersPage.unblock')}
                                         </button>
@@ -1397,7 +1397,7 @@ const AdminUsers = () => {
                                         <button
                                             onClick={() => handleStatusAction('block')}
                                             disabled={actionLoading}
-                                            className="w-full py-3.5 bg-white border-2 border-orange-100 text-orange-600 rounded-2xl font-bold hover:bg-orange-50 hover:border-orange-200 flex items-center justify-center gap-2 transition-all"
+                                            className="w-full py-3.5 bg-white dark:bg-gray-800 border-2 border-orange-100 dark:border-orange-800 text-orange-600 dark:text-orange-400 rounded-2xl font-bold hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 flex items-center justify-center gap-2 transition-all"
                                         >
                                             <ShieldAlert size={18} /> {t('usersPage.blockTemp')}
                                         </button>
@@ -1406,11 +1406,11 @@ const AdminUsers = () => {
                                     <button
                                         onClick={() => handleStatusAction('ban')}
                                         disabled={actionLoading}
-                                        className="w-full py-3.5 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 flex items-center justify-center gap-2 transition-all"
+                                        className="w-full py-3.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-2xl font-bold hover:bg-red-100 dark:hover:bg-red-950/50 flex items-center justify-center gap-2 transition-all"
                                     >
                                         <Ban size={18} /> {t('usersPage.banPermanent')}
                                     </button>
-                                    <p className="text-xs text-gray-400 text-center leading-relaxed px-4">
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center leading-relaxed px-4">
                                         {t('usersPage.banWarning')}
                                     </p>
                                 </div>
