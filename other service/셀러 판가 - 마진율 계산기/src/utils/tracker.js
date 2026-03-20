@@ -3,8 +3,8 @@
  * 페이지뷰와 사용자 행동 이벤트를 스페이스매치 서버로 전송
  */
 
-// 스페이스매치 메인 서버의 API 주소 (실서버에 맞게 설정)
-const TRACK_API = '/api/calc-stats/track.php'
+// 스페이스매치 메인 서버의 API 주소 (절대 URL)
+const TRACK_API = 'https://spacematch.net/api/calc-stats/track.php'
 
 // ── 세션 ID 생성/관리 ──
 function getSessionId() {
@@ -30,8 +30,10 @@ function getReferrer() {
     if (!ref) return ''
     try {
         const url = new URL(ref)
-        // 자기 자신 도메인은 제외
-        if (url.hostname === window.location.hostname) return ''
+        const currentHost = window.location.hostname
+        // 같은 호스트 + 같은 경로(seller-calc)에서 온 경우만 제외
+        // 다른 페이지(spacematch 메인 등)에서 온 경우는 유입 경로로 기록
+        if (url.hostname === currentHost && url.pathname.startsWith('/seller-calc')) return ''
         return ref
     } catch {
         return ref

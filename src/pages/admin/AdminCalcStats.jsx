@@ -254,31 +254,57 @@ const AdminCalcStats = () => {
 
             {/* ── 시간대별 분포 + 유입 경로 ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
-                {/* 시간대별 */}
+                {/* 시간대별 (점 그래프) */}
                 <div style={{ background: '#fff', borderRadius: 16, padding: 24, border: '1px solid #e2e8f0' }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Clock size={18} style={{ color: COLORS.primary }} />
                         오늘 시간대별 방문
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120 }}>
-                        {(hourly || Array(24).fill(0)).map((count, i) => (
-                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div
-                                    title={`${i}시: ${count}건`}
-                                    style={{
-                                        width: '100%', maxWidth: 16,
-                                        height: Math.max((count / maxHourly) * 100, 2),
-                                        background: count > 0 ? `linear-gradient(180deg, ${COLORS.primary}, ${COLORS.accent})` : '#e2e8f0',
-                                        borderRadius: '3px 3px 0 0',
-                                        transition: 'height 0.3s',
-                                    }}
-                                />
-                                {i % 3 === 0 && (
-                                    <span style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>{i}시</span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                    {(() => {
+                        const h = hourly || Array(24).fill(0);
+                        const svgW = 480, svgH = 120, padX = 20, padY = 10;
+                        const chartW = svgW - padX * 2, chartH = svgH - padY * 2;
+                        const stepX = chartW / 23;
+                        const points = h.map((c, i) => ({
+                            x: padX + i * stepX,
+                            y: padY + chartH - (maxHourly > 0 ? (c / maxHourly) * chartH : 0),
+                            count: c,
+                            hour: i,
+                        }));
+                        const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+                        const areaPath = linePath + ` L${points[23].x},${padY + chartH} L${points[0].x},${padY + chartH} Z`;
+                        return (
+                            <svg viewBox={`0 0 ${svgW} ${svgH + 20}`} style={{ width: '100%', height: 'auto' }}>
+                                {/* 그리드 라인 */}
+                                {[0, 0.5, 1].map((r, i) => (
+                                    <line key={i} x1={padX} x2={svgW - padX} y1={padY + chartH * (1 - r)} y2={padY + chartH * (1 - r)}
+                                        stroke="#f1f5f9" strokeWidth={1} />
+                                ))}
+                                {/* 영역 */}
+                                <path d={areaPath} fill={`${COLORS.primary}12`} />
+                                {/* 라인 */}
+                                <path d={linePath} fill="none" stroke={COLORS.primary} strokeWidth={2} strokeLinejoin="round" />
+                                {/* 점 */}
+                                {points.map((p, i) => (
+                                    <g key={i}>
+                                        <circle cx={p.x} cy={p.y} r={p.count > 0 ? 5 : 2.5}
+                                            fill={p.count > 0 ? COLORS.primary : '#cbd5e1'}
+                                            stroke="#fff" strokeWidth={p.count > 0 ? 2 : 1} />
+                                        {p.count > 0 && (
+                                            <text x={p.x} y={p.y - 10} textAnchor="middle"
+                                                fontSize={9} fontWeight={700} fill={COLORS.primary}>{p.count}</text>
+                                        )}
+                                        <title>{`${i}시: ${p.count}건`}</title>
+                                    </g>
+                                ))}
+                                {/* X축 레이블 */}
+                                {[0, 3, 6, 9, 12, 15, 18, 21].map(i => (
+                                    <text key={i} x={points[i].x} y={svgH + 14} textAnchor="middle"
+                                        fontSize={9} fill="#94a3b8">{i}시</text>
+                                ))}
+                            </svg>
+                        );
+                    })()}
                 </div>
 
                 {/* 유입 경로 */}

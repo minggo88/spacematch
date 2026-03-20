@@ -1,17 +1,13 @@
 <?php
 // ── 마진율 계산기 통계 조회 API ──
 // admin/superadmin 전용
-header('Content-Type: application/json; charset=utf-8');
 include_once '../db_connect.php';
-
 session_start();
 
-// 인증 체크
-$userRole = $_SESSION['user_role'] ?? '';
-if (!isset($_SESSION['user_id']) || !in_array($userRole, ['admin', 'superadmin'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['admin', 'superadmin'])) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => '관리자 권한이 필요합니다']);
-    exit();
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
 }
 
 $period = isset($_GET['period']) ? $_GET['period'] : '7d';
