@@ -245,6 +245,7 @@ const Layout = () => {
         { to: '/admin/host-report', icon: BarChart3, label: t('sidebar.analyticsReport') },
         { to: '/admin/ads', icon: Megaphone, label: t('sidebar.adManagement') },
         { to: '/admin/marketing', icon: Megaphone, label: t('sidebar.marketingManagement', '마케팅 관리') },
+        { to: '/admin/email-marketing', icon: Send, label: '이메일 마케팅' },
         { to: '/admin/vendor-management', icon: Truck, label: t('sidebar.vendorTransactionManagement', '벤더 거래 관리') },
         { to: '/admin/popups', icon: Monitor, label: t('sidebar.popupManagement') },
         { to: '/admin/security', icon: Shield, label: t('sidebar.securitySettings') },

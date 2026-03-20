@@ -62,6 +62,7 @@ const AdminCS = React.lazy(() => import('./pages/admin/AdminCS'));
 const NotificationSettings = React.lazy(() => import('./pages/NotificationSettings'));
 const AdminMenuVisibility = React.lazy(() => import('./pages/admin/AdminMenuVisibility'));
 const AdminMarketing = React.lazy(() => import('./pages/admin/AdminMarketing'));
+const AdminEmailMarketing = React.lazy(() => import('./pages/admin/AdminEmailMarketing'));
 const AdminVendorManagement = React.lazy(() => import('./pages/admin/AdminVendorManagement'));
 const VendorDashboard = React.lazy(() => import('./pages/vendor/VendorDashboard'));
 const VendorSellerDirectory = React.lazy(() => import('./pages/vendor/VendorSellerDirectory'));
@@ -146,6 +147,7 @@ function App() {
                                         <Route path="notification-settings" element={<NotificationSettings />} />
                                         <Route path="menu-visibility" element={<AdminMenuVisibility />} />
                                         <Route path="marketing" element={<AdminMarketing />} />
+                                        <Route path="email-marketing" element={<AdminEmailMarketing />} />
                                         <Route path="vendor-management" element={<AdminVendorManagement />} />
                                         <Route path="cs" element={<AdminCS />} />
                                         <Route path="chat" element={<ChatPage />} />
