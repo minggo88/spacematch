@@ -1,7 +1,7 @@
 <?php
 /**
  * get_campaigns.php — 이메일 캠페인 발송 이력 조회
- * GET: optional ?limit=50
+ * GET: optional ?limit=20
  */
 include_once '../db_connect.php';
 session_start();
@@ -30,7 +30,8 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    $limit = isset($_GET['limit']) ? max(1, min(intval($_GET['limit']), 200)) : 50;
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
+    $limit = max(1, min($limit, 200));
 
     $stmt = $conn->prepare("
         SELECT ec.*, u.name as sender_name, u.email as sender_email
@@ -42,7 +43,7 @@ try {
     $stmt->execute([$limit]);
     $campaigns = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Count email-verified users per role (without opt-in filter)
+    // Get recipient count for preview
     $col_ev = $conn->query("SHOW COLUMNS FROM users LIKE 'email_verified'");
     $has_ev = $col_ev->fetch() ? true : false;
     $evCondition = $has_ev ? "AND u.email_verified = 1" : "";
@@ -57,6 +58,10 @@ try {
             {$evCondition}
             AND u.role NOT IN ('admin', 'superadmin')
             {$roleFilter}
+            AND u.id NOT IN (
+                SELECT ns.user_id FROM notification_settings ns 
+                WHERE ns.cat_marketing = 0 OR ns.email_enabled = 0
+            )
         ");
         $row = $countStmt->fetch(PDO::FETCH_ASSOC);
         $counts[$role] = intval($row['cnt'] ?? 0);
@@ -69,6 +74,9 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => '오류: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    echo json_encode([
+        'success' => false,
+        'message' => '오류: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
 }
 ?>
