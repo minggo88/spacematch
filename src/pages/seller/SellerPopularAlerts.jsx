@@ -29,7 +29,7 @@ const SellerPopularAlerts = () => {
             const json = await res.json();
             if (json.success) setData(json.data);
         } catch (err) {
-            console.error('Popular venues load failed:', err);
+            // error silently handled
         } finally {
             setLoading(false);
         }
