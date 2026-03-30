@@ -128,7 +128,7 @@ const AdminEmailMarketing = () => {
     };
 
     useEffect(() => { fetchCampaigns(); fetchRecipients('all'); }, []);
-    useEffect(() => { fetchRecipients(targetRole); }, [targetRole]);
+    useEffect(() => { if (targetRole !== 'all') fetchRecipients(targetRole); }, [targetRole]);
 
     // Filter recipients by search
     const filteredRecipients = useMemo(() => {

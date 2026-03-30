@@ -411,6 +411,13 @@ function AdsTab({ showToast }) {
 
 // ── 통합 분석 탭 ──
 function AnalyticsTab() {
+    const ANALYTICS_COLOR_MAP = {
+        indigo: { bg: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-600 dark:text-indigo-400' },
+        emerald: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
+        amber: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400' },
+        blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
+    };
+
     const stats = [
         { label: '전체 캠페인', value: '12', change: '+3', icon: Megaphone, color: 'indigo' },
         { label: '활성 쿠폰', value: '8', change: '+2', icon: Gift, color: 'emerald' },
@@ -428,20 +435,23 @@ function AnalyticsTab() {
         <div className="space-y-6">
             {/* KPI 대시보드 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {stats.map((s, i) => (
-                    <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className={`p-2 rounded-lg bg-${s.color}-100 dark:bg-${s.color}-900/30`}>
-                                <s.icon size={18} className={`text-${s.color}-600 dark:text-${s.color}-400`} />
+                {stats.map((s, i) => {
+                    const cm = ANALYTICS_COLOR_MAP[s.color] || ANALYTICS_COLOR_MAP.indigo;
+                    return (
+                        <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className={`p-2 rounded-lg ${cm.bg}`}>
+                                    <s.icon size={18} className={cm.text} />
+                                </div>
+                                <span className="text-xs font-medium text-green-500 flex items-center gap-0.5">
+                                    <ArrowUpRight size={12} /> {s.change}
+                                </span>
                             </div>
-                            <span className="text-xs font-medium text-green-500 flex items-center gap-0.5">
-                                <ArrowUpRight size={12} /> {s.change}
-                            </span>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{s.value}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{s.label}</p>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{s.value}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{s.label}</p>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* 상위 캠페인 */}

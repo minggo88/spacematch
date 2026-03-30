@@ -31,26 +31,29 @@ if (empty($subject) || empty($htmlBody)) {
 }
 
 try {
-    // Ensure email_campaigns table exists
-    $conn->exec("CREATE TABLE IF NOT EXISTS email_campaigns (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        subject VARCHAR(500) NOT NULL,
-        html_body LONGTEXT,
-        cta_text VARCHAR(200),
-        cta_url VARCHAR(500),
-        image_url VARCHAR(500),
-        target_role VARCHAR(20) DEFAULT 'all',
-        total_recipients INT DEFAULT 0,
-        sent_count INT DEFAULT 0,
-        failed_count INT DEFAULT 0,
-        sent_by INT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Ensure email_campaigns table exists (once per session)
+    if (empty($_SESSION['_ddl_email_campaigns'])) {
+        $conn->exec("CREATE TABLE IF NOT EXISTS email_campaigns (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            subject VARCHAR(500) NOT NULL,
+            html_body LONGTEXT,
+            cta_text VARCHAR(200),
+            cta_url VARCHAR(500),
+            image_url VARCHAR(500),
+            target_role VARCHAR(20) DEFAULT 'all',
+            total_recipients INT DEFAULT 0,
+            sent_count INT DEFAULT 0,
+            failed_count INT DEFAULT 0,
+            sent_by INT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Ensure cat_marketing column exists
-    try {
-        $conn->exec("ALTER TABLE notification_settings ADD COLUMN cat_marketing TINYINT(1) DEFAULT 1");
-    } catch (Exception $e) {
+        // Ensure cat_marketing column exists
+        try {
+            $conn->exec("ALTER TABLE notification_settings ADD COLUMN cat_marketing TINYINT(1) DEFAULT 1");
+        } catch (Exception $e) {
+        }
+        $_SESSION['_ddl_email_campaigns'] = true;
     }
 
     // Build HTML body
@@ -164,6 +167,8 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => '오류: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    http_response_code(500);
+    error_log('[send_marketing_email] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '메일 발송 중 오류가 발생했습니다. 관리자에게 문의하세요.'], JSON_UNESCAPED_UNICODE);
 }
 ?>

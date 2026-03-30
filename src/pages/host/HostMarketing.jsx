@@ -461,6 +461,7 @@ function DistributionTab() {
 // ── 리포팅 탭 ──
 function ReportingTab({ roi, roas }) {
     const dimensions = Object.values(ANALYSIS_DIMENSIONS || {});
+    const benchmarkValues = useMemo(() => dimensions.map(() => Math.round(50 + Math.random() * 40)), [dimensions.length]);
 
     return (
         <div className="space-y-6">
@@ -475,7 +476,7 @@ function ReportingTab({ roi, roas }) {
                                 <span className="text-sm font-medium text-gray-900 dark:text-white">{dim.label}</span>
                             </div>
                             <div className="bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                <div className="bg-violet-500 h-2 rounded-full" style={{ width: `${50 + Math.random() * 40}%` }} />
+                                <div className="bg-violet-500 h-2 rounded-full" style={{ width: `${benchmarkValues[i] || 50}%` }} />
                             </div>
                             <p className="text-xs text-gray-400 mt-1">가중치: {dim.weight}%</p>
                         </div>
