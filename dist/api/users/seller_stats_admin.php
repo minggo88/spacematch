@@ -49,11 +49,14 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
-// ── Auto-migrate: add country_code to seller_stats if missing ──
-try {
-    $conn->query("SELECT country_code FROM seller_stats LIMIT 1");
-} catch (PDOException $ex) {
-    $conn->exec("ALTER TABLE seller_stats ADD COLUMN country_code VARCHAR(2) NOT NULL DEFAULT 'KR' AFTER user_id");
+// ── Auto-migrate: add country_code to seller_stats if missing (once per session) ──
+if (empty($_SESSION['seller_stats_admin_migrated'])) {
+    try {
+        $conn->query("SELECT country_code FROM seller_stats LIMIT 1");
+    } catch (PDOException $ex) {
+        $conn->exec("ALTER TABLE seller_stats ADD COLUMN country_code VARCHAR(2) NOT NULL DEFAULT 'KR' AFTER user_id");
+    }
+    $_SESSION['seller_stats_admin_migrated'] = true;
 }
 
 // ── Ensure vendor_stats table exists ──
@@ -98,7 +101,8 @@ function countryWhere($alias, $countryFilter)
 
 function quote($val)
 {
-    return "'" . addslashes($val) . "'";
+    global $conn;
+    return $conn->quote($val);
 }
 
 try {
