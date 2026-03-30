@@ -111,7 +111,7 @@ try {
                 '',
                 'cat_application',
                 function ($lang) use ($_vn, $_dn, $siteUrl, $_nl) {
-                    $subj = _t(['ko' => '취소 요청 처리 결과', 'en' => 'Cancellation Request Result', 'ja' => 'キャンセル処理結果', 'vi' => 'Kết quả yêu cầu hủy', 'th' => 'ผลลัพธ์การขอยกเลิก'], $lang);
+                    $subj = _t(['ko' => '취소 요청 처리 결과', 'en' => 'Cancellation Request Result', 'ja' => 'キャンセル処理結果', 'vi' => 'Kết quả yêu cầu hủy', 'th' => 'ผลลัพธ์การขอยกเลิก', 'fr' => 'Résultat de la demande d\'annulation', 'km' => 'លទ្ធផលស្នើសុំលុបចោល', 'ru' => 'Результат запроса на отмену', 'uk' => 'Результат запиту на скасування'], $lang);
                     return ['subject' => $subj, 'html' => emailTemplateCancellation('result', $_vn, $_dn, $siteUrl, $_nl, $lang)];
                 }
             );
@@ -129,5 +129,6 @@ try {
     if ($conn->inTransaction())
         $conn->rollBack();
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    error_log('[handle_cancellation] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
 }
