@@ -63,7 +63,6 @@ const SellerHostDirectory = () => {
                 }
             }
         } catch (err) {
-            console.error('Host contact access fetch failed:', err);
         }
     };
 
@@ -113,7 +112,6 @@ const SellerHostDirectory = () => {
                 setPromotions(all);
             }
         } catch (err) {
-            console.error('Promotion load failed:', err);
         }
     };
 
@@ -129,7 +127,6 @@ const SellerHostDirectory = () => {
                 setHosts(data);
             }
         } catch (err) {
-            console.error('Host list load failed:', err);
         } finally {
             setLoading(false);
         }
