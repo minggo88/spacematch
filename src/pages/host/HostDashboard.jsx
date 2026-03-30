@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Store, MapPin, BarChart3, Clock, CheckCircle, XCircle, Users, TrendingUp, Eye, ChevronRight } from 'lucide-react';
+import { Store, MapPin, BarChart3, Clock, CheckCircle, XCircle, Users, TrendingUp, Eye, ChevronRight, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +13,21 @@ const HostDashboard = () => {
     const [venues, setVenues] = useState([]);
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Profile completeness
+    const [profileComplete, setProfileComplete] = useState(0);
+    useEffect(() => {
+        if (!user) return;
+        let filled = 0;
+        const total = 6;
+        if (user.name) filled++;
+        if (user.email) filled++;
+        if (user.phone) filled++;
+        if (user.business_no) filled++;
+        if (user.description) filled++;
+        if (user.profile_image) filled++;
+        setProfileComplete(Math.round((filled / total) * 100));
+    }, [user]);
 
     const fetchMyVenues = () => {
         fetch(`${API_BASE}/venues/get_my_venues.php`, { credentials: 'include' })
@@ -100,6 +115,35 @@ const HostDashboard = () => {
                     </p>
                 </div>
             </div>
+
+            {/* Profile Completion Alert */}
+            {profileComplete < 100 && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="text-amber-600 dark:text-amber-400" size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                            {t('completeProfile', { ns: 'common', defaultValue: '프로필을 완성해 주세요' })}
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                            {t('profileProgress', { ns: 'common', defaultValue: '프로필 완성도' })}: {profileComplete}%
+                        </p>
+                        <div className="w-full bg-amber-200/50 dark:bg-amber-800/30 rounded-full h-2 mt-2">
+                            <div
+                                className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${profileComplete}%` }}
+                            />
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => navigate('/host/profile')}
+                        className="flex-shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold transition-colors"
+                    >
+                        {t('goComplete', { ns: 'common', defaultValue: '완성하기' })}
+                    </button>
+                </div>
+            )}
 
             {/* Main KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
