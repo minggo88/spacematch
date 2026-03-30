@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 header('Content-Type: application/json');
@@ -13,26 +14,29 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['user_role'];
 
-// Auto-create table
-$conn->exec("CREATE TABLE IF NOT EXISTS settlements (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    shipment_id INT NOT NULL,
-    vendor_id INT NOT NULL,
-    seller_id INT NOT NULL,
-    amount DECIMAL(12,0) NOT NULL,
-    commission_rate DECIMAL(5,2) DEFAULT 0,
-    commission_amount DECIMAL(12,0) DEFAULT 0,
-    net_amount DECIMAL(12,0) DEFAULT 0,
-    status ENUM('pending','confirmed','paid','disputed') DEFAULT 'pending',
-    vendor_note TEXT,
-    seller_note TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    confirmed_at DATETIME,
-    paid_at DATETIME,
-    INDEX idx_vendor (vendor_id),
-    INDEX idx_seller (seller_id),
-    INDEX idx_shipment (shipment_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Auto-create table (once per session)
+if (empty($_SESSION['_ddl_settlements'])) {
+    $conn->exec("CREATE TABLE IF NOT EXISTS settlements (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        shipment_id INT NOT NULL,
+        vendor_id INT NOT NULL,
+        seller_id INT NOT NULL,
+        amount DECIMAL(12,0) NOT NULL,
+        commission_rate DECIMAL(5,2) DEFAULT 0,
+        commission_amount DECIMAL(12,0) DEFAULT 0,
+        net_amount DECIMAL(12,0) DEFAULT 0,
+        status ENUM('pending','confirmed','paid','disputed') DEFAULT 'pending',
+        vendor_note TEXT,
+        seller_note TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        confirmed_at DATETIME,
+        paid_at DATETIME,
+        INDEX idx_vendor (vendor_id),
+        INDEX idx_seller (seller_id),
+        INDEX idx_shipment (shipment_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $_SESSION['_ddl_settlements'] = true;
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -195,6 +199,37 @@ if ($method === 'GET') {
         $notifMsg = "{$vendor_name}님이 정산을 등록했습니다 (" . number_format($net_amount) . "원)";
         $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'settlement_new', ?, '/seller/settlements', NOW())");
         $notifStmt->execute([$shipment['seller_id'], $notifMsg]);
+
+        // [EMAIL] 정산 이메일 (다국어)
+        try {
+            $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $_na = number_format($net_amount);
+            $_vn = $vendor_name;
+            sendEmailToUser(
+                $conn,
+                $shipment['seller_id'],
+                '',
+                '',
+                'cat_application',
+                function ($lang) use ($_na, $_vn, $siteUrl) {
+                    $subj = _t([
+                        'ko' => "💰 새 정산: {$_na}원",
+                        'en' => "💰 New Settlement: ₩{$_na}",
+                        'ja' => "💰 新規精算: ₩{$_na}",
+                        'vi' => "💰 Quyết toán mới: ₩{$_na}",
+                        'th' => "💰 การตั้งหนี้ใหม่: ₩{$_na}",
+                        'fr' => "💰 Nouveau règlement: ₩{$_na}",
+                        'km' => "💰 ការទូទាត់ថ្មី: ₩{$_na}",
+                        'ru' => "💰 Новый расчёт: ₩{$_na}",
+                        'uk' => "💰 Новий розрахунок: ₩{$_na}",
+                    ], $lang);
+                    $body = _t(['ko' => "{$_vn}님이 정산을 등록했습니다.", 'en' => "{$_vn} registered a settlement.", 'ja' => "{$_vn}さんが精算しました。", 'vi' => "{$_vn} đã đăng ký quyết toán.", 'th' => "{$_vn} ลงทะเบียน", 'fr' => "{$_vn} a enregistré un règlement.", 'km' => "{$_vn} បានចុះឈ្មោះ។", 'ru' => "{$_vn} зарегистрировал расчёт.", 'uk' => "{$_vn} зареєстрував розрахунок."], $lang);
+                    return ['subject' => $subj, 'html' => "<p>{$body}</p>"];
+                }
+            );
+        } catch (Exception $emailErr) {
+            error_log('[settlements] email: ' . $emailErr->getMessage());
+        }
     } catch (Exception $e) { /* ignore */
     }
 

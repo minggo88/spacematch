@@ -8,9 +8,7 @@ if (!isset($_SESSION['user_id']) || $userRole !== 'superadmin') {
     http_response_code(403);
     echo json_encode([
         'success' => false,
-        'message' => '권한이 없습니다.',
-        'debug_role' => $userRole,
-        'debug_session_keys' => array_keys($_SESSION)
+        'message' => '권한이 없습니다.'
     ]);
     exit;
 }
@@ -67,9 +65,9 @@ try {
             '',
             'cat_payment',
             function ($lang) use ($_ea, $_an, $siteUrl, $_lk) {
-                $labels = _t(['ko' => ['confirmed' => '확인', 'rejected' => '거절'], 'en' => ['confirmed' => 'Confirmed', 'rejected' => 'Rejected'], 'ja' => ['confirmed' => '確認', 'rejected' => '拒否'], 'vi' => ['confirmed' => 'Xác nhận', 'rejected' => 'Từ chối'], 'th' => ['confirmed' => 'ยืนยัน', 'rejected' => 'ปฏิเสธ']], $lang);
+                $labels = _t(['ko' => ['confirmed' => '확인', 'rejected' => '거절'], 'en' => ['confirmed' => 'Confirmed', 'rejected' => 'Rejected'], 'ja' => ['confirmed' => '確認', 'rejected' => '拒否'], 'vi' => ['confirmed' => 'Xác nhận', 'rejected' => 'Từ chối'], 'th' => ['confirmed' => 'ยืนยัน', 'rejected' => 'ปฏิเสธ'], 'fr' => ['confirmed' => 'Confirmé', 'rejected' => 'Rejeté'], 'km' => ['confirmed' => 'បានបញ្ជាក់', 'rejected' => 'បដិសេធ'], 'ru' => ['confirmed' => 'Подтверждено', 'rejected' => 'Отклонено'], 'uk' => ['confirmed' => 'Підтверджено', 'rejected' => 'Відхилено']], $lang);
                 $label = $labels[$_ea] ?? $_ea;
-                $subj = _t(['ko' => "결제가 {$label}되었습니다", 'en' => "Payment {$label}", 'ja' => "決済が{$label}されました", 'vi' => "Thanh toán đã {$label}", 'th' => "การชำระเงิน{$label}แล้ว"], $lang);
+                $subj = _t(['ko' => "결제가 {$label}되었습니다", 'en' => "Payment {$label}", 'ja' => "決済が{$label}されました", 'vi' => "Thanh toán đã {$label}", 'th' => "การชำระเงิน{$label}แล้ว", 'fr' => "Paiement {$label}", 'km' => "ការបង់បាន{$label}", 'ru' => "Платёж {$label}", 'uk' => "Платіж {$label}"], $lang);
                 return ['subject' => $subj, 'html' => emailTemplatePayment($_ea, $_an, $siteUrl, $_lk, $lang)];
             }
         );

@@ -60,7 +60,7 @@ try {
                 '',
                 'cat_payment',
                 function ($lang) use ($_un, $siteUrl) {
-                    $subj = _t(['ko' => '새 입금 신고가 접수되었습니다', 'en' => 'New Payment Submitted', 'ja' => '新規入金申告', 'vi' => 'Thanh toán mới đã nộp', 'th' => 'ส่งการชำระเงินใหม่แล้ว'], $lang);
+                    $subj = _t(['ko' => '새 입금 신고가 접수되었습니다', 'en' => 'New Payment Submitted', 'ja' => '新規入金申告', 'vi' => 'Thanh toán mới đã nộp', 'th' => 'ส่งการชำระเงินใหม่แล้ว', 'fr' => 'Nouveau paiement soumis', 'km' => 'ការបង់ប្រាក់ថ្មីបានដាក់ស្នើ', 'ru' => 'Новый платёж отправлен', 'uk' => 'Новий платіж надіслано'], $lang);
                     return ['subject' => $subj, 'html' => emailTemplatePayment('submitted', "{$_un}", $siteUrl, '/admin/payments', $lang)];
                 }
             );
