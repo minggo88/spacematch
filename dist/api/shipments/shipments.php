@@ -1,5 +1,6 @@
 <?php
 include_once '../db_connect.php';
+include_once '../notifications/send_email.php';
 session_start();
 
 header('Content-Type: application/json');
@@ -13,30 +14,33 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['user_role'];
 
-// Auto-create table
-$conn->exec("CREATE TABLE IF NOT EXISTS shipments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    proposal_id INT NOT NULL,
-    vendor_id INT NOT NULL,
-    seller_id INT NOT NULL,
-    order_title VARCHAR(255) NOT NULL,
-    items TEXT,
-    total_amount DECIMAL(12,0) DEFAULT 0,
-    status ENUM('ordered','confirmed','shipping','delivered','completed','cancelled') DEFAULT 'ordered',
-    tracking_number VARCHAR(100),
-    courier VARCHAR(100),
-    vendor_memo TEXT,
-    seller_memo TEXT,
-    ordered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    confirmed_at DATETIME,
-    shipped_at DATETIME,
-    delivered_at DATETIME,
-    completed_at DATETIME,
-    INDEX idx_vendor (vendor_id),
-    INDEX idx_seller (seller_id),
-    INDEX idx_proposal (proposal_id),
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Auto-create table (once per session)
+if (empty($_SESSION['_ddl_shipments'])) {
+    $conn->exec("CREATE TABLE IF NOT EXISTS shipments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        proposal_id INT NOT NULL,
+        vendor_id INT NOT NULL,
+        seller_id INT NOT NULL,
+        order_title VARCHAR(255) NOT NULL,
+        items TEXT,
+        total_amount DECIMAL(12,0) DEFAULT 0,
+        status ENUM('ordered','confirmed','shipping','delivered','completed','cancelled') DEFAULT 'ordered',
+        tracking_number VARCHAR(100),
+        courier VARCHAR(100),
+        vendor_memo TEXT,
+        seller_memo TEXT,
+        ordered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        confirmed_at DATETIME,
+        shipped_at DATETIME,
+        delivered_at DATETIME,
+        completed_at DATETIME,
+        INDEX idx_vendor (vendor_id),
+        INDEX idx_seller (seller_id),
+        INDEX idx_proposal (proposal_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $_SESSION['_ddl_shipments'] = true;
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -153,6 +157,37 @@ if ($method === 'GET') {
         $notifLink = "/seller/shipments";
         $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, link, created_at) VALUES (?, 'shipment_new', ?, ?, NOW())");
         $notifStmt->execute([$seller_id, $notifMsg, $notifLink]);
+
+        // [EMAIL] 발주 이메일 (다국어)
+        try {
+            $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $_ot = $order_title;
+            $_vn = $vendor_name;
+            sendEmailToUser(
+                $conn,
+                $seller_id,
+                '',
+                '',
+                'cat_application',
+                function ($lang) use ($_ot, $_vn, $siteUrl) {
+                    $subj = _t([
+                        'ko' => "📦 새 발주: {$_ot}",
+                        'en' => "📦 New Order: {$_ot}",
+                        'ja' => "📦 新規発注: {$_ot}",
+                        'vi' => "📦 Đơn mới: {$_ot}",
+                        'th' => "📦 คำสั่งซื้อใหม่: {$_ot}",
+                        'fr' => "📦 Nouvelle commande: {$_ot}",
+                        'km' => "📦 ការបញ្ជាទិញថ្មី: {$_ot}",
+                        'ru' => "📦 Новый заказ: {$_ot}",
+                        'uk' => "📦 Нове замовлення: {$_ot}",
+                    ], $lang);
+                    $body = _t(['ko' => "{$_vn}님이 발주를 등록했습니다.", 'en' => "{$_vn} placed a new order.", 'ja' => "{$_vn}さんが発注しました。", 'vi' => "{$_vn} đã đặt đơn.", 'th' => "{$_vn} สั่งซื้อ", 'fr' => "{$_vn} a passé commande.", 'km' => "{$_vn} បានបញ្ជាទិញ។", 'ru' => "{$_vn} сделал заказ.", 'uk' => "{$_vn} зробив замовлення."], $lang);
+                    return ['subject' => $subj, 'html' => "<p>{$body}</p>"];
+                }
+            );
+        } catch (Exception $emailErr) {
+            error_log('[shipments] email: ' . $emailErr->getMessage());
+        }
     } catch (Exception $e) { /* ignore */
     }
 
