@@ -212,9 +212,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Build query with optional label filter, country filter, and search (exclude notices)
         $where = "p.community_type = ? AND COALESCE(p.is_notice, 0) = 0";
         $params = [$type];
-        // Country filter: if not 'all' and not empty, filter by country
         if (!empty($country_filter) && $country_filter !== 'all') {
-            $where .= " AND (p.country = ? OR p.country IS NULL)";
+            $where .= " AND p.country = ?";
             $params[] = $country_filter;
         }
         if (!empty($label)) {

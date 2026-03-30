@@ -221,7 +221,7 @@ const CommunityPage = ({ type = 'general' }) => {
     const [feedMode, setFeedMode] = useState('all'); // all, best, hot
 
     // Country filter — auto-landing on user's country
-    const [countryFilter, setCountryFilter] = useState('all');
+    const [countryFilter, setCountryFilter] = useState(user?.country || 'all');
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
     // Notification highlight
@@ -1091,24 +1091,32 @@ const CommunityPage = ({ type = 'general' }) => {
                         >
                             🌍 {t('allCountries')}
                         </button>
-                        {Object.entries(COUNTRY_FLAGS).map(([code, info]) => (
-                            <button
-                                key={code}
-                                onClick={() => { setCountryFilter(code); setPage(1); setShowCountryDropdown(false); }}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === code
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
-                                    : code === user?.country
-                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <span>{info.flag}</span>
-                                <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
-                                {code === user?.country && countryFilter !== code && (
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                                )}
-                            </button>
-                        ))}
+                        {(() => {
+                            // Sort: user's country first
+                            const entries = Object.entries(COUNTRY_FLAGS);
+                            const userCountry = user?.country;
+                            const sorted = userCountry
+                                ? [...entries.filter(([c]) => c === userCountry), ...entries.filter(([c]) => c !== userCountry)]
+                                : entries;
+                            return sorted.map(([code, info]) => (
+                                <button
+                                    key={code}
+                                    onClick={() => { setCountryFilter(code); setPage(1); setShowCountryDropdown(false); }}
+                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${countryFilter === code
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-sm'
+                                        : code === user?.country
+                                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <span>{info.flag}</span>
+                                    <span>{i18n.language === 'ko' ? info.name : info.nameEn}</span>
+                                    {code === user?.country && countryFilter !== code && (
+                                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+                                    )}
+                                </button>
+                            ));
+                        })()}
                     </div>
                 </div>
             )}
