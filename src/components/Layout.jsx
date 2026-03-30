@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, Navigate, useLocation } from 'react-route
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, Store, ClipboardList, LogOut, UserCircle, Bell, Menu, X, Users, Building, ShoppingBag, MessageSquare, Flame, Home, Database, ChevronDown, Settings, AlertTriangle, Megaphone, Shield, AtSign, Heart, UserCheck, UserPlus, XCircle, CheckCircle2, BarChart3, Moon, Sun, CreditCard, TrendingUp, Monitor, ExternalLink, Trash2, MessageCircle, Headphones, Eye, Package, Send, Inbox, Wallet, Truck, Calculator, HelpCircle, BookOpen, CheckCircle, MapPin, BarChart2, Target, Zap } from 'lucide-react';
+import { LayoutDashboard, Store, ClipboardList, LogOut, UserCircle, Bell, Menu, X, Users, Building, ShoppingBag, MessageSquare, Flame, Home, Database, ChevronDown, Settings, AlertTriangle, Megaphone, Shield, AtSign, Heart, UserCheck, UserPlus, XCircle, CheckCircle2, BarChart3, Moon, Sun, CreditCard, TrendingUp, Monitor, ExternalLink, Trash2, MessageCircle, Headphones, Eye, Package, Send, Inbox, Wallet, Truck, Calculator, HelpCircle } from 'lucide-react';
 import NotificationPrompt from './NotificationPrompt';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
