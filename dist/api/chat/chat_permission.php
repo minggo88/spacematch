@@ -116,6 +116,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    error_log('[chat_permission] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
 }
 ?>

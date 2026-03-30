@@ -89,6 +89,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "서버 오류: " . $e->getMessage()]);
+    error_log('[cs_admin] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
 }
 ?>

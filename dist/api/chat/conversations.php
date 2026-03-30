@@ -19,59 +19,61 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = intval($_SESSION['user_id']);
 
-// ─── Auto-migrate: create tables ───
-try {
-    $conn->query("SELECT id FROM chat_conversations LIMIT 1");
-} catch (PDOException $e) {
-    $conn->exec("CREATE TABLE IF NOT EXISTS chat_conversations (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        participant_1 INT NOT NULL,
-        participant_2 INT NOT NULL,
-        type ENUM('direct','cs') DEFAULT 'direct',
-        last_message_at TIMESTAMP NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY unique_pair (participant_1, participant_2, type),
-        INDEX idx_p1 (participant_1),
-        INDEX idx_p2 (participant_2)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-}
-
-try {
-    $conn->query("SELECT id FROM chat_messages LIMIT 1");
-} catch (PDOException $e) {
-    $conn->exec("CREATE TABLE IF NOT EXISTS chat_messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        conversation_id INT NOT NULL,
-        sender_id INT NOT NULL,
-        message_type ENUM('text','image','video','file') DEFAULT 'text',
-        original_text TEXT,
-        original_lang VARCHAR(5),
-        translated_texts JSON,
-        file_url VARCHAR(500) DEFAULT NULL,
-        file_name VARCHAR(255) DEFAULT NULL,
-        file_size INT DEFAULT NULL,
-        is_read TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_conv (conversation_id),
-        INDEX idx_sender (sender_id),
-        INDEX idx_read (conversation_id, is_read)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-}
-
-// ─── Auto-migrate: add 'type' column if missing ───
-try {
-    $colCheck = $conn->query("SHOW COLUMNS FROM chat_conversations LIKE 'type'");
-    if ($colCheck->rowCount() === 0) {
-        $conn->exec("ALTER TABLE chat_conversations ADD COLUMN type ENUM('direct','cs') DEFAULT 'direct' AFTER participant_2");
-        // Also drop and recreate the unique key to include type
-        try {
-            $conn->exec("ALTER TABLE chat_conversations DROP INDEX unique_pair");
-        } catch (PDOException $e) {
-        } // ignore if doesn't exist
-        $conn->exec("ALTER TABLE chat_conversations ADD UNIQUE KEY unique_pair (participant_1, participant_2, type)");
+// ─── Auto-migrate: create tables (once per session) ───
+if (empty($_SESSION['_ddl_chat'])) {
+    try {
+        $conn->query("SELECT id FROM chat_conversations LIMIT 1");
+    } catch (PDOException $e) {
+        $conn->exec("CREATE TABLE IF NOT EXISTS chat_conversations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            participant_1 INT NOT NULL,
+            participant_2 INT NOT NULL,
+            type ENUM('direct','cs') DEFAULT 'direct',
+            last_message_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_pair (participant_1, participant_2, type),
+            INDEX idx_p1 (participant_1),
+            INDEX idx_p2 (participant_2)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
-} catch (PDOException $e) {
-    // table might not exist yet, that's fine — it'll be created above
+
+    try {
+        $conn->query("SELECT id FROM chat_messages LIMIT 1");
+    } catch (PDOException $e) {
+        $conn->exec("CREATE TABLE IF NOT EXISTS chat_messages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            conversation_id INT NOT NULL,
+            sender_id INT NOT NULL,
+            message_type ENUM('text','image','video','file') DEFAULT 'text',
+            original_text TEXT,
+            original_lang VARCHAR(5),
+            translated_texts JSON,
+            file_url VARCHAR(500) DEFAULT NULL,
+            file_name VARCHAR(255) DEFAULT NULL,
+            file_size INT DEFAULT NULL,
+            is_read TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_conv (conversation_id),
+            INDEX idx_sender (sender_id),
+            INDEX idx_read (conversation_id, is_read)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    }
+
+    // Auto-migrate: add 'type' column if missing
+    try {
+        $colCheck = $conn->query("SHOW COLUMNS FROM chat_conversations LIKE 'type'");
+        if ($colCheck->rowCount() === 0) {
+            $conn->exec("ALTER TABLE chat_conversations ADD COLUMN type ENUM('direct','cs') DEFAULT 'direct' AFTER participant_2");
+            try {
+                $conn->exec("ALTER TABLE chat_conversations DROP INDEX unique_pair");
+            } catch (PDOException $e) {
+            }
+            $conn->exec("ALTER TABLE chat_conversations ADD UNIQUE KEY unique_pair (participant_1, participant_2, type)");
+        }
+    } catch (PDOException $e) {
+    }
+
+    $_SESSION['_ddl_chat'] = true;
 }
 
 // ─── GET: List conversations ───
@@ -181,11 +183,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "Database error: " . $e->getMessage()]);
+        error_log('[conversations] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
         exit;
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "Server error: " . $e->getMessage()]);
+        error_log('[conversations] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
         exit;
     }
 }

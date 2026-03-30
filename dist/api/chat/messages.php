@@ -355,15 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $responseJson = json_encode([
         "success" => true,
-        "message" => $message,
-        "_debug" => [
-            "api_version" => MESSAGES_API_VERSION,
-            "sender_lang" => $userLang,
-            "sender_core" => $senderCore,
-            "receiver_lang" => $otherLang,
-            "receiver_core" => $otherCore,
-            "translated_keys" => array_keys($translatedTexts),
-        ]
+        "message" => $message
     ]);
 
     // Flush response to client, then continue with remaining translations in background
