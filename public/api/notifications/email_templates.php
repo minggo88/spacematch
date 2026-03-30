@@ -584,6 +584,10 @@ function emailTemplateVerificationCode($code, $lang = 'ko')
         'ja' => ['title' => 'メール認証コード', 'body' => 'SpaceMatch登録用のメール認証コードです。', 'code_label' => '認証コード', 'expires' => 'このコードは10分間有効です。', 'warn' => 'このリクエストに心当たりがない場合は無視してください。'],
         'vi' => ['title' => 'Mã xác minh email', 'body' => 'Đây là mã xác minh email để đăng ký SpaceMatch.', 'code_label' => 'Mã xác minh', 'expires' => 'Mã này có hiệu lực trong 10 phút.', 'warn' => 'Nếu bạn không yêu cầu, hãy bỏ qua email này.'],
         'th' => ['title' => 'รหัสยืนยันอีเมล', 'body' => 'นี่คือรหัสยืนยันอีเมลสำหรับการลงทะเบียน SpaceMatch', 'code_label' => 'รหัสยืนยัน', 'expires' => 'รหัสนี้ใช้ได้ 10 นาที', 'warn' => 'หากคุณไม่ได้ขอ กรุณาเพิกเฉยอีเมลนี้'],
+        'fr' => ['title' => 'Code de vérification email', 'body' => 'Voici votre code de vérification pour l\'inscription SpaceMatch.', 'code_label' => 'Code de vérification', 'expires' => 'Ce code est valide pendant 10 minutes.', 'warn' => 'Si vous n\'avez pas fait cette demande, ignorez cet email.'],
+        'km' => ['title' => 'លេខកូដផ្ទៀងផ្ទាត់អ៊ីមែល', 'body' => 'នេះជាលេខកូដផ្ទៀងផ្ទាត់សម្រាប់ការចុះឈ្មោះ SpaceMatch។', 'code_label' => 'លេខកូដផ្ទៀងផ្ទាត់', 'expires' => 'លេខកូដនេះមានសុពលភាព 10 នាទី។', 'warn' => 'ប្រសិនបើអ្នកមិនបានស្នើសុំ សូមមិនអើពើអ៊ីមែលនេះ។'],
+        'ru' => ['title' => 'Код подтверждения email', 'body' => 'Вот ваш код подтверждения для регистрации в SpaceMatch.', 'code_label' => 'Код подтверждения', 'expires' => 'Этот код действителен 10 минут.', 'warn' => 'Если вы не запрашивали это, проигнорируйте письмо.'],
+        'uk' => ['title' => 'Код підтвердження email', 'body' => 'Ось ваш код підтвердження для реєстрації в SpaceMatch.', 'code_label' => 'Код підтвердження', 'expires' => 'Цей код дійсний 10 хвилин.', 'warn' => 'Якщо ви не запитували це, проігноруйте цей лист.'],
     ], $lang);
 
     $body = "
