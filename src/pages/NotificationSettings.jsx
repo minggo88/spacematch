@@ -69,7 +69,6 @@ const NotificationSettings = () => {
                 setAdminTotalPages(data.totalPages);
             }
         } catch (e) {
-            console.error('관리자 유저 목록 로드 실패:', e);
         } finally {
             setAdminLoading(false);
         }
@@ -97,7 +96,6 @@ const NotificationSettings = () => {
                 setTimeout(() => setSaved(false), 2000);
             }
         } catch (e) {
-            console.error('설정 저장 실패:', e);
         } finally {
             setSaving(false);
         }
@@ -121,7 +119,6 @@ const NotificationSettings = () => {
                 ));
             }
         } catch (e) {
-            console.error('관리자 설정 저장 실패:', e);
         } finally {
             setAdminSaving(null);
         }
@@ -175,7 +172,6 @@ const NotificationSettings = () => {
                 }
             }
         } catch (e) {
-            console.error('푸시 토글 오류:', e);
         } finally {
             setPushToggling(false);
         }
