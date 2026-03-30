@@ -564,13 +564,14 @@ const Layout = () => {
                 <div className="px-4 pb-3">
                     <div className="flex items-center gap-1.5">
                         <div className="flex-1 min-w-0"><LanguageSelector /></div>
+                        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
                         <button
                             onClick={() => setShowGuide(true)}
-                            className="flex-shrink-0 h-9 px-2.5 flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-all"
-                            title={t('guide.title', '사용 방법')}
+                            className="flex-1 h-9 flex items-center justify-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-all"
+                            title={t('guide.title')}
                         >
                             <HelpCircle size={16} />
-                            <span className="text-[11px] font-semibold hidden sm:inline">{t('guide.title', '사용 방법')}</span>
+                            <span className="text-[11px] font-semibold">{t('guide.title')}</span>
                         </button>
                     </div>
                 </div>
@@ -858,59 +859,87 @@ const Layout = () => {
                 const role = user?.role || 'seller';
                 const guideContent = {
                     seller: {
-                        title: t('guide.sellerTitle', '셀러 사용 가이드'),
-                        subtitle: t('guide.sellerSubtitle', '스페이스매치에서 판매를 시작하세요'),
+                        title: t('guide.sellerTitle'),
+                        subtitle: t('guide.sellerSubtitle'),
                         gradient: 'from-violet-500 to-purple-600',
                         icon: ShoppingBag,
                         steps: [
-                            { icon: Home, title: t('guide.sellerStep1Title', '인기 공간 탐색'), desc: t('guide.sellerStep1Desc', '홈에서 인기 공간을 확인하고, 원하는 베뉴에 입점 신청하세요.') },
-                            { icon: ClipboardList, title: t('guide.sellerStep2Title', '입점 신청'), desc: t('guide.sellerStep2Desc', '공간을 선택한 후 신청서를 제출하면, 호스트가 승인/거절을 처리합니다.') },
-                            { icon: Package, title: t('guide.sellerStep3Title', '배송 관리'), desc: t('guide.sellerStep3Desc', '입점이 확정되면 배송 관리에서 제품 배송 상태를 추적하세요.') },
-                            { icon: Wallet, title: t('guide.sellerStep4Title', '정산 확인'), desc: t('guide.sellerStep4Desc', '판매가 이루어지면 정산 페이지에서 매출과 정산 내역을 확인하세요.') },
-                            { icon: TrendingUp, title: t('guide.sellerStep5Title', '매출 분석'), desc: t('guide.sellerStep5Desc', '매출 관리와 분석 페이지에서 성과를 모니터링하세요.') },
-                            { icon: MessageSquare, title: t('guide.sellerStep6Title', '커뮤니티'), desc: t('guide.sellerStep6Desc', '셀러 커뮤니티에서 다른 셀러들과 정보를 공유하고 네트워킹하세요.') },
+                            { icon: Home, title: t('guide.sellerStep1Title'), desc: t('guide.sellerStep1Desc') },
+                            { icon: Building, title: t('guide.sellerStep2Title'), desc: t('guide.sellerStep2Desc') },
+                            { icon: ClipboardList, title: t('guide.sellerStep3Title'), desc: t('guide.sellerStep3Desc') },
+                            { icon: Inbox, title: t('guide.sellerStep4Title'), desc: t('guide.sellerStep4Desc') },
+                            { icon: Package, title: t('guide.sellerStep5Title'), desc: t('guide.sellerStep5Desc') },
+                            { icon: Wallet, title: t('guide.sellerStep6Title'), desc: t('guide.sellerStep6Desc') },
+                            { icon: TrendingUp, title: t('guide.sellerStep7Title'), desc: t('guide.sellerStep7Desc') },
+                            { icon: MessageSquare, title: t('guide.sellerStep8Title'), desc: t('guide.sellerStep8Desc') },
+                        ],
+                        tips: [
+                            t('guide.sellerTip1'),
+                            t('guide.sellerTip2'),
+                            t('guide.sellerTip3'),
                         ]
                     },
                     host: {
-                        title: t('guide.hostTitle', '호스트 사용 가이드'),
-                        subtitle: t('guide.hostSubtitle', '공간을 등록하고 셀러를 유치하세요'),
+                        title: t('guide.hostTitle'),
+                        subtitle: t('guide.hostSubtitle'),
                         gradient: 'from-emerald-500 to-teal-600',
                         icon: Building,
                         steps: [
-                            { icon: Store, title: t('guide.hostStep1Title', '공간 등록'), desc: t('guide.hostStep1Desc', '내 공간 관리에서 팝업/입점 공간을 등록하세요. 사진, 위치, 가격 등을 입력합니다.') },
-                            { icon: ClipboardList, title: t('guide.hostStep2Title', '신청서 관리'), desc: t('guide.hostStep2Desc', '셀러들의 입점 신청을 확인하고 승인/거절을 처리하세요.') },
-                            { icon: Users, title: t('guide.hostStep3Title', '셀러 디렉토리'), desc: t('guide.hostStep3Desc', '등록된 셀러들의 정보를 확인하고, 원하는 셀러에게 유통 제안을 보내세요.') },
-                            { icon: TrendingUp, title: t('guide.hostStep4Title', '매출 분석'), desc: t('guide.hostStep4Desc', '매출 관리와 분석 리포트에서 공간별 성과를 확인하세요.') },
-                            { icon: BarChart3, title: t('guide.hostStep5Title', '분석 리포트'), desc: t('guide.hostStep5Desc', '상세한 분석 리포트로 공간 운영 효율을 최적화하세요.') },
-                            { icon: MessageSquare, title: t('guide.hostStep6Title', '커뮤니티'), desc: t('guide.hostStep6Desc', '호스트 커뮤니티에서 운영 노하우를 공유하세요.') },
+                            { icon: Store, title: t('guide.hostStep1Title'), desc: t('guide.hostStep1Desc') },
+                            { icon: ClipboardList, title: t('guide.hostStep2Title'), desc: t('guide.hostStep2Desc') },
+                            { icon: Users, title: t('guide.hostStep3Title'), desc: t('guide.hostStep3Desc') },
+                            { icon: Megaphone, title: t('guide.hostStep4Title'), desc: t('guide.hostStep4Desc') },
+                            { icon: TrendingUp, title: t('guide.hostStep5Title'), desc: t('guide.hostStep5Desc') },
+                            { icon: BarChart3, title: t('guide.hostStep6Title'), desc: t('guide.hostStep6Desc') },
+                            { icon: Megaphone, title: t('guide.hostStep7Title'), desc: t('guide.hostStep7Desc') },
+                            { icon: MessageSquare, title: t('guide.hostStep8Title'), desc: t('guide.hostStep8Desc') },
+                        ],
+                        tips: [
+                            t('guide.hostTip1'),
+                            t('guide.hostTip2'),
+                            t('guide.hostTip3'),
                         ]
                     },
                     vendor: {
-                        title: t('guide.vendorTitle', '벤더 사용 가이드'),
-                        subtitle: t('guide.vendorSubtitle', '제품을 유통하고 거래를 관리하세요'),
+                        title: t('guide.vendorTitle'),
+                        subtitle: t('guide.vendorSubtitle'),
                         gradient: 'from-amber-500 to-orange-600',
                         icon: Truck,
                         steps: [
-                            { icon: ShoppingBag, title: t('guide.vendorStep1Title', '셀러 디렉토리'), desc: t('guide.vendorStep1Desc', '등록된 셀러들의 정보를 확인하고 유통 파트너를 찾으세요.') },
-                            { icon: Send, title: t('guide.vendorStep2Title', '유통 제안'), desc: t('guide.vendorStep2Desc', '셀러에게 유통 제안을 보내고, 제안 상태를 추적하세요.') },
-                            { icon: Package, title: t('guide.vendorStep3Title', '배송 관리'), desc: t('guide.vendorStep3Desc', '승인된 거래의 배송 상태를 관리하고 추적하세요.') },
-                            { icon: Wallet, title: t('guide.vendorStep4Title', '정산'), desc: t('guide.vendorStep4Desc', '거래에 대한 정산 내역을 확인하세요.') },
-                            { icon: MessageCircle, title: t('guide.vendorStep5Title', '채팅'), desc: t('guide.vendorStep5Desc', '셀러와 실시간으로 채팅하며 거래를 진행하세요.') },
-                            { icon: UserCircle, title: t('guide.vendorStep6Title', '프로필 설정'), desc: t('guide.vendorStep6Desc', '프로필을 완성하면 셀러들에게 신뢰도를 높일 수 있습니다.') },
+                            { icon: ShoppingBag, title: t('guide.vendorStep1Title'), desc: t('guide.vendorStep1Desc') },
+                            { icon: Send, title: t('guide.vendorStep2Title'), desc: t('guide.vendorStep2Desc') },
+                            { icon: Package, title: t('guide.vendorStep3Title'), desc: t('guide.vendorStep3Desc') },
+                            { icon: Wallet, title: t('guide.vendorStep4Title'), desc: t('guide.vendorStep4Desc') },
+                            { icon: MessageCircle, title: t('guide.vendorStep5Title'), desc: t('guide.vendorStep5Desc') },
+                            { icon: UserCircle, title: t('guide.vendorStep6Title'), desc: t('guide.vendorStep6Desc') },
+                            { icon: Bell, title: t('guide.vendorStep7Title'), desc: t('guide.vendorStep7Desc') },
+                            { icon: MessageSquare, title: t('guide.vendorStep8Title'), desc: t('guide.vendorStep8Desc') },
+                        ],
+                        tips: [
+                            t('guide.vendorTip1'),
+                            t('guide.vendorTip2'),
+                            t('guide.vendorTip3'),
                         ]
                     },
                     admin: {
-                        title: t('guide.adminTitle', '관리자 사용 가이드'),
-                        subtitle: t('guide.adminSubtitle', '플랫폼 전체를 관리하세요'),
+                        title: t('guide.adminTitle'),
+                        subtitle: t('guide.adminSubtitle'),
                         gradient: 'from-red-500 to-rose-600',
                         icon: Shield,
                         steps: [
-                            { icon: LayoutDashboard, title: t('guide.adminStep1Title', '대시보드'), desc: t('guide.adminStep1Desc', '전체 플랫폼 현황을 한눈에 모니터링하세요.') },
-                            { icon: Users, title: t('guide.adminStep2Title', '사용자 관리'), desc: t('guide.adminStep2Desc', '셀러, 호스트, 벤더의 계정을 관리하세요.') },
-                            { icon: Store, title: t('guide.adminStep3Title', '공간/신청 관리'), desc: t('guide.adminStep3Desc', '등록된 공간과 입점 신청을 총괄 관리하세요.') },
-                            { icon: CreditCard, title: t('guide.adminStep4Title', '결제/정산'), desc: t('guide.adminStep4Desc', '결제 현황과 정산 관리를 처리하세요.') },
-                            { icon: Megaphone, title: t('guide.adminStep5Title', '마케팅/광고'), desc: t('guide.adminStep5Desc', '광고, 마케팅, 프로모션을 운영하세요.') },
-                            { icon: Settings, title: t('guide.adminStep6Title', '시스템 설정'), desc: t('guide.adminStep6Desc', '보안, 메뉴 가시성, 팝업 등 시스템 설정을 관리하세요.') },
+                            { icon: LayoutDashboard, title: t('guide.adminStep1Title'), desc: t('guide.adminStep1Desc') },
+                            { icon: Users, title: t('guide.adminStep2Title'), desc: t('guide.adminStep2Desc') },
+                            { icon: Store, title: t('guide.adminStep3Title'), desc: t('guide.adminStep3Desc') },
+                            { icon: ClipboardList, title: t('guide.adminStep4Title'), desc: t('guide.adminStep4Desc') },
+                            { icon: CreditCard, title: t('guide.adminStep5Title'), desc: t('guide.adminStep5Desc') },
+                            { icon: Megaphone, title: t('guide.adminStep6Title'), desc: t('guide.adminStep6Desc') },
+                            { icon: Settings, title: t('guide.adminStep7Title'), desc: t('guide.adminStep7Desc') },
+                            { icon: MessageSquare, title: t('guide.adminStep8Title'), desc: t('guide.adminStep8Desc') },
+                        ],
+                        tips: [
+                            t('guide.adminTip1'),
+                            t('guide.adminTip2'),
+                            t('guide.adminTip3'),
                         ]
                     }
                 };
@@ -944,17 +973,18 @@ const Layout = () => {
                                 </div>
                             </div>
                             {/* Steps */}
-                            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5">
+                                <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-1">{t('guide.stepsTitle')}</p>
                                 {guide.steps.map((step, i) => {
                                     const StepIcon = step.icon;
                                     return (
-                                        <div key={i} className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
+                                        <div key={i} className="flex items-start gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                            <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
                                                 <span className="text-xs font-extrabold text-gray-400 dark:text-gray-500">{i + 1}</span>
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-0.5">
-                                                    <StepIcon size={14} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                                    <StepIcon size={13} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
                                                     <h4 className="text-sm font-bold text-gray-900 dark:text-white">{step.title}</h4>
                                                 </div>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{step.desc}</p>
@@ -962,6 +992,23 @@ const Layout = () => {
                                         </div>
                                     );
                                 })}
+                                {/* Tips */}
+                                {guide.tips && guide.tips.length > 0 && (
+                                    <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-900/50">
+                                        <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-1.5">
+                                            <HelpCircle size={13} />
+                                            {t('guide.tipsTitle')}
+                                        </p>
+                                        <ul className="space-y-1.5">
+                                            {guide.tips.map((tip, i) => (
+                                                <li key={i} className="text-xs text-blue-600 dark:text-blue-300 flex items-start gap-2">
+                                                    <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
+                                                    <span>{tip}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                             {/* Footer */}
                             <div className="px-5 py-3.5 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
@@ -969,7 +1016,7 @@ const Layout = () => {
                                     onClick={() => setShowGuide(false)}
                                     className={`w-full py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${guide.gradient} hover:opacity-90 transition-opacity`}
                                 >
-                                    {t('guide.close', '확인')}
+                                    {t('guide.close')}
                                 </button>
                             </div>
                         </div>
