@@ -80,22 +80,25 @@ if (isset($_GET['test_email']) && $_GET['test_email'] == '1') {
     exit();
 }
 
-// 테이블 자동 생성
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS notification_settings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL UNIQUE,
-        push_enabled TINYINT(1) DEFAULT 1,
-        email_enabled TINYINT(1) DEFAULT 1,
-        cat_application TINYINT(1) DEFAULT 1,
-        cat_community TINYINT(1) DEFAULT 1,
-        cat_venue TINYINT(1) DEFAULT 1,
-        cat_account TINYINT(1) DEFAULT 1,
-        cat_payment TINYINT(1) DEFAULT 1,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (PDOException $e) {
-    // 이미 존재하면 무시
+// 테이블 자동 생성 (세션당 1회)
+if (empty($_SESSION['_ddl_notification_settings'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS notification_settings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL UNIQUE,
+            push_enabled TINYINT(1) DEFAULT 1,
+            email_enabled TINYINT(1) DEFAULT 1,
+            cat_application TINYINT(1) DEFAULT 1,
+            cat_community TINYINT(1) DEFAULT 1,
+            cat_venue TINYINT(1) DEFAULT 1,
+            cat_account TINYINT(1) DEFAULT 1,
+            cat_payment TINYINT(1) DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $_SESSION['_ddl_notification_settings'] = true;
+    } catch (PDOException $e) {
+        // 이미 존재하면 무시
+    }
 }
 
 // ─── 기본 필드 목록 ───
