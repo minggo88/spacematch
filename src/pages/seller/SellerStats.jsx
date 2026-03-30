@@ -38,6 +38,7 @@ const HOST_COUNTRIES = [
     { code: 'KH', name: 'ខ្មែរ', flag: '🇰🇭' },
     { code: 'RU', name: 'Русский', flag: '🇷🇺' },
     { code: 'UA', name: 'Українська', flag: '🇺🇦' },
+    { code: 'SG', name: 'Singapore', flag: '🇸🇬' },
 ];
 
 // ── Country code → Currency mapping ──
@@ -52,6 +53,7 @@ const COUNTRY_CURRENCY = {
     KH: { code: 'KHR', symbol: '៛' },
     RU: { code: 'RUB', symbol: '₽' },
     UA: { code: 'UAH', symbol: '₴' },
+    SG: { code: 'SGD', symbol: 'S$' },
 };
 
 // ── Country-specific region data ──
@@ -114,10 +116,7 @@ const COUNTRY_REGIONS = {
 
 const SellerStats = ({ userRole = 'seller' }) => {
     const { user } = useAuth();
-    const { showToast, toast: toastCtx } = useToast();
-    const toastFn = useCallback((opts) => {
-        if (opts && toastCtx) toastCtx[opts.type]?.(opts.message);
-    }, [toastCtx]);
+    const { showToast } = useToast();
     const { t, i18n } = useTranslation('seller');
     const { currency, currencies, convert, formatCurrency: fmtCurrency, formatCurrencyCompact } = useCurrency();
     const currencySymbol = currencies[currency]?.symbol || '₩';
@@ -2216,6 +2215,7 @@ tr:last-child td{border-bottom:none}
     const [form, setForm] = useState(emptyForm);
 
     const fetchStats = useCallback(async () => {
+        setLoading(true);
         try {
             const countryParam = `&country_code=${selectedCountry}`;
             const res = await fetch(`${API_BASE}/${STATS_API}?action=list${countryParam}`, { credentials: 'include' });
@@ -2675,13 +2675,11 @@ tr:last-child td{border-bottom:none}
             onConfirm: async () => {
                 setConfirmModal(null);
                 try {
-                    const fd = new FormData();
-                    fd.append('action', 'undo_batch');
-                    fd.append('batch_id', batchId);
                     const res = await fetch(`${API_BASE}/seller_upload.php`, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: fd,
+                        body: JSON.stringify({ action: 'undo_batch', batch_id: batchId }),
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -2705,13 +2703,11 @@ tr:last-child td{border-bottom:none}
             onConfirm: async () => {
                 setConfirmModal(null);
                 try {
-                    const fd = new FormData();
-                    fd.append('action', 'bulk_undo_batches');
-                    fd.append('batch_ids', [...selectedBatchIds].join(','));
                     const res = await fetch(`${API_BASE}/seller_upload.php`, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: fd,
+                        body: JSON.stringify({ action: 'bulk_undo_batches', batch_ids: [...selectedBatchIds].join(',') }),
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -2777,7 +2773,7 @@ tr:last-child td{border-bottom:none}
             const data = await res.json();
             if (data.success) setTaxResult(data);
         } catch { /* ignore */ } finally { setTaxLoading(false); }
-    }, [taxCountry]);
+    }, [taxCountry, selectedCountry]);
 
     // ── Tax: Load custom settings for editing ──
     const loadTaxSettings = useCallback(async () => {
