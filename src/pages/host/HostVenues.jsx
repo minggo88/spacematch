@@ -43,7 +43,7 @@ const HostVenues = () => {
         fetch(`${API_BASE}/venues/get_my_venues.php`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => { if (Array.isArray(data)) setVenues(data); })
-            .catch(err => console.error(err))
+            .catch(() => { })
             .finally(() => setLoading(false));
     };
 
@@ -96,7 +96,7 @@ const HostVenues = () => {
                 } else {
                     showToast(data.message || t('venuesPage.toastError'), 'error');
                 }
-            }).catch(err => { console.error(err); showToast(t('venuesPage.toastError'), 'error'); });
+            }).catch(() => { showToast(t('venuesPage.toastError'), 'error'); });
     };
 
     const handleDelete = (id) => {
