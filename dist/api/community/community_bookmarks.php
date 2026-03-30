@@ -11,19 +11,22 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Create bookmarks table if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_bookmarks (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        post_id INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_bookmark (user_id, post_id),
-        INDEX idx_user (user_id),
-        INDEX idx_post (post_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (PDOException $e) {
-    // Table may already exist
+// Create bookmarks table if not exists (once per session)
+if (empty($_SESSION['_ddl_community_bookmarks'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_bookmarks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            post_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_bookmark (user_id, post_id),
+            INDEX idx_user (user_id),
+            INDEX idx_post (post_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $_SESSION['_ddl_community_bookmarks'] = true;
+    } catch (PDOException $e) {
+        // Table may already exist
+    }
 }
 
 header('Content-Type: application/json; charset=utf-8');
@@ -98,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }
@@ -133,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }

@@ -17,119 +17,81 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Create tables if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_posts (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        user_name VARCHAR(100) NOT NULL,
-        user_role VARCHAR(20) NOT NULL,
-        profile_image VARCHAR(500) DEFAULT '',
-        community_type ENUM('seller', 'host', 'general') NOT NULL,
-        label VARCHAR(50) DEFAULT '',
-        title VARCHAR(200) NOT NULL,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_community_type (community_type),
-        INDEX idx_user_id (user_id),
-        INDEX idx_label (label)
-    )");
-
-    // Add label column if table already exists but column doesn't
+// Create tables if not exists (once per session)
+if (empty($_SESSION['_ddl_community_migrated'])) {
     try {
-        $conn->query("SELECT label FROM community_posts LIMIT 1");
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_posts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            user_name VARCHAR(100) NOT NULL,
+            user_role VARCHAR(20) NOT NULL,
+            profile_image VARCHAR(500) DEFAULT '',
+            community_type ENUM('seller', 'host', 'general') NOT NULL,
+            label VARCHAR(50) DEFAULT '',
+            title VARCHAR(200) NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_community_type (community_type),
+            INDEX idx_user_id (user_id),
+            INDEX idx_label (label)
+        )");
+
+        $migrate_cols = [
+            ['community_posts', 'label', "ADD COLUMN label VARCHAR(50) DEFAULT '' AFTER community_type"],
+            ['community_posts', 'view_count', "ADD COLUMN view_count INT DEFAULT 0 AFTER content"],
+            ['community_posts', 'keywords', "ADD COLUMN keywords TEXT DEFAULT NULL AFTER view_count"],
+            ['community_posts', 'original_lang', "ADD COLUMN original_lang VARCHAR(5) DEFAULT NULL AFTER content"],
+            ['community_posts', 'is_notice', "ADD COLUMN is_notice TINYINT(1) DEFAULT 0 AFTER keywords"],
+            ['community_posts', 'country', "ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER is_notice"],
+            ['community_posts', 'share_count', "ADD COLUMN share_count INT DEFAULT 0 AFTER view_count"],
+            ['users', 'country', "ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER instagram"],
+            ['users', 'name_en', "ADD COLUMN name_en VARCHAR(100) DEFAULT NULL AFTER name"],
+        ];
+        foreach ($migrate_cols as $mc) {
+            try {
+                $conn->query("SELECT {$mc[1]} FROM {$mc[0]} LIMIT 1");
+            } catch (PDOException $e) {
+                $conn->exec("ALTER TABLE {$mc[0]} {$mc[2]}");
+            }
+        }
+
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_post_photos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            image_url VARCHAR(500) NOT NULL,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_post_id (post_id)
+        )");
+
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_post_likes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            user_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_post_user (post_id, user_id),
+            INDEX idx_post_id (post_id),
+            INDEX idx_user_id (user_id)
+        )");
+
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_comments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            parent_id INT DEFAULT NULL,
+            user_id INT NOT NULL,
+            user_name VARCHAR(100) NOT NULL,
+            user_role VARCHAR(20) NOT NULL,
+            profile_image VARCHAR(500) DEFAULT '',
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_post_id (post_id),
+            INDEX idx_parent_id (parent_id)
+        )");
+
+        $_SESSION['_ddl_community_migrated'] = true;
     } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE community_posts ADD COLUMN label VARCHAR(50) DEFAULT '' AFTER community_type");
+        // Tables might already exist
     }
-
-    // Add view_count column if not exists
-    try {
-        $conn->query("SELECT view_count FROM community_posts LIMIT 1");
-    } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE community_posts ADD COLUMN view_count INT DEFAULT 0 AFTER content");
-    }
-
-    // Add keywords column if not exists
-    try {
-        $conn->query("SELECT keywords FROM community_posts LIMIT 1");
-    } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE community_posts ADD COLUMN keywords TEXT DEFAULT NULL AFTER view_count");
-    }
-
-    // Add original_lang column if not exists
-    try {
-        $conn->query("SELECT original_lang FROM community_posts LIMIT 1");
-    } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE community_posts ADD COLUMN original_lang VARCHAR(5) DEFAULT NULL AFTER content");
-    }
-
-    // Add country column to users if not exists (needed for u.country in queries)
-    try {
-        $conn->query("SELECT country FROM users LIMIT 1");
-    } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE users ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER instagram");
-    }
-
-    // Add is_notice column if not exists (0=normal, 1=general notice, 2=required notice)
-    try {
-        $conn->query("SELECT is_notice FROM community_posts LIMIT 1");
-    } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE community_posts ADD COLUMN is_notice TINYINT(1) DEFAULT 0 AFTER keywords");
-    }
-
-    // Add country column to community_posts for denormalized country filtering
-    try {
-        $conn->query("SELECT country FROM community_posts LIMIT 1");
-    } catch (PDOException $e) {
-        $conn->exec("ALTER TABLE community_posts ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER is_notice");
-        $conn->exec("CREATE INDEX idx_country ON community_posts (country)");
-        // Backfill existing posts with user's country
-        $conn->exec("UPDATE community_posts p JOIN users u ON p.user_id = u.id SET p.country = u.country WHERE p.country IS NULL AND u.country IS NOT NULL");
-    }
-
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_post_photos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        post_id INT NOT NULL,
-        image_url VARCHAR(500) NOT NULL,
-        sort_order INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_post_id (post_id)
-    )");
-
-    // Likes table
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_post_likes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        post_id INT NOT NULL,
-        user_id INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_post_user (post_id, user_id),
-        INDEX idx_post_id (post_id),
-        INDEX idx_user_id (user_id)
-    )");
-
-    // Comments table (referenced by main query subquery)
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_comments (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        post_id INT NOT NULL,
-        parent_id INT DEFAULT NULL,
-        user_id INT NOT NULL,
-        user_name VARCHAR(100) NOT NULL,
-        user_role VARCHAR(20) NOT NULL,
-        profile_image VARCHAR(500) DEFAULT '',
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_post_id (post_id),
-        INDEX idx_parent_id (parent_id)
-    )");
-
-    // Add name_en column to users if not exists (referenced by main query)
-    try {
-        $conn->query("SELECT name_en FROM users LIMIT 1");
-    } catch (PDOException $e2) {
-        $conn->exec("ALTER TABLE users ADD COLUMN name_en VARCHAR(100) DEFAULT NULL AFTER name");
-    }
-} catch (PDOException $e) {
-    // Tables might already exist
 }
 
 $user_id = $_SESSION['user_id'];
@@ -186,11 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Handle share count increment
         $increment_share = isset($_GET['increment_share']) ? intval($_GET['increment_share']) : 0;
         if ($increment_share > 0) {
-            try {
-                $conn->query("SELECT share_count FROM community_posts LIMIT 1");
-            } catch (PDOException $e) {
-                $conn->exec("ALTER TABLE community_posts ADD COLUMN share_count INT DEFAULT 0 AFTER view_count");
-            }
             $conn->prepare("UPDATE community_posts SET share_count = COALESCE(share_count, 0) + 1 WHERE id = ?")->execute([$increment_share]);
             echo json_encode(["success" => true]);
             exit;
@@ -234,12 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         // If notices requested, return notices only
         if ($fetchNotices) {
-            // Add is_notice column check
-            try {
-                $conn->query("SELECT is_notice FROM community_posts LIMIT 1");
-            } catch (PDOException $e) {
-                $conn->exec("ALTER TABLE community_posts ADD COLUMN is_notice TINYINT(1) DEFAULT 0 AFTER keywords");
-            }
+            // Add is_notice column check (already done in DDL migration above)
 
             $noticeStmt = $conn->prepare("SELECT p.id, p.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, p.title, p.content, COALESCE(p.is_notice, 0) as is_notice, p.created_at
                                           FROM community_posts p
@@ -301,12 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 break;
         }
 
-        // Add share_count column if not exists
-        try {
-            $conn->query("SELECT share_count FROM community_posts LIMIT 1");
-        } catch (PDOException $e) {
-            $conn->exec("ALTER TABLE community_posts ADD COLUMN share_count INT DEFAULT 0 AFTER view_count");
-        }
+        // share_count column guaranteed by session DDL migration
 
         $stmt = $conn->prepare("SELECT p.id, p.user_id, u.name AS user_name, u.name_en AS user_name_en, u.role AS user_role, u.profile_image, u.country, p.label, p.title, p.content, p.original_lang, p.view_count, COALESCE(p.share_count, 0) as share_count, p.keywords, p.created_at,
                                 (SELECT COUNT(*) FROM community_post_likes WHERE post_id = p.id) as like_count,
@@ -384,7 +331,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        error_log('[community_posts GET] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "커뮤니티 데이터 로드 중 오류가 발생했습니다."]);
     }
     exit;
 }
@@ -516,11 +464,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // [NOTIFICATION] Notify community members about new post
         try {
-            $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
-                id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
-                message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            if (empty($_SESSION['_ddl_notifications'])) {
+                $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+                    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
+                    message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                $_SESSION['_ddl_notifications'] = true;
+            }
 
             $titleShort = mb_substr($title, 0, 20, 'UTF-8');
             $communityLabels = ['seller' => '셀러', 'host' => '호스트', 'general' => '통합'];
@@ -636,7 +587,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (PDOException $e) {
         $conn->rollBack();
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        error_log('[community_posts POST] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "게시글 등록 중 오류가 발생했습니다."]);
     }
     exit;
 }

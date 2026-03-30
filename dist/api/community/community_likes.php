@@ -16,26 +16,29 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = intval($_SESSION['user_id']);
 
-// Ensure tables exist
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_post_views (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        post_id INT NOT NULL,
-        user_id INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_post_user (post_id, user_id),
-        INDEX idx_post_id (post_id)
-    )");
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_comment_likes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        comment_id INT NOT NULL,
-        user_id INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_comment_user (comment_id, user_id),
-        INDEX idx_comment_id (comment_id)
-    )");
-} catch (PDOException $e) {
-    // Tables might already exist
+// Ensure tables exist (once per session)
+if (empty($_SESSION['_ddl_community_likes'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_post_views (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            user_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_post_user (post_id, user_id),
+            INDEX idx_post_id (post_id)
+        )");
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_comment_likes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            comment_id INT NOT NULL,
+            user_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_comment_user (comment_id, user_id),
+            INDEX idx_comment_id (comment_id)
+        )");
+        $_SESSION['_ddl_community_likes'] = true;
+    } catch (PDOException $e) {
+        // Tables might already exist
+    }
 }
 
 // POST - Toggle like (post or comment)
@@ -66,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["success" => true, "liked" => $liked, "like_count" => $like_count]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+            echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
         }
         exit;
     }
@@ -97,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(["success" => true, "liked" => $liked, "like_count" => $like_count]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }
@@ -129,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         }
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }

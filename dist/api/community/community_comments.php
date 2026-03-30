@@ -15,37 +15,37 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Create comments table if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_comments (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        post_id INT NOT NULL,
-        parent_id INT DEFAULT NULL,
-        user_id INT NOT NULL,
-        user_name VARCHAR(100) NOT NULL,
-        user_role VARCHAR(20) NOT NULL,
-        profile_image VARCHAR(500) DEFAULT '',
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_post_id (post_id),
-        INDEX idx_parent_id (parent_id)
-    )");
-} catch (PDOException $e) {
-    // Table might already exist
-}
-
-// Add original_lang column if not exists
-try {
-    $conn->query("SELECT original_lang FROM community_comments LIMIT 1");
-} catch (PDOException $e) {
-    $conn->exec("ALTER TABLE community_comments ADD COLUMN original_lang VARCHAR(5) DEFAULT NULL AFTER content");
-}
-
-// Add country column to users if not exists
-try {
-    $conn->query("SELECT country FROM users LIMIT 1");
-} catch (PDOException $e) {
-    $conn->exec("ALTER TABLE users ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER instagram");
+// Create comments table if not exists (once per session)
+if (empty($_SESSION['_ddl_community_comments'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_comments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            parent_id INT DEFAULT NULL,
+            user_id INT NOT NULL,
+            user_name VARCHAR(100) NOT NULL,
+            user_role VARCHAR(20) NOT NULL,
+            profile_image VARCHAR(500) DEFAULT '',
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_post_id (post_id),
+            INDEX idx_parent_id (parent_id)
+        )");
+        $migrate_cols = [
+            ['community_comments', 'original_lang', "ADD COLUMN original_lang VARCHAR(5) DEFAULT NULL AFTER content"],
+            ['users', 'country', "ADD COLUMN country VARCHAR(5) DEFAULT NULL AFTER instagram"],
+        ];
+        foreach ($migrate_cols as $mc) {
+            try {
+                $conn->query("SELECT {$mc[1]} FROM {$mc[0]} LIMIT 1");
+            } catch (PDOException $e) {
+                $conn->exec("ALTER TABLE {$mc[0]} {$mc[2]}");
+            }
+        }
+        $_SESSION['_ddl_community_comments'] = true;
+    } catch (PDOException $e) {
+        // Table might already exist
+    }
 }
 
 $user_id = $_SESSION['user_id'];
@@ -121,7 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        error_log('[community_comments GET] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "댓글 로드 중 오류가 발생했습니다."]);
     }
     exit;
 }
@@ -179,17 +180,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // [NOTIFICATION] Notify post author and parent comment author
         try {
-            // Ensure notifications table exists
-            $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                type VARCHAR(50) NOT NULL,
-                message TEXT NOT NULL,
-                link VARCHAR(255),
-                is_read BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX (user_id), INDEX (is_read)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            // Ensure notifications table exists (once per session)
+            if (empty($_SESSION['_ddl_notifications'])) {
+                $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    type VARCHAR(50) NOT NULL,
+                    message TEXT NOT NULL,
+                    link VARCHAR(255),
+                    is_read BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX (user_id), INDEX (is_read)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                $_SESSION['_ddl_notifications'] = true;
+            }
 
             // Get post info
             $postInfoStmt = $conn->prepare("SELECT user_id, title, community_type FROM community_posts WHERE id = ?");
@@ -307,7 +311,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        error_log('[community_comments POST] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "댓글 등록 중 오류가 발생했습니다."]);
     }
     exit;
 }
@@ -352,7 +357,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         if ($conn->inTransaction())
             $conn->rollBack();
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        error_log('[community_comments DELETE] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "댓글 삭제 중 오류가 발생했습니다."]);
     }
     exit;
 }

@@ -11,38 +11,41 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Create poll tables if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_polls (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        post_id INT NOT NULL,
-        end_date DATETIME DEFAULT NULL,
-        allow_multiple TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_post_poll (post_id),
-        INDEX idx_post (post_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+// Create poll tables if not exists (once per session)
+if (empty($_SESSION['_ddl_community_polls'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_polls (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            end_date DATETIME DEFAULT NULL,
+            allow_multiple TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_post_poll (post_id),
+            INDEX idx_post (post_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_poll_options (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        poll_id INT NOT NULL,
-        option_text VARCHAR(200) NOT NULL,
-        sort_order INT DEFAULT 0,
-        INDEX idx_poll (poll_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_poll_options (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            poll_id INT NOT NULL,
+            option_text VARCHAR(200) NOT NULL,
+            sort_order INT DEFAULT 0,
+            INDEX idx_poll (poll_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_poll_votes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        poll_id INT NOT NULL,
-        option_id INT NOT NULL,
-        user_id INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_user_poll (poll_id, user_id),
-        INDEX idx_poll (poll_id),
-        INDEX idx_option (option_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (PDOException $e) {
-    // Tables may already exist
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_poll_votes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            poll_id INT NOT NULL,
+            option_id INT NOT NULL,
+            user_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_user_poll (poll_id, user_id),
+            INDEX idx_poll (poll_id),
+            INDEX idx_option (option_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $_SESSION['_ddl_community_polls'] = true;
+    } catch (PDOException $e) {
+        // Tables may already exist
+    }
 }
 
 header('Content-Type: application/json; charset=utf-8');
@@ -114,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }
@@ -191,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+            echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
         }
         exit;
     }
@@ -244,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (PDOException $e) {
         $conn->rollBack();
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }
