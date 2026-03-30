@@ -10,13 +10,16 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
-    // Auto-migrate: add view_count to venues if not exists
-    try {
-        $conn->exec("ALTER TABLE venues ADD COLUMN view_count INT DEFAULT 0");
-    } catch (Exception $e) {
+    // Auto-migrate: add view_count to venues if not exists (once per session)
+    if (empty($_SESSION['_ddl_venues_view_count'])) {
+        try {
+            $conn->exec("ALTER TABLE venues ADD COLUMN view_count INT DEFAULT 0");
+        } catch (Exception $e) {
+        }
+        $_SESSION['_ddl_venues_view_count'] = true;
     }
 
-    $limit = intval($_GET['limit'] ?? 30);
+    $limit = min(max(intval($_GET['limit'] ?? 30), 1), 100);
 
     $query = "
         SELECT v.id, v.name, v.location, v.type, v.size, v.price, v.pricing_unit,
@@ -30,10 +33,11 @@ try {
         JOIN users u ON v.owner_id = u.id
         WHERE v.status = 'approved'
         ORDER BY ((SELECT COUNT(*) FROM applications a2 WHERE a2.venue_id = v.id) + COALESCE(v.view_count, 0)) DESC, v.created_at DESC
-        LIMIT {$limit}
+        LIMIT :limit
     ";
 
     $stmt = $conn->prepare($query);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
     $venues = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -113,6 +117,7 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
+    error_log('[popular_venues] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '시스템 오류가 발생했습니다.']);
 }
 ?>

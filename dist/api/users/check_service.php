@@ -125,6 +125,7 @@ try {
     echo json_encode($response);
 
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'hasAccess' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
+    error_log('[check_service] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'hasAccess' => false, 'message' => '시스템 오류가 발생했습니다.']);
 }
 ?>
