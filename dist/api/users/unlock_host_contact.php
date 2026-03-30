@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Method not allowed"]);
     exit;
@@ -35,38 +35,47 @@ if ($host_id <= 0) {
 }
 
 try {
-    // Ensure tables exist
-    try {
-        $conn->exec("CREATE TABLE IF NOT EXISTS seller_vendor_access (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            seller_id INT NOT NULL UNIQUE,
-            can_view_contacts TINYINT(1) DEFAULT 0,
-            monthly_limit INT DEFAULT 0,
-            access_start DATE DEFAULT NULL,
-            access_end DATE DEFAULT NULL,
-            updated_by INT DEFAULT NULL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_seller_id (seller_id)
-        )");
-        $conn->exec("CREATE TABLE IF NOT EXISTS vendor_contact_views (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            seller_id INT NOT NULL,
-            host_id INT NOT NULL,
-            viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_seller_month (seller_id, viewed_at)
-        )");
-    } catch (PDOException $e) { /* tables exist */
+    // Ensure tables exist (once per session)
+    if (empty($_SESSION['_ddl_vendor_contact'])) {
+        try {
+            $conn->exec("CREATE TABLE IF NOT EXISTS seller_vendor_access (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                seller_id INT NOT NULL UNIQUE,
+                can_view_contacts TINYINT(1) DEFAULT 0,
+                monthly_limit INT DEFAULT 0,
+                access_start DATE DEFAULT NULL,
+                access_end DATE DEFAULT NULL,
+                updated_by INT DEFAULT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_seller_id (seller_id)
+            )");
+            $conn->exec("CREATE TABLE IF NOT EXISTS vendor_contact_views (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                seller_id INT NOT NULL,
+                host_id INT NOT NULL,
+                viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_seller_month (seller_id, viewed_at)
+            )");
+            $_SESSION['_ddl_vendor_contact'] = true;
+        } catch (PDOException $e) { /* tables exist */
+        }
     }
 
-    // Get vendor info
+    // Get vendor info (use session-cached column availability)
     $cols = "id, name, email, phone";
-    $col_check = $conn->query("SHOW COLUMNS FROM users LIKE 'instagram'");
-    if ($col_check && $col_check->fetch()) {
-        $cols .= ", instagram";
+    if (empty($_SESSION['_vendor_extra_cols'])) {
+        $_SESSION['_vendor_extra_cols'] = [];
+        foreach (['instagram', 'business_no'] as $oc) {
+            try {
+                $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
+                if ($chk && $chk->fetch())
+                    $_SESSION['_vendor_extra_cols'][] = $oc;
+            } catch (PDOException $e) {
+            }
+        }
     }
-    $bn_check = $conn->query("SHOW COLUMNS FROM users LIKE 'business_no'");
-    if ($bn_check && $bn_check->fetch()) {
-        $cols .= ", business_no";
+    foreach ($_SESSION['_vendor_extra_cols'] as $oc) {
+        $cols .= ", {$oc}";
     }
 
     $vendorStmt = $conn->prepare("SELECT {$cols} FROM users WHERE id = ? AND role = 'host'");
@@ -178,6 +187,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    error_log('[unlock_host_contact] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "연락처 열람 중 오류가 발생했습니다."]);
 }
 ?>

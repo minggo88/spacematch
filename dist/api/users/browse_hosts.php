@@ -11,34 +11,49 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
-    // Ensure featured/verified columns exist
-    $auto_cols = [
-        'is_featured' => 'TINYINT(1) DEFAULT 0',
-        'featured_start' => 'DATE DEFAULT NULL',
-        'featured_end' => 'DATE DEFAULT NULL',
-        'is_verified' => 'TINYINT(1) DEFAULT 0',
-        'verified_start' => 'DATE DEFAULT NULL',
-        'verified_end' => 'DATE DEFAULT NULL'
-    ];
-    foreach ($auto_cols as $col => $def) {
+    // Ensure featured/verified columns exist (once per session)
+    if (empty($_SESSION['_ddl_browse_hosts'])) {
+        $auto_cols = [
+            'is_featured' => 'TINYINT(1) DEFAULT 0',
+            'featured_start' => 'DATE DEFAULT NULL',
+            'featured_end' => 'DATE DEFAULT NULL',
+            'is_verified' => 'TINYINT(1) DEFAULT 0',
+            'verified_start' => 'DATE DEFAULT NULL',
+            'verified_end' => 'DATE DEFAULT NULL'
+        ];
+        foreach ($auto_cols as $col => $def) {
+            try {
+                $conn->exec("ALTER TABLE users ADD COLUMN {$col} {$def}");
+            } catch (PDOException $e) {
+            }
+        }
+
+        // Ensure recruitment_deadline and recruitment_closed columns exist in venues
         try {
-            $conn->exec("ALTER TABLE users ADD COLUMN {$col} {$def}");
+            $conn->exec("ALTER TABLE venues ADD COLUMN recruitment_deadline DATE DEFAULT NULL");
         } catch (PDOException $e) {
         }
-    }
+        try {
+            $conn->exec("ALTER TABLE venues ADD COLUMN recruitment_closed TINYINT(1) DEFAULT 0");
+        } catch (PDOException $e) {
+        }
 
-    // Ensure recruitment_deadline and recruitment_closed columns exist in venues
-    try {
-        $conn->exec("ALTER TABLE venues ADD COLUMN recruitment_deadline DATE DEFAULT NULL");
-    } catch (PDOException $e) { /* column already exists */
-    }
-    try {
-        $conn->exec("ALTER TABLE venues ADD COLUMN recruitment_closed TINYINT(1) DEFAULT 0");
-    } catch (PDOException $e) { /* column already exists */
+        // Dynamically check available venue columns
+        $venue_opt_cols = [];
+        foreach (['size', 'description', 'commission_rate', 'pricing_unit'] as $oc) {
+            try {
+                $chk = $conn->query("SHOW COLUMNS FROM venues LIKE '{$oc}'");
+                if ($chk->fetch())
+                    $venue_opt_cols[] = $oc;
+            } catch (PDOException $e) {
+            }
+        }
+        $_SESSION['_ddl_browse_hosts'] = true;
+        $_SESSION['_browse_hosts_venue_cols'] = $venue_opt_cols;
     }
 
     $today = date('Y-m-d');
-    // Get all active hosts with their venue stats
+    // Get all active hosts with parameterized date
     $query = "SELECT 
                 u.id, u.name, u.email, u.phone, u.business_no, u.is_featured, u.featured_start, u.featured_end, u.is_verified, u.verified_start, u.verified_end, u.created_at,
                 (SELECT COUNT(*) FROM venues v WHERE v.owner_id = u.id AND v.status = 'approved') as venue_count,
@@ -46,40 +61,19 @@ try {
                 (SELECT GROUP_CONCAT(DISTINCT v3.type SEPARATOR '||') FROM venues v3 WHERE v3.owner_id = u.id AND v3.status = 'approved') as venue_types
               FROM users u 
               WHERE u.role = 'host' AND u.status = 'active'
-              ORDER BY (CASE WHEN u.is_featured = 1 AND (u.featured_start IS NULL OR u.featured_start <= '{$today}') AND (u.featured_end IS NULL OR u.featured_end >= '{$today}') THEN 1 ELSE 0 END) DESC, u.created_at DESC";
+              ORDER BY (CASE WHEN u.is_featured = 1 AND (u.featured_start IS NULL OR u.featured_start <= :today1) AND (u.featured_end IS NULL OR u.featured_end >= :today2) THEN 1 ELSE 0 END) DESC, u.created_at DESC";
 
     $stmt = $conn->prepare($query);
-    $stmt->execute();
+    $stmt->execute([':today1' => $today, ':today2' => $today]);
     $hosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get venue deadlines per vendor
     $deadlineStmt = $conn->prepare("SELECT v.name as venue_name, v.recruitment_deadline, v.recruitment_closed FROM venues v WHERE v.owner_id = ? AND v.status = 'approved' AND (v.recruitment_deadline IS NOT NULL OR v.recruitment_closed = 1) ORDER BY v.recruitment_deadline ASC");
 
-    // Get individual venue list per vendor — dynamically check available columns
+    // Build venue column list from session cache
     $venueListCols = "v.id, v.name, v.type, v.location, v.images, v.price";
-    try {
-        $chk = $conn->query("SHOW COLUMNS FROM venues LIKE 'size'");
-        if ($chk->fetch())
-            $venueListCols .= ", v.size";
-    } catch (PDOException $e) {
-    }
-    try {
-        $chk2 = $conn->query("SHOW COLUMNS FROM venues LIKE 'description'");
-        if ($chk2->fetch())
-            $venueListCols .= ", v.description";
-    } catch (PDOException $e) {
-    }
-    try {
-        $chk3 = $conn->query("SHOW COLUMNS FROM venues LIKE 'commission_rate'");
-        if ($chk3->fetch())
-            $venueListCols .= ", v.commission_rate";
-    } catch (PDOException $e) {
-    }
-    try {
-        $chk4 = $conn->query("SHOW COLUMNS FROM venues LIKE 'pricing_unit'");
-        if ($chk4->fetch())
-            $venueListCols .= ", v.pricing_unit";
-    } catch (PDOException $e) {
+    foreach ($_SESSION['_browse_hosts_venue_cols'] ?? [] as $oc) {
+        $venueListCols .= ", v.{$oc}";
     }
     $venueListStmt = $conn->prepare("SELECT {$venueListCols}, v.status FROM venues v WHERE v.owner_id = ? ORDER BY v.status = 'approved' DESC, v.created_at DESC");
 
@@ -171,6 +165,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["error" => "Database Error: " . $e->getMessage()]);
+    error_log('[browse_hosts] ' . $e->getMessage());
+    echo json_encode(["error" => "호스트 목록 로드 중 오류가 발생했습니다."]);
 }
 ?>
