@@ -79,7 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        error_log('[community_popular] ' . $e->getMessage());
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }

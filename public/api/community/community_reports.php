@@ -11,21 +11,24 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Create reports table if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS community_reports (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        reporter_id INT NOT NULL,
-        post_id INT NOT NULL,
-        reason VARCHAR(50) NOT NULL,
-        detail TEXT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_report (reporter_id, post_id),
-        INDEX idx_post (post_id),
-        INDEX idx_reporter (reporter_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (PDOException $e) {
-    // Table may already exist
+// Create reports table if not exists (once per session)
+if (empty($_SESSION['_ddl_community_reports'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS community_reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            reporter_id INT NOT NULL,
+            post_id INT NOT NULL,
+            reason VARCHAR(50) NOT NULL,
+            detail TEXT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_report (reporter_id, post_id),
+            INDEX idx_post (post_id),
+            INDEX idx_reporter (reporter_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $_SESSION['_ddl_community_reports'] = true;
+    } catch (PDOException $e) {
+        // Table may already exist
+    }
 }
 
 header('Content-Type: application/json; charset=utf-8');
@@ -99,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(["success" => true, "message" => "신고가 접수되었습니다."]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
     }
     exit;
 }
