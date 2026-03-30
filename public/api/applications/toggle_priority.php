@@ -24,10 +24,13 @@ if (!$application_id) {
 }
 
 try {
-    // Auto-migrate: ensure is_priority column exists
-    try {
-        $conn->exec("ALTER TABLE applications ADD COLUMN is_priority TINYINT(1) DEFAULT 0");
-    } catch (Exception $e) { /* column likely exists */
+    // Auto-migrate: ensure is_priority column exists (once per session)
+    if (empty($_SESSION['_ddl_applications'])) {
+        try {
+            $conn->exec("ALTER TABLE applications ADD COLUMN is_priority TINYINT(1) DEFAULT 0");
+        } catch (Exception $e) { /* column likely exists */
+        }
+        $_SESSION['_ddl_applications'] = true;
     }
 
     $stmt = $conn->prepare("UPDATE applications SET is_priority = ? WHERE id = ?");
@@ -39,6 +42,7 @@ try {
         'is_priority' => $is_priority ? 1 : 0
     ]);
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
+    error_log('[toggle_priority] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '시스템 오류가 발생했습니다.']);
 }
 ?>

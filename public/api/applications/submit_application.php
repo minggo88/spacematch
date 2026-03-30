@@ -15,7 +15,7 @@ function jsonErrorHandler()
 {
     $error = error_get_last();
     if ($error !== NULL && $error['type'] === E_ERROR) {
-        echo json_encode(["success" => false, "message" => "Fatal Error: " . $error['message']]);
+        echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
     }
 }
 register_shutdown_function('jsonErrorHandler');
@@ -74,63 +74,56 @@ try {
         }
         $attachments_json = json_encode($attachment_paths);
 
-        // 1. Ensure Table Exists (Safe Check)
-        $createTableSQL = "CREATE TABLE IF NOT EXISTS applications (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            venue_id INT NOT NULL,
-            user_id INT NOT NULL,
-            seller_name VARCHAR(255),
-            venue_name VARCHAR(255),
-            message TEXT,
-            status VARCHAR(50) DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-
-        $conn->exec($createTableSQL);
-
-        // 2. Ensure Columns Exist (Safe Alter - Ignore Errors)
-        $columns_to_check = ['user_id', 'seller_name', 'venue_name', 'message'];
-        foreach ($columns_to_check as $col) {
-            try {
-                $type = ($col == 'user_id') ? 'INT(11)' : ($col == 'message' ? 'TEXT' : 'VARCHAR(255)');
-                $conn->exec("ALTER TABLE applications ADD COLUMN $col $type");
-            } catch (Exception $e) {
-                // Column likely exists, continue
-            }
-        }
-
-        // Auto-migrate: add selected_period column
-        try {
-            $conn->exec("ALTER TABLE applications ADD COLUMN selected_period TEXT DEFAULT NULL");
-        } catch (Exception $e) {
-            // Column likely exists
-        }
-
-        // Auto-migrate: add attachments column
-        try {
-            $conn->exec("ALTER TABLE applications ADD COLUMN attachments TEXT DEFAULT NULL");
-        } catch (Exception $e) {
-            // Column likely exists
-        }
-
-        // Auto-migrate: add is_priority column
-        try {
-            $conn->exec("ALTER TABLE applications ADD COLUMN is_priority TINYINT(1) DEFAULT 0");
-        } catch (Exception $e) {
-            // Column likely exists
-        }
-
-        // Auto-create fasttrack_usage table
-        try {
-            $conn->exec("CREATE TABLE IF NOT EXISTS fasttrack_usage (
+        // 1. Ensure Table & Columns Exist (once per session)
+        if (empty($_SESSION['_ddl_applications'])) {
+            $createTableSQL = "CREATE TABLE IF NOT EXISTS applications (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                venue_id INT NOT NULL,
                 user_id INT NOT NULL,
-                application_id INT NOT NULL,
-                used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX (user_id),
-                INDEX (used_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-        } catch (Exception $e) {
+                seller_name VARCHAR(255),
+                venue_name VARCHAR(255),
+                message TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+            $conn->exec($createTableSQL);
+
+            // 2. Ensure Columns Exist
+            $columns_to_check = ['user_id', 'seller_name', 'venue_name', 'message'];
+            foreach ($columns_to_check as $col) {
+                try {
+                    $type = ($col == 'user_id') ? 'INT(11)' : ($col == 'message' ? 'TEXT' : 'VARCHAR(255)');
+                    $conn->exec("ALTER TABLE applications ADD COLUMN $col $type");
+                } catch (Exception $e) {
+                }
+            }
+            try {
+                $conn->exec("ALTER TABLE applications ADD COLUMN selected_period TEXT DEFAULT NULL");
+            } catch (Exception $e) {
+            }
+            try {
+                $conn->exec("ALTER TABLE applications ADD COLUMN attachments TEXT DEFAULT NULL");
+            } catch (Exception $e) {
+            }
+            try {
+                $conn->exec("ALTER TABLE applications ADD COLUMN is_priority TINYINT(1) DEFAULT 0");
+            } catch (Exception $e) {
+            }
+
+            // Auto-create fasttrack_usage table
+            try {
+                $conn->exec("CREATE TABLE IF NOT EXISTS fasttrack_usage (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    application_id INT NOT NULL,
+                    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX (user_id),
+                    INDEX (used_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            } catch (Exception $e) {
+            }
+
+            $_SESSION['_ddl_applications'] = true;
         }
 
         // Determine Fast Track status
@@ -147,14 +140,17 @@ try {
         if ($use_fasttrack) {
             // Check user_services for active priority_application permission
             try {
-                // Auto-migrate columns
-                try {
-                    $conn->exec("ALTER TABLE user_services ADD COLUMN auto_apply TINYINT(1) DEFAULT 0");
-                } catch (Exception $e) {
-                }
-                try {
-                    $conn->exec("ALTER TABLE user_services ADD COLUMN monthly_limit INT DEFAULT 0");
-                } catch (Exception $e) {
+                // Auto-migrate columns (once per session)
+                if (empty($_SESSION['_ddl_user_services_ft'])) {
+                    try {
+                        $conn->exec("ALTER TABLE user_services ADD COLUMN auto_apply TINYINT(1) DEFAULT 0");
+                    } catch (Exception $e) {
+                    }
+                    try {
+                        $conn->exec("ALTER TABLE user_services ADD COLUMN monthly_limit INT DEFAULT 0");
+                    } catch (Exception $e) {
+                    }
+                    $_SESSION['_ddl_user_services_ft'] = true;
                 }
 
                 $svcStmt = $conn->prepare("SELECT enabled, start_date, end_date, monthly_limit FROM user_services WHERE user_id = ? AND service = 'priority_application'");
@@ -299,6 +295,10 @@ try {
                                     'ja' => ($is_priority ? '⚡ [優先] ' : '') . "新規申請: {$seller_name} → {$venue_name}",
                                     'vi' => ($is_priority ? '⚡ [Ưu tiên] ' : '') . "Đơn mới: {$seller_name} → {$venue_name}",
                                     'th' => ($is_priority ? '⚡ [เร่งด่วน] ' : '') . "ใบสมัครใหม่: {$seller_name} → {$venue_name}",
+                                    'fr' => ($is_priority ? '⚡ [Priorité] ' : '') . "Nouvelle candidature: {$seller_name} → {$venue_name}",
+                                    'km' => ($is_priority ? '⚡ [អាទិភាព] ' : '') . "ការស្នើសុំថ្មី: {$seller_name} → {$venue_name}",
+                                    'ru' => ($is_priority ? '⚡ [Приоритет] ' : '') . "Новая заявка: {$seller_name} → {$venue_name}",
+                                    'uk' => ($is_priority ? '⚡ [Пріоритет] ' : '') . "Нова заявка: {$seller_name} → {$venue_name}",
                                 ], $lang);
                                 return ['subject' => $t, 'html' => emailTemplateApplicationNew($seller_name, $venue_name, $is_priority, $siteUrl, $lang)];
                             }
@@ -332,15 +332,18 @@ try {
             echo json_encode(["success" => true, "message" => $responseMsg, "is_priority" => $is_priority]);
         } else {
             $err = $stmt->errorInfo();
-            echo json_encode(["success" => false, "message" => "DB Error: " . $err[2]]);
+            error_log('[submit_application] DB Error: ' . $err[2]);
+            echo json_encode(["success" => false, "message" => "신청 처리 중 오류가 발생했습니다."]);
         }
     } else {
         echo json_encode(["success" => false, "message" => "데이터가 불충분합니다."]);
     }
 
 } catch (PDOException $e) {
-    echo json_encode(["success" => false, "message" => "System Error: " . $e->getMessage()]);
+    error_log('[submit_application] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => "General Error: " . $e->getMessage()]);
+    error_log('[submit_application] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
 }
 ?>

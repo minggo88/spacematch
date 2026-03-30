@@ -32,23 +32,26 @@ if (empty($reason)) {
 }
 
 try {
-    // Auto-migrate: create cancellation_requests table
-    $conn->exec("CREATE TABLE IF NOT EXISTS cancellation_requests (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        application_id INT NOT NULL,
-        seller_id INT NOT NULL,
-        venue_id INT NOT NULL,
-        reason TEXT NOT NULL,
-        status ENUM('pending','approved','rejected') DEFAULT 'pending',
-        decided_by INT DEFAULT NULL,
-        decision_note TEXT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        decided_at TIMESTAMP NULL DEFAULT NULL,
-        INDEX (application_id),
-        INDEX (seller_id),
-        INDEX (venue_id),
-        INDEX (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // Auto-migrate: create cancellation_requests table (once per session)
+    if (empty($_SESSION['_ddl_cancellation_requests'])) {
+        $conn->exec("CREATE TABLE IF NOT EXISTS cancellation_requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            application_id INT NOT NULL,
+            seller_id INT NOT NULL,
+            venue_id INT NOT NULL,
+            reason TEXT NOT NULL,
+            status ENUM('pending','approved','rejected') DEFAULT 'pending',
+            decided_by INT DEFAULT NULL,
+            decision_note TEXT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            decided_at TIMESTAMP NULL DEFAULT NULL,
+            INDEX (application_id),
+            INDEX (seller_id),
+            INDEX (venue_id),
+            INDEX (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $_SESSION['_ddl_cancellation_requests'] = true;
+    }
 
     // Verify: application belongs to this seller AND is approved
     $checkStmt = $conn->prepare("SELECT a.id, a.status, a.venue_id, a.venue_name, v.owner_id 
@@ -82,11 +85,14 @@ try {
 
     // Send notification to venue owner (host)
     try {
-        $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
-            id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
-            message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        if (empty($_SESSION['_ddl_notifications'])) {
+            $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
+                message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            $_SESSION['_ddl_notifications'] = true;
+        }
 
         $sellerName = $_SESSION['user_name'] ?? '셀러';
         $notifMsg = "[취소 요청] {$sellerName}님이 \"{$app['venue_name']}\" 입점 취소를 요청했습니다. 사유: " . mb_substr($reason, 0, 50);
@@ -107,7 +113,7 @@ try {
                 '',
                 'cat_application',
                 function ($lang) use ($_vn, $_rs, $siteUrl) {
-                    $subj = _t(['ko' => '입점 취소 요청이 접수되었습니다', 'en' => 'Cancellation Request Submitted', 'ja' => 'キャンセル要求が送信されました', 'vi' => 'Yêu cầu hủy đã được gửi', 'th' => 'ส่งคำขอยกเลิกแล้ว'], $lang);
+                    $subj = _t(['ko' => '입점 취소 요청이 접수되었습니다', 'en' => 'Cancellation Request Submitted', 'ja' => 'キャンセル要求が送信されました', 'vi' => 'Yêu cầu hủy đã được gửi', 'th' => 'ส่งคำขอยกเลิกแล้ว', 'fr' => 'Demande d\'annulation soumise', 'km' => 'ស្នើសុំលុបចោលត្រូវបានផ្ញើ', 'ru' => 'Запрос на отмену отправлен', 'uk' => 'Запит на скасування надіслано'], $lang);
                     return ['subject' => $subj, 'html' => emailTemplateCancellation('request', $_vn, $_rs, $siteUrl, '/host/applications', $lang)];
                 }
             );
@@ -122,5 +128,6 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    error_log('[request_cancellation] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "시스템 오류가 발생했습니다."]);
 }

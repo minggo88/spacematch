@@ -63,14 +63,13 @@ if (isset($data->id) && isset($data->status)) {
             }
         }
 
-        // Auto-add rejection_reason column if not exists
-        try {
-            $colCheck = $conn->query("SHOW COLUMNS FROM applications LIKE 'rejection_reason'");
-            if ($colCheck->rowCount() === 0) {
+        // Auto-add rejection_reason column if not exists (once per session)
+        if (empty($_SESSION['_ddl_app_rejection_reason'])) {
+            try {
                 $conn->exec("ALTER TABLE applications ADD COLUMN rejection_reason TEXT DEFAULT NULL");
+            } catch (Exception $e) {
             }
-        } catch (Exception $e) {
-            // Column may already exist
+            $_SESSION['_ddl_app_rejection_reason'] = true;
         }
 
         $query = "UPDATE applications SET status = :status, rejection_reason = :reason WHERE id = :id";
@@ -82,12 +81,15 @@ if (isset($data->id) && isset($data->status)) {
         if ($stmt->execute()) {
             // [NOTIFICATION] Notify Applicant
             try {
-                // Ensure notifications table
-                $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
-                    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
-                    message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                // Ensure notifications table (once per session)
+                if (empty($_SESSION['_ddl_notifications'])) {
+                    $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+                        id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
+                        message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                    $_SESSION['_ddl_notifications'] = true;
+                }
 
                 // Get applicant ID and Venue Name
                 $appQuery = "SELECT user_id, venue_name FROM applications WHERE id = :id";
@@ -133,10 +135,10 @@ if (isset($data->id) && isset($data->status)) {
                             'cat_application',
                             function ($lang) use ($_vn, $_rr, $_st, $siteUrl) {
                                 if ($_st === 'approved') {
-                                    $subj = _t(['ko' => "✅ 입점 승인: {$_vn}", 'en' => "✅ Approved: {$_vn}", 'ja' => "✅ 承認: {$_vn}", 'vi' => "✅ Đã duyệt: {$_vn}", 'th' => "✅ อนุมัติ: {$_vn}"], $lang);
+                                    $subj = _t(['ko' => "✅ 입점 승인: {$_vn}", 'en' => "✅ Approved: {$_vn}", 'ja' => "✅ 承認: {$_vn}", 'vi' => "✅ Đã duyệt: {$_vn}", 'th' => "✅ อนุมัติ: {$_vn}", 'fr' => "✅ Approuvé: {$_vn}", 'km' => "✅ អនុម័ត: {$_vn}", 'ru' => "✅ Одобрено: {$_vn}", 'uk' => "✅ Затверджено: {$_vn}"], $lang);
                                     return ['subject' => $subj, 'html' => emailTemplateApplicationApproved($_vn, $siteUrl, $lang)];
                                 } else {
-                                    $subj = _t(['ko' => "❌ 입점 반려: {$_vn}", 'en' => "❌ Rejected: {$_vn}", 'ja' => "❌ 却下: {$_vn}", 'vi' => "❌ Từ chối: {$_vn}", 'th' => "❌ ปฏิเสธ: {$_vn}"], $lang);
+                                    $subj = _t(['ko' => "❌ 입점 반려: {$_vn}", 'en' => "❌ Rejected: {$_vn}", 'ja' => "❌ 却下: {$_vn}", 'vi' => "❌ Từ chối: {$_vn}", 'th' => "❌ ปฏิเสธ: {$_vn}", 'fr' => "❌ Rejeté: {$_vn}", 'km' => "❌ បដិសេធ: {$_vn}", 'ru' => "❌ Отклонено: {$_vn}", 'uk' => "❌ Відхилено: {$_vn}"], $lang);
                                     return ['subject' => $subj, 'html' => emailTemplateApplicationRejected($_vn, $_rr, $siteUrl, $lang)];
                                 }
                             }

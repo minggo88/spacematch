@@ -11,10 +11,13 @@ if (!isset($_SESSION['user_id'])) {
 $role = $_SESSION['user_role'];
 $user_id = $_SESSION['user_id'];
 
-// Auto-migrate: add is_priority column
-try {
-    $conn->exec("ALTER TABLE applications ADD COLUMN is_priority TINYINT(1) DEFAULT 0");
-} catch (Exception $e) { /* column likely exists */
+// Auto-migrate: add is_priority column (once per session)
+if (empty($_SESSION['_ddl_applications'])) {
+    try {
+        $conn->exec("ALTER TABLE applications ADD COLUMN is_priority TINYINT(1) DEFAULT 0");
+    } catch (Exception $e) { /* column likely exists */
+    }
+    $_SESSION['_ddl_applications'] = true;
 }
 
 if ($role === 'admin' || $role === 'superadmin') {
