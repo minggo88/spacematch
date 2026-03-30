@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { getContactLink } from '../utils/contactLinks';
 import { Lock, Mail, Home } from 'lucide-react';
 
 const Login = () => {
@@ -10,7 +11,7 @@ const Login = () => {
     const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
-    const { t } = useTranslation('auth');
+    const { t, i18n } = useTranslation('auth');
     const [searchParams] = useSearchParams();
 
     // URL 파라미터에서 redirect_uri와 email 읽기
@@ -140,7 +141,9 @@ const Login = () => {
                         </Link>
                     </p>
                     <a
-                        href="mailto:spacedotmatch@gmail.com?subject=[SpaceMatch] 문의사항"
+                        href={getContactLink(i18n.language).url}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="mt-4 flex items-center justify-center gap-2 w-full py-2 text-center bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-medium transition-colors border border-indigo-100"
                     >
                         <Mail size={16} />

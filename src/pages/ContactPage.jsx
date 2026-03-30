@@ -4,14 +4,18 @@ import { useTranslation } from 'react-i18next';
 import PublicNav from '../components/PublicNav';
 import PublicFooter from '../components/PublicFooter';
 import SmartText from '../components/SmartText';
+import { getContactLink, isKorean } from '../utils/contactLinks';
 import {
     MessageCircle, Mail, MapPin, Clock,
     ArrowRight, ExternalLink, Send
 } from 'lucide-react';
 
 const ContactPage = () => {
-    const { t } = useTranslation('landing');
+    const { t, i18n } = useTranslation('landing');
     useEffect(() => { window.scrollTo(0, 0); }, []);
+
+    const contact = getContactLink(i18n.language);
+    const isKo = isKorean(i18n.language);
 
     return (
         <div className="min-h-screen bg-white">
@@ -40,25 +44,29 @@ const ContactPage = () => {
             <section className="py-16 md:py-24">
                 <div className="max-w-5xl mx-auto px-4 md:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 mb-12 md:mb-16">
-                        {/* KakaoTalk */}
+                        {/* 국가별 문의 채널: 한국=카카오톡, 그 외=Discord */}
                         <a
-                            href="http://pf.kakao.com/_xjGxoRX/chat"
+                            href={contact.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="group bg-white rounded-2xl p-7 md:p-8 border border-gray-100 hover:border-violet-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="flex items-start justify-between mb-6">
-                                <div className="w-14 h-14 bg-violet-50 rounded-xl flex items-center justify-center">
-                                    <span className="text-2xl">💬</span>
+                                <div className={`w-14 h-14 ${isKo ? 'bg-violet-50' : 'bg-indigo-50'} rounded-xl flex items-center justify-center`}>
+                                    <span className="text-2xl">{isKo ? '💬' : '🎮'}</span>
                                 </div>
                                 <ExternalLink size={18} className="text-gray-300 group-hover:text-violet-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">{t('contactPage.kakaoTitle')}</h3>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                {isKo ? t('contactPage.kakaoTitle') : t('contactPage.discordTitle', 'Discord')}
+                            </h3>
                             <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                                <SmartText mobileMax={16} pcMax={24}>{t('contactPage.kakaoDesc')}</SmartText>
+                                <SmartText mobileMax={16} pcMax={24}>
+                                    {isKo ? t('contactPage.kakaoDesc') : t('contactPage.discordDesc', 'Join our Discord community for quick support and real-time assistance.')}
+                                </SmartText>
                             </p>
                             <span className="inline-flex items-center gap-1.5 text-violet-600 font-semibold text-sm">
-                                {t('contactPage.kakaoAction')} <ArrowRight size={14} />
+                                {isKo ? t('contactPage.kakaoAction') : t('contactPage.discordAction', 'Join Discord')} <ArrowRight size={14} />
                             </span>
                         </a>
 

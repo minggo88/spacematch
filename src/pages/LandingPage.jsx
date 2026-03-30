@@ -7,6 +7,7 @@ import PublicFooter from '../components/PublicFooter';
 import AdSlot from '../components/AdSlot';
 import SmartText from '../components/SmartText';
 import Toast from '../components/Toast';
+import { getContactLink } from '../utils/contactLinks';
 import {
     ArrowRight, Store, ShoppingBag, Users, Sparkles, ChevronDown,
     MapPin, TrendingUp, Shield, Zap, CheckCircle, Star, Building,
@@ -52,7 +53,7 @@ const StatCard = ({ stat, c, isStatsVisible }) => {
 
 const LandingPage = () => {
     const { user } = useAuth();
-    const { t } = useTranslation('landing');
+    const { t, i18n } = useTranslation('landing');
     const [visibleSections, setVisibleSections] = useState(new Set());
     const [hotPromos, setHotPromos] = useState([]);
     const [promosLoading, setPromosLoading] = useState(true);
@@ -693,7 +694,9 @@ const LandingPage = () => {
                                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                 </Link>
                                 <a
-                                    href="mailto:spacedotmatch@gmail.com?subject=[SpaceMatch] 문의사항"
+                                    href={getContactLink(i18n.language).url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="w-full sm:w-auto px-8 py-4 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-2xl font-bold text-base md:text-lg hover:bg-white/30 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 shadow-xl"
                                 >
                                     {t('cta.inquiry')}
