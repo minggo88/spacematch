@@ -5,6 +5,7 @@ header('Content-Type: application/json');
 error_reporting(E_ERROR);
 
 if (!isset($_SESSION['user_id'])) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => '로그인이 필요합니다.']);
     exit;
 }
@@ -14,15 +15,19 @@ $role = $_SESSION['user_role'] ?? '';
 
 // Allow vendor + admin/superadmin
 if (!in_array($role, ['host', 'admin', 'superadmin'])) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => '호스트 또는 관리자 권한이 필요합니다.']);
     exit;
 }
 
 try {
-    // Auto-migrate: add view_count column to venues
-    try {
-        $conn->exec("ALTER TABLE venues ADD COLUMN view_count INT DEFAULT 0");
-    } catch (Exception $e) {
+    // Auto-migrate: add view_count column to venues (once per session)
+    if (empty($_SESSION['host_report_migrated'])) {
+        try {
+            $conn->exec("ALTER TABLE venues ADD COLUMN view_count INT DEFAULT 0");
+        } catch (Exception $e) {
+        }
+        $_SESSION['host_report_migrated'] = true;
     }
 
     // If admin, allow viewing a specific vendor's report via ?host_id=

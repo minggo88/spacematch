@@ -197,7 +197,22 @@ const Analytics = () => {
 
     if (!data) return null;
 
-    const { summary, priceByRegion, priceByType, priceBySize, commission, topCategories, salesByRegion, salesByType, priceDistribution, monthlyTrend, venuesByRegion, districtStats, topCustomerTypes, customersByRegion, priceByCustomer, salesByCustomer } = data;
+    const summary = data?.summary || {};
+    const priceByRegion = data?.priceByRegion || [];
+    const priceByType = data?.priceByType || [];
+    const priceBySize = data?.priceBySize || [];
+    const commission = data?.commission || { min: 0, max: 0, avg: 0, count: 0 };
+    const topCategories = data?.topCategories || [];
+    const salesByRegion = data?.salesByRegion || [];
+    const salesByType = data?.salesByType || [];
+    const priceDistribution = data?.priceDistribution || [];
+    const monthlyTrend = data?.monthlyTrend || [];
+    const venuesByRegion = data?.venuesByRegion || [];
+    const districtStats = data?.districtStats || {};
+    const topCustomerTypes = data?.topCustomerTypes || [];
+    const customersByRegion = data?.customersByRegion || {};
+    const priceByCustomer = data?.priceByCustomer || [];
+    const salesByCustomer = data?.salesByCustomer || [];
 
     const tabs = [
         { key: 'overview', label: t('analyticsPage.tabOverview'), icon: Activity },

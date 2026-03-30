@@ -113,7 +113,14 @@ const HostAnalyticsReport = () => {
         );
     }
 
-    const { summary, venues, monthlyTrend, appsByCategory, recentApps, venueRanking, previousPeriod, weekdayStats } = data;
+    const summary = data?.summary || {};
+    const venues = data?.venues || [];
+    const monthlyTrend = data?.monthlyTrend || [];
+    const appsByCategory = data?.appsByCategory || [];
+    const recentApps = data?.recentApps || [];
+    const venueRanking = data?.venueRanking || [];
+    const previousPeriod = data?.previousPeriod || null;
+    const weekdayStats = data?.weekdayStats || [];
 
     // Growth indicator helper
     const GrowthBadge = ({ value }) => {
@@ -165,7 +172,7 @@ const HostAnalyticsReport = () => {
                     { label: '등록 공간', value: summary.totalVenues, icon: Store, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40', borderColor: 'border-indigo-100 dark:border-indigo-800' },
                     { label: '운영 중', value: summary.activeVenues, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', borderColor: 'border-emerald-100 dark:border-emerald-800' },
                     { label: '총 조회수', value: summary.totalViews?.toLocaleString(), icon: Eye, color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40', borderColor: 'border-sky-100 dark:border-sky-800' },
-                    { label: 'Total Applications수', value: summary.totalApps, icon: Users, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', borderColor: 'border-violet-100 dark:border-violet-800' },
+                    { label: '총 신청수', value: summary.totalApps, icon: Users, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', borderColor: 'border-violet-100 dark:border-violet-800' },
                     { label: '승인 수', value: summary.totalApproved, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-green-50 dark:bg-green-950/40', borderColor: 'border-green-100 dark:border-green-800' },
                     { label: '전환율', value: `${summary.conversionRate}%`, icon: TrendingUp, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40', borderColor: 'border-amber-100 dark:border-amber-800' },
                 ].map((kpi, i) => (
@@ -213,7 +220,7 @@ const HostAnalyticsReport = () => {
                                         <div className="flex items-end gap-3">
                                             <div>
                                                 <p className="text-xs text-gray-400 dark:text-gray-500">이번 달</p>
-                                                <p className={`text-2xl font-extrabold text-${item.color}-600 dark:text-${item.color}-400`}>{item.current}</p>
+                                                <p className={`text-2xl font-extrabold ${item.color === 'indigo' ? 'text-indigo-600 dark:text-indigo-400' : item.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>{item.current}</p>
                                             </div>
                                             <ArrowRight size={16} className="text-gray-300 dark:text-gray-600 mb-1.5" />
                                             <div>
