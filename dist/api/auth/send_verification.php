@@ -42,19 +42,23 @@ function getClientIP()
 $clientIP = getClientIP();
 
 try {
-    // ── 1. Create email_verifications table ──
-    $conn->exec("CREATE TABLE IF NOT EXISTS email_verifications (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(255) NOT NULL,
-        code VARCHAR(10) NOT NULL,
-        ip VARCHAR(45) NOT NULL,
-        attempts INT DEFAULT 0,
-        expires_at DATETIME NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_email (email),
-        INDEX idx_ip (ip),
-        INDEX idx_expires (expires_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // ── 1. Create email_verifications table (once per session) ──
+    if (empty($_SESSION['_ddl_email_verifications'])) {
+        session_start();
+        $conn->exec("CREATE TABLE IF NOT EXISTS email_verifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL,
+            code VARCHAR(10) NOT NULL,
+            ip VARCHAR(45) NOT NULL,
+            attempts INT DEFAULT 0,
+            expires_at DATETIME NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_email (email),
+            INDEX idx_ip (ip),
+            INDEX idx_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $_SESSION['_ddl_email_verifications'] = true;
+    }
 
     // ── 2. Check if email already registered ──
     $checkStmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
@@ -106,7 +110,11 @@ try {
         'en' => '[SpaceMatch] Email Verification Code',
         'ja' => '[SpaceMatch] メール認証コード',
         'vi' => '[SpaceMatch] Mã xác minh email',
-        'th' => '[SpaceMatch] รหัสยืนยันอีเมล'
+        'th' => '[SpaceMatch] รหัสยืนยันอีเมล',
+        'fr' => '[SpaceMatch] Code de vérification email',
+        'km' => '[SpaceMatch] លេខកូដផ្ទៀងផ្ទាត់អ៊ីមែល',
+        'ru' => '[SpaceMatch] Код подтверждения email',
+        'uk' => '[SpaceMatch] Код підтвердження email'
     ], $lang);
 
     $html = emailTemplateVerificationCode($code, $lang);

@@ -515,8 +515,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($emailRecipientIds)) {
                     try {
                         $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-                        $emailHtml = emailTemplateCommunityComment($user_name, $title, false, $siteUrl, $rq['link']);
-                        sendEmailToUsers($conn, $emailRecipientIds, "[커뮤니티] {$user_name}님이 새 글을 작성했습니다", $emailHtml, 'cat_community');
+                        $_un = $user_name;
+                        $_tt = $title;
+                        $_lk = $rq['link'];
+                        sendEmailToUsers(
+                            $conn,
+                            $emailRecipientIds,
+                            '',
+                            '',
+                            'cat_community',
+                            function ($lang) use ($_un, $_tt, $siteUrl, $_lk) {
+                                $subj = _t(['ko' => "[커뮤니티] {$_un}님이 새 글을 작성했습니다", 'en' => "[Community] {$_un} posted a new article", 'ja' => "[コミュニティ] {$_un}さんが新規投稿", 'vi' => "[Cộng đồng] {$_un} đã đăng bài mới", 'th' => "[ชุมชน] {$_un} โพสต์ใหม่", 'fr' => "[Communauté] {$_un} a publié un article", 'km' => "[សហគមន៍] {$_un} បានបង្ហោះអត្ថបទ", 'ru' => "[Сообщество] {$_un} опубликовал(а) пост", 'uk' => "[Спільнота] {$_un} опублікував(ла) пост"], $lang);
+                                return ['subject' => $subj, 'html' => emailTemplateCommunityComment($_un, $_tt, false, $siteUrl, $_lk, $lang)];
+                            }
+                        );
                     } catch (Exception $emailErr) {
                         error_log("Email error (community_post): " . $emailErr->getMessage());
                     }
@@ -551,11 +563,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $mentionLink = "/admin/community/{$type}?highlight={$newId}";
                     $mentionNotifStmt->execute([$mu['id'], $mentionMsg, $mentionLink]);
 
-                    // [EMAIL] 멘션 이메일 알림
+                    // [EMAIL] 멘션 이메일 알림 (다국어)
                     try {
                         $siteUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-                        $emailHtml = emailTemplateCommunityComment($user_name, $title, false, $siteUrl, $mentionLink);
-                        sendEmailToUser($conn, $mu['id'], "[커뮤니티] {$user_name}님이 회원님을 언급했습니다", $emailHtml, 'cat_community');
+                        $_un = $user_name;
+                        $_tt = $title;
+                        $_ml = $mentionLink;
+                        sendEmailToUser(
+                            $conn,
+                            $mu['id'],
+                            '',
+                            '',
+                            'cat_community',
+                            function ($lang) use ($_un, $_tt, $siteUrl, $_ml) {
+                                $subj = _t(['ko' => "[커뮤니티] {$_un}님이 회원님을 언급했습니다", 'en' => "[Community] {$_un} mentioned you", 'ja' => "[コミュニティ] {$_un}さんがメンション", 'vi' => "[Cộng đồng] {$_un} đã nhắc đến bạn", 'th' => "[ชุมชน] {$_un} กล่าวถึงคุณ", 'fr' => "[Communauté] {$_un} vous a mentionné", 'km' => "[សហគមន៍] {$_un} បានលើកឡើង", 'ru' => "[Сообщество] {$_un} упомянул(а) вас", 'uk' => "[Спільнота] {$_un} згадав(ла) вас"], $lang);
+                                return ['subject' => $subj, 'html' => emailTemplateCommunityComment($_un, $_tt, false, $siteUrl, $_ml, $lang)];
+                            }
+                        );
                     } catch (Exception $emailErr) {
                         error_log("Email error (community_mention): " . $emailErr->getMessage());
                     }

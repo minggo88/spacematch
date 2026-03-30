@@ -243,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             '',
                             'cat_community',
                             function ($lang) use ($_un, $_pt, $siteUrl, $_nl) {
-                                $subj = _t(['ko' => "{$_un}님이 댓글을 남겼습니다", 'en' => "{$_un} left a comment", 'ja' => "{$_un}さんがコメント", 'vi' => "{$_un} đã bình luận", 'th' => "{$_un} แสดงความคิดเห็น"], $lang);
+                                $subj = _t(['ko' => "{$_un}님이 댓글을 남겼습니다", 'en' => "{$_un} left a comment", 'ja' => "{$_un}さんがコメント", 'vi' => "{$_un} đã bình luận", 'th' => "{$_un} แสดงความคิดเห็น", 'fr' => "{$_un} a commenté", 'km' => "{$_un} បានមតិ", 'ru' => "{$_un} оставил(а) комментарий", 'uk' => "{$_un} залишив(ла) коментар"], $lang);
                                 return ['subject' => $subj, 'html' => emailTemplateCommunityComment($_un, $_pt, false, $siteUrl, $_nl, $lang)];
                             }
                         );
@@ -277,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 '',
                                 'cat_community',
                                 function ($lang) use ($_un, $_pt, $siteUrl, $_rl) {
-                                    $subj = _t(['ko' => "{$_un}님이 답글을 남겼습니다", 'en' => "{$_un} replied", 'ja' => "{$_un}さんが返信", 'vi' => "{$_un} đã trả lời", 'th' => "{$_un} ตอบกลับ"], $lang);
+                                    $subj = _t(['ko' => "{$_un}님이 답글을 남겼습니다", 'en' => "{$_un} replied", 'ja' => "{$_un}さんが返信", 'vi' => "{$_un} đã trả lời", 'th' => "{$_un} ตอบกลับ", 'fr' => "{$_un} a répondu", 'km' => "{$_un} បានឆ្លើយ", 'ru' => "{$_un} ответил(а)", 'uk' => "{$_un} відповів(ла)"], $lang);
                                     return ['subject' => $subj, 'html' => emailTemplateCommunityComment($_un, $_pt, true, $siteUrl, $_rl, $lang)];
                                 }
                             );

@@ -501,7 +501,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         function ($lang) use ($_dn, $_tx, $siteUrl, $_nl, $_tt) {
                             $normalizedLang = normalizeCountryToLang($lang);
                             $preview = $_tt[$lang] ?? $_tt[$normalizedLang] ?? $_tx;
-                            $subj = _t(['ko' => "[CS] {$_dn}님이 메시지를 보냈습니다", 'en' => "[CS] {$_dn} sent a message", 'ja' => "[CS] {$_dn}さんからメッセージ", 'vi' => "[CS] {$_dn} đã gửi tin nhắn", 'th' => "[CS] {$_dn} ส่งข้อความ"], $lang);
+                            $subj = _t(['ko' => "[CS] {$_dn}님이 메시지를 보냈습니다", 'en' => "[CS] {$_dn} sent a message", 'ja' => "[CS] {$_dn}さんからメッセージ", 'vi' => "[CS] {$_dn} đã gửi tin nhắn", 'th' => "[CS] {$_dn} ส่งข้อความ", 'fr' => "[CS] {$_dn} a envoyé un message", 'km' => "[CS] {$_dn} បានផ្ញើសារ", 'ru' => "[CS] {$_dn} отправил(а) сообщение", 'uk' => "[CS] {$_dn} надіслав(ла) повідомлення"], $lang);
                             return ['subject' => $subj, 'html' => emailTemplateChatMessage($_dn, $preview, true, $siteUrl, $_nl, $lang)];
                         }
                     );
@@ -559,7 +559,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         function ($lang) use ($_sn, $_tx, $siteUrl, $_nl, $_tt) {
                             $normalizedLang = normalizeCountryToLang($lang);
                             $preview = $_tt[$lang] ?? $_tt[$normalizedLang] ?? $_tx;
-                            $subj = _t(['ko' => "{$_sn}님이 메시지를 보냈습니다", 'en' => "{$_sn} sent a message", 'ja' => "{$_sn}さんからメッセージ", 'vi' => "{$_sn} đã gửi tin nhắn", 'th' => "{$_sn} ส่งข้อความ"], $lang);
+                            $subj = _t(['ko' => "{$_sn}님이 메시지를 보냈습니다", 'en' => "{$_sn} sent a message", 'ja' => "{$_sn}さんからメッセージ", 'vi' => "{$_sn} đã gửi tin nhắn", 'th' => "{$_sn} ส่งข้อความ", 'fr' => "{$_sn} a envoyé un message", 'km' => "{$_sn} បានផ្ញើសារ", 'ru' => "{$_sn} отправил(а) сообщение", 'uk' => "{$_sn} надіслав(ла) повідомлення"], $lang);
                             return ['subject' => $subj, 'html' => emailTemplateChatMessage($_sn, $preview, false, $siteUrl, $_nl, $lang)];
                         }
                     );
