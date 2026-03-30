@@ -173,14 +173,11 @@ const SellerProfile = () => {
             });
 
             const responseText = await response.text();
-            console.log('Upload response status:', response.status);
-            console.log('Upload response body:', responseText);
 
             let data;
             try {
                 data = JSON.parse(responseText);
             } catch (parseErr) {
-                console.error('Failed to parse response:', responseText);
                 showToast(t('profilePage.serverParseError'), 'error');
                 // Keep local preview even if server response parsing fails
                 return;
@@ -197,7 +194,6 @@ const SellerProfile = () => {
                 showToast(data.message || t('profilePage.profileUploadFailed'), 'error');
             }
         } catch (error) {
-            console.error('Upload error:', error);
             setPreviewImage(user.profile_image || null);
             showToast(t('profilePage.uploadError') + error.message, 'error');
         } finally {
@@ -249,7 +245,6 @@ const SellerProfile = () => {
                     lastError = data.message || t('profilePage.photoUploadFailed');
                 }
             } catch (err) {
-                console.error('Photo upload error:', err);
                 lastError = t('profilePage.photoUploadError');
             }
         }
@@ -301,7 +296,6 @@ const SellerProfile = () => {
                 body: JSON.stringify({ order: newPhotos.map(p => p.id) })
             });
         } catch (err) {
-            console.error('Reorder error:', err);
         }
     };
 
@@ -319,7 +313,6 @@ const SellerProfile = () => {
                 showToast(result.message || t('profilePage.profileUpdateFailed'), 'error');
             }
         } catch (error) {
-            console.error('Profile update failed:', error);
             showToast(t('profilePage.profileUpdateFailed'), 'error');
         } finally {
             setSaving(false);
@@ -354,7 +347,6 @@ const SellerProfile = () => {
                 showToast(result.message || t('profilePage.visibilityFailed'), 'error');
             }
         } catch (error) {
-            console.error('Visibility toggle failed:', error);
             showToast(t('profilePage.visibilityError'), 'error');
         } finally {
             setTogglingVisibility(false);

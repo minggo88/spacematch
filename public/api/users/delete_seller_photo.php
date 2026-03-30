@@ -27,19 +27,22 @@ if (!$data || !isset($data->photo_id)) {
 $photo_id = intval($data->photo_id);
 
 try {
-    // Auto-create trash_bin table
-    $conn->exec("CREATE TABLE IF NOT EXISTS trash_bin (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        table_name VARCHAR(100) NOT NULL,
-        record_id VARCHAR(100) NOT NULL,
-        item_label VARCHAR(255) DEFAULT '',
-        record_data JSON NULL,
-        deleted_by INT NULL,
-        deleted_by_name VARCHAR(100) DEFAULT '',
-        deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_table (table_name),
-        INDEX idx_deleted_at (deleted_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // Auto-create trash_bin table (once per session)
+    if (empty($_SESSION['_ddl_trash_bin'])) {
+        $conn->exec("CREATE TABLE IF NOT EXISTS trash_bin (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            table_name VARCHAR(100) NOT NULL,
+            record_id VARCHAR(100) NOT NULL,
+            item_label VARCHAR(255) DEFAULT '',
+            record_data JSON NULL,
+            deleted_by INT NULL,
+            deleted_by_name VARCHAR(100) DEFAULT '',
+            deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_table (table_name),
+            INDEX idx_deleted_at (deleted_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $_SESSION['_ddl_trash_bin'] = true;
+    }
 
     // Only allow deleting own photos
     $stmt = $conn->prepare("SELECT * FROM seller_photos WHERE id = ? AND user_id = ?");
@@ -69,6 +72,6 @@ try {
     echo json_encode(["success" => true, "message" => "사진이 휴지통으로 이동되었습니다."]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "사진 삭제 중 오류가 발생했습니다."]);
 }
 ?>

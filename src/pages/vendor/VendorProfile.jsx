@@ -64,7 +64,7 @@ const VendorProfile = () => {
         setUploading(true);
         try {
             const formData = new FormData();
-            formData.append('profile_image', file);
+            formData.append('image', file);
 
             const res = await fetch(`${API_BASE}/users/upload_profile_image.php`, {
                 method: 'POST',

@@ -35,6 +35,6 @@ try {
     echo json_encode(["success" => true, "message" => "순서가 변경되었습니다."]);
 } catch (PDOException $e) {
     $conn->rollBack();
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "순서 변경 중 오류가 발생했습니다."]);
 }
 ?>

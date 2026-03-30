@@ -21,19 +21,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $user_id = $_SESSION['user_id'];
 
-// Create seller_photos table if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS seller_photos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        image_url VARCHAR(500) NOT NULL,
-        caption VARCHAR(200) DEFAULT '',
-        sort_order INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_user_id (user_id)
-    )");
-} catch (PDOException $e) {
-    // Table might already exist, continue
+// Create seller_photos table if not exists (once per session)
+if (empty($_SESSION['_ddl_seller_photos'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS seller_photos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            image_url VARCHAR(500) NOT NULL,
+            caption VARCHAR(200) DEFAULT '',
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id)
+        )");
+        $_SESSION['_ddl_seller_photos'] = true;
+    } catch (PDOException $e) {
+        // Table might already exist, continue
+    }
 }
 
 // Check current photo count (max 5)
@@ -123,7 +126,7 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
             ]
         ]);
     } catch (PDOException $e) {
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "사진 저장 중 오류가 발생했습니다."]);
     }
 } else {
     echo json_encode(["success" => false, "message" => "파일 저장 중 오류가 발생했습니다."]);

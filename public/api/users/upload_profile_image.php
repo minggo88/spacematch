@@ -109,14 +109,17 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
     error_log("Web path: " . $web_path);
 
     try {
-        // Ensure profile_image column exists
-        try {
-            $chk = $conn->query("SHOW COLUMNS FROM users LIKE 'profile_image'");
-            if (!$chk->fetch()) {
-                $conn->exec("ALTER TABLE users ADD COLUMN profile_image VARCHAR(500) DEFAULT NULL");
+        // Ensure profile_image column exists (once per session)
+        if (empty($_SESSION['_ddl_profile_image'])) {
+            try {
+                $chk = $conn->query("SHOW COLUMNS FROM users LIKE 'profile_image'");
+                if (!$chk->fetch()) {
+                    $conn->exec("ALTER TABLE users ADD COLUMN profile_image VARCHAR(500) DEFAULT NULL");
+                }
+            } catch (Exception $e) {
+                // Column likely exists
             }
-        } catch (Exception $e) {
-            // Column likely exists
+            $_SESSION['_ddl_profile_image'] = true;
         }
 
         // Update database
@@ -135,7 +138,7 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
         ]);
     } catch (PDOException $e) {
         error_log("DB Error: " . $e->getMessage());
-        echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "message" => "이미지 저장 중 오류가 발생했습니다."]);
     }
 } else {
     $err = error_get_last();
@@ -149,7 +152,7 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
 
     echo json_encode([
         "success" => false,
-        "message" => "File save failed. Check directory permissions. (writable: " . (is_writable($upload_base) ? 'Y' : 'N') . ", exists: " . (file_exists($upload_base) ? 'Y' : 'N') . ")"
+        "message" => "파일 저장에 실패했습니다. 서버 관리자에게 문의하세요."
     ]);
 }
 ?>
