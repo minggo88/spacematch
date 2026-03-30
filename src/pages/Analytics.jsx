@@ -690,7 +690,7 @@ const Analytics = () => {
                     <div className="flex items-center justify-center h-64">
                         <div className="w-10 h-10 border-4 rounded-full animate-spin" style={{ borderColor: COLORS.primaryBg, borderTopColor: COLORS.primary }}></div>
                     </div>
-                ) : !sellerData || sellerData.summary.totalSellers === 0 ? (
+                ) : !sellerData || !sellerData.summary || sellerData.summary.totalSellers === 0 ? (
                     <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
                         <ShoppingBag className="mx-auto text-gray-300 mb-4" size={48} />
                         <h3 className="text-lg font-bold text-gray-400">{t('analyticsPage.noSellerData')}</h3>

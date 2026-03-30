@@ -26,7 +26,7 @@ const HostAnalyticsReport = () => {
             const json = await res.json();
             if (json.success) setData(json.data);
         } catch (err) {
-            console.error('리포트 로드 실패:', err);
+            // silently fail
         } finally {
             setLoading(false);
         }
@@ -108,7 +108,7 @@ const HostAnalyticsReport = () => {
         return (
             <div className="text-center py-20">
                 <BarChart3 className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={48} />
-                <h3 className="text-lg font-bold text-gray-400 dark:text-gray-500">Unable to load report</h3>
+                <h3 className="text-lg font-bold text-gray-400 dark:text-gray-500">리포트를 불러올 수 없습니다</h3>
             </div>
         );
     }

@@ -16,6 +16,7 @@ header('Content-Type: application/json');
 error_reporting(E_ERROR);
 
 if (!isset($_SESSION['user_id'])) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'hasAccess' => false, 'message' => '로그인이 필요합니다.']);
     exit;
 }
@@ -35,46 +36,50 @@ if (!$service) {
     exit;
 }
 
-// Auto-create table
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS user_services (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        service VARCHAR(50) NOT NULL,
-        enabled TINYINT(1) DEFAULT 0,
-        start_date DATE DEFAULT NULL,
-        end_date DATE DEFAULT NULL,
-        auto_apply TINYINT(1) DEFAULT 0,
-        monthly_limit INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY unique_user_service (user_id, service),
-        INDEX (user_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (Exception $e) {
-}
+// Auto-create/migrate tables (once per session)
+if (empty($_SESSION['check_service_migrated'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS user_services (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            service VARCHAR(50) NOT NULL,
+            enabled TINYINT(1) DEFAULT 0,
+            start_date DATE DEFAULT NULL,
+            end_date DATE DEFAULT NULL,
+            auto_apply TINYINT(1) DEFAULT 0,
+            monthly_limit INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_user_service (user_id, service),
+            INDEX (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (Exception $e) {
+    }
 
-// Auto-migrate: add new columns
-try {
-    $conn->exec("ALTER TABLE user_services ADD COLUMN auto_apply TINYINT(1) DEFAULT 0");
-} catch (Exception $e) {
-}
-try {
-    $conn->exec("ALTER TABLE user_services ADD COLUMN monthly_limit INT DEFAULT 0");
-} catch (Exception $e) {
-}
+    // Auto-migrate: add new columns
+    try {
+        $conn->exec("ALTER TABLE user_services ADD COLUMN auto_apply TINYINT(1) DEFAULT 0");
+    } catch (Exception $e) {
+    }
+    try {
+        $conn->exec("ALTER TABLE user_services ADD COLUMN monthly_limit INT DEFAULT 0");
+    } catch (Exception $e) {
+    }
 
-// Auto-create fasttrack_usage table
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS fasttrack_usage (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        application_id INT NOT NULL,
-        used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX (user_id),
-        INDEX (used_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-} catch (Exception $e) {
+    // Auto-create fasttrack_usage table
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS fasttrack_usage (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            application_id INT NOT NULL,
+            used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX (user_id),
+            INDEX (used_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (Exception $e) {
+    }
+
+    $_SESSION['check_service_migrated'] = true;
 }
 
 try {
