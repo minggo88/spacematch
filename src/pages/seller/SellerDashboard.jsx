@@ -815,7 +815,10 @@ const SellerDashboard = () => {
                         </div>
                     </div>
                     <button
-                        onClick={() => navigate('/seller/profile')}
+                        onClick={() => {
+                            const roleBase = { admin: '/admin', superadmin: '/admin', host: '/host', seller: '/seller', vendor: '/vendor' };
+                            navigate(`${roleBase[user?.role] || '/seller'}/profile`);
+                        }}
                         className="flex-shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold transition-colors"
                     >
                         {t('goComplete', { ns: 'common', defaultValue: '완성하기' })}

@@ -210,10 +210,10 @@ const VendorDashboard = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-                            {t('vendorDashboard.completeProfile', '프로필을 완성해 주세요')}
+                            {t('completeProfile', '프로필을 완성해 주세요')}
                         </p>
                         <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                            {t('vendorDashboard.profileProgress', '프로필 완성도')}: {profileComplete}%
+                            {t('profileProgress', '프로필 완성도')}: {profileComplete}%
                         </p>
                         <div className="w-full bg-amber-200/50 dark:bg-amber-800/30 rounded-full h-2 mt-2">
                             <div
@@ -226,7 +226,7 @@ const VendorDashboard = () => {
                         onClick={() => navigate('/vendor/profile')}
                         className="flex-shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold transition-colors"
                     >
-                        {t('vendorDashboard.goComplete', '완성하기')}
+                        {t('goComplete', '완성하기')}
                     </button>
                 </div>
             )}
