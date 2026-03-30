@@ -11,19 +11,22 @@ if (!isset($_SESSION['user_id'])) {
 
 $seller_id = isset($_GET['seller_id']) ? intval($_GET['seller_id']) : $_SESSION['user_id'];
 
-// Create table if not exists
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS seller_photos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        image_url VARCHAR(500) NOT NULL,
-        caption VARCHAR(200) DEFAULT '',
-        sort_order INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_user_id (user_id)
-    )");
-} catch (PDOException $e) {
-    // Continue
+// Create table if not exists (once per session)
+if (empty($_SESSION['_ddl_seller_photos'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS seller_photos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            image_url VARCHAR(500) NOT NULL,
+            caption VARCHAR(200) DEFAULT '',
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id)
+        )");
+        $_SESSION['_ddl_seller_photos'] = true;
+    } catch (PDOException $e) {
+        // Continue
+    }
 }
 
 try {
@@ -39,6 +42,6 @@ try {
     echo json_encode(["success" => true, "photos" => $photos]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "오류가 발생했습니다."]);
 }
 ?>

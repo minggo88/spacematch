@@ -23,16 +23,22 @@ if (empty($identifier)) {
 $is_numeric = ctype_digit($identifier);
 
 try {
-    // 1. Build column list dynamically (only PUBLIC fields)
+    // 1. Build column list (use session cache to avoid SHOW COLUMNS every request)
     $base_cols = "id, name, role, status, created_at";
 
-    // Check optional columns
-    $optional_cols = ['profile_image', 'category', 'product_category', 'instagram', 'description', 'brand_name', 'email', 'phone'];
-    foreach ($optional_cols as $oc) {
-        $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
-        if ($chk && $chk->fetch()) {
-            $base_cols .= ", {$oc}";
+    if (empty($_SESSION['_public_profile_cols'])) {
+        $optional_cols = ['profile_image', 'category', 'product_category', 'instagram', 'description', 'brand_name', 'email', 'phone'];
+        $available = [];
+        foreach ($optional_cols as $oc) {
+            $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
+            if ($chk && $chk->fetch()) {
+                $available[] = $oc;
+            }
         }
+        $_SESSION['_public_profile_cols'] = $available;
+    }
+    foreach ($_SESSION['_public_profile_cols'] as $oc) {
+        $base_cols .= ", {$oc}";
     }
 
     if ($is_numeric) {
@@ -156,6 +162,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    error_log('[get_public_profile] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => "프로필 로드 중 오류가 발생했습니다."]);
 }
 ?>

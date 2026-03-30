@@ -1,0 +1,1 @@
+import{j as o}from"./index-DFDkzfCj.js";import"./vendor-icons-BjwHqBrJ.js";import r from"./SellerStats-A7VcJ5wf.js";import"./vendor-i18n-lI1Sadkb.js";import"./vendor-xlsx-DSA9T5jJ.js";import"./ConfirmModal-BUL_ETU6.js";import"./NumberInput-aqy1bf0w.js";const s=()=>o.jsx(r,{userRole:"host"});export{s as default};
