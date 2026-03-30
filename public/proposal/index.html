@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpaceMatch - 서비스 소개서 | 공간과 브랜드의 완벽한 매칭 플랫폼</title>
+    <meta name="description" content="SpaceMatch는 유휴 공간과 성장하는 브랜드를 연결하는 올인원 매칭 플랫폼입니다. 행사 검색, CRM 대시보드, 세무 지원까지.">
+    <link rel="icon" href="/favicon.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --violet: #7C3AED;
+            --gradient: linear-gradient(135deg, #4F46E5, #7C3AED);
+            --bg: #ffffff;
+            --bg-alt: #F8FAFC;
+            --text: #0F172A;
+            --text-sub: #64748B;
+            --border: #E2E8F0;
+            --radius: 16px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, .06)
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans KR', system-ui, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased
+        }
+
+        img {
+            max-width: 100%;
+            height: auto
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 24px
+        }
+
+        .section {
+            padding: 100px 0
+        }
+
+        .section-alt {
+            background: var(--bg-alt)
+        }
+
+        .text-center {
+            text-align: center
+        }
+
+        .flex {
+            display: flex
+        }
+
+        .flex-col {
+            flex-direction: column
+        }
+
+        .items-center {
+            align-items: center
+        }
+
+        .justify-center {
+            justify-content: center
+        }
+
+        .gap-16 {
+            gap: 16px
+        }
+
+        .gap-24 {
+            gap: 24px
+        }
+
+        .gap-32 {
+            gap: 32px
+        }
+
+        .gap-48 {
+            gap: 48px
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px
+        }
+
+        /* Typography */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: rgba(79, 70, 229, .08);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 100px;
+            letter-spacing: .5px;
+            margin-bottom: 20px
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 2s infinite
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -.02em
+        }
+
+        h2 {
+            font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -.015em
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.4
+        }
+
+        .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .sub-text {
+            color: var(--text-sub);
+            font-size: 1.05rem;
+            max-width: 640px;
+            margin: 0 auto
+        }
+
+        .sub-text-lg {
+            color: var(--text-sub);
+            font-size: 1.15rem;
+            max-width: 700px;
+            line-height: 1.8
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all .3s;
+            cursor: pointer;
+            border: none
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, .3)
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(79, 70, 229, .4)
+        }
+
+        .btn-outline {
+            border: 2px solid var(--border);
+            color: var(--text);
+            background: transparent
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary)
+        }
+
+        /* Cards */
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            transition: all .3s
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-4px);
+            border-color: var(--primary-light)
+        }
+
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px
+        }
+
+        .icon-indigo {
+            background: rgba(79, 70, 229, .1);
+            color: var(--primary)
+        }
+
+        .icon-violet {
+            background: rgba(124, 58, 237, .1);
+            color: var(--violet)
+        }
+
+        .icon-emerald {
+            background: rgba(16, 185, 129, .1);
+            color: #10B981
+        }
+
+        .icon-amber {
+            background: rgba(245, 158, 11, .1);
+            color: #F59E0B
+        }
+
+        .icon-rose {
+            background: rgba(244, 63, 94, .1);
+            color: #F43F5E
+        }
+
+        .icon-sky {
+            background: rgba(14, 165, 233, .1);
+            color: #0EA5E9
+        }
+
+        /* Animations */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .4
+            }
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-12px)
+            }
+        }
+
+        .anim {
+            opacity: 0;
+            animation: fadeUp .8s ease forwards
+        }
+
+        .anim-d1 {
+            animation-delay: .1s
+        }
+
+        .anim-d2 {
+            animation-delay: .2s
+        }
+
+        .anim-d3 {
+            animation-delay: .3s
+        }
+
+        .anim-d4 {
+            animation-delay: .4s
+        }
+
+        /* Nav */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, .85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .nav-logo {
+            font-size: 22px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .nav-logo span {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-sub)
+        }
+
+        .nav-links a:hover {
+            color: var(--primary)
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding-top: 80px
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #EEF2FF 0%, #fff 40%, #F5F3FF 100%)
+        }
+
+        .hero-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: .4
+        }
+
+        .hero-orb-1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(79, 70, 229, .15);
+            top: 10%;
+            left: -5%
+        }
+
+        .hero-orb-2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(124, 58, 237, .12);
+            bottom: 10%;
+            right: -5%
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center
+        }
+
+        .hero-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px
+        }
+
+        .hero h1 {
+            margin-bottom: 24px
+        }
+
+        .hero-desc {
+            color: var(--text-sub);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 36px;
+            max-width: 500px
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 40px
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 28px
+        }
+
+        .hero-badges .hb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-sub);
+            font-weight: 500
+        }
+
+        .hero-badges .hb-icon {
+            color: var(--primary);
+            font-size: 16px
+        }
+
+        .hero-visual {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px
+        }
+
+        .hero-card {
+            position: absolute;
+            background: rgba(255, 255, 255, .92);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, .8);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .08)
+        }
+
+        .hc-1 {
+            top: 5%;
+            left: 5%;
+            width: 220px;
+            animation: float 6s ease-in-out infinite
+        }
+
+        .hc-2 {
+            top: 0;
+            right: 5%;
+            width: 180px;
+            animation: float 6s ease-in-out infinite 1s
+        }
+
+        .hc-3 {
+            bottom: 5%;
+            right: 0;
+            width: 200px;
+            animation: float 6s ease-in-out infinite 2s
+        }
+
+        .hc-bar {
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px
+        }
+
+        /* Stats */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 40px 24px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius)
+        }
+
+        .stat-num {
+            font-size: 2.8rem;
+            font-weight: 900;
+            margin-bottom: 4px
+        }
+
+        .stat-label {
+            color: var(--text-sub);
+            font-size: 14px;
+            font-weight: 500
+        }
+
+        /* Feature detail */
+        .feature-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            margin-bottom: 80px
+        }
+
+        .feature-row.reverse {
+            direction: rtl
+        }
+
+        .feature-row.reverse>* {
+            direction: ltr
+        }
+
+        .feature-img {
+            background: var(--bg-alt);
+            border-radius: 20px;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            border: 1px solid var(--border)
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 24px
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 15px;
+            color: var(--text-sub)
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 16px;
+            flex-shrink: 0
+        }
+
+        /* Target */
+        .target-card {
+            border-radius: var(--radius);
+            padding: 40px;
+            border: 1px solid var(--border);
+            background: #fff;
+            transition: all .3s
+        }
+
+        .target-card:hover {
+            box-shadow: var(--shadow)
+        }
+
+        .target-card h3 {
+            margin-bottom: 8px
+        }
+
+        .target-badge {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            background: rgba(79, 70, 229, .08);
+            padding: 4px 12px;
+            border-radius: 6px;
+            margin-bottom: 16px
+        }
+
+        .target-list {
+            list-style: none;
+            margin-top: 20px
+        }
+
+        .target-list li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .target-list li::before {
+            content: '•';
+            color: var(--primary);
+            font-weight: 900;
+            font-size: 18px
+        }
+
+        /* Process */
+        .process-step {
+            display: flex;
+            gap: 28px;
+            margin-bottom: 48px;
+            position: relative
+        }
+
+        .process-num {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--gradient);
+            color: #fff;
+            font-weight: 800;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .process-content h3 {
+            margin-bottom: 8px
+        }
+
+        .process-content p {
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.7
+        }
+
+        /* Pricing */
+        .pricing-card {
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 40px;
+            text-align: center;
+            transition: all .3s;
+            position: relative
+        }
+
+        .pricing-card.featured {
+            border-color: var(--primary);
+            box-shadow: 0 8px 40px rgba(79, 70, 229, .15)
+        }
+
+        .pricing-tag {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gradient);
+            color: #fff;
+            padding: 4px 20px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .pricing-price {
+            font-size: 2.8rem;
+            font-weight: 900;
+            margin: 16px 0 8px
+        }
+
+        .pricing-period {
+            color: var(--text-sub);
+            font-size: 14px;
+            margin-bottom: 24px
+        }
+
+        .pricing-list {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 32px
+        }
+
+        .pricing-list li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .pricing-list li::before {
+            content: '✓';
+            color: #10B981;
+            font-weight: 800
+        }
+
+        /* Global */
+        .global-flags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 32px
+        }
+
+        .flag-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        /* CTA */
+        .cta-section {
+            background: var(--gradient);
+            padding: 80px 0;
+            text-align: center;
+            color: #fff;
+            border-radius: 0
+        }
+
+        .cta-section h2 {
+            color: #fff;
+            margin-bottom: 16px
+        }
+
+        .cta-section p {
+            color: rgba(255, 255, 255, .8);
+            margin-bottom: 32px
+        }
+
+        .btn-white {
+            background: #fff;
+            color: var(--primary);
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .1)
+        }
+
+        .btn-white:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .15)
+        }
+
+        /* Footer */
+        .footer-section {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-sub);
+            font-size: 13px
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border)
+        }
+
+        .comparison-table th {
+            background: var(--bg-alt);
+            padding: 14px 20px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .comparison-table td {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            font-size: 14px
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(79, 70, 229, .02)
+        }
+
+        .check {
+            color: #10B981;
+            font-weight: 800
+        }
+
+        .cross {
+            color: #CBD5E1
+        }
+
+        /* Responsive */
+        @media(max-width:768px) {
+
+            .hero-grid,
+            .grid-2,
+            .feature-row,
+            .feature-row.reverse {
+                grid-template-columns: 1fr;
+                gap: 32px
+            }
+
+            .grid-3 {
+                grid-template-columns: 1fr
+            }
+
+            .grid-4,
+            .stat-grid {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .hero-visual {
+                min-height: 280px;
+                margin-bottom: 20px;
+                order: -1
+            }
+
+            .nav-links {
+                display: none
+            }
+
+            .section {
+                padding: 60px 0
+            }
+
+            .hero-cta {
+                flex-direction: column
+            }
+
+            .hero-badges {
+                flex-wrap: wrap;
+                gap: 16px
+            }
+
+            .footer-inner {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="container nav-inner">
+            <div class="nav-logo">📍 <span>SpaceMatch</span></div>
+            <div class="nav-links">
+                <a href="#about">소개</a>
+                <a href="#services">서비스</a>
+                <a href="#target">대상</a>
+                <a href="#process">프로세스</a>
+                <a href="#global">글로벌</a>
+                <a href="#pricing">요금</a>
+                <a href="#contact">문의</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="container hero-content">
+            <div class="hero-grid">
+                <div>
+                    <div class="hero-label anim">Service Proposal 2026</div>
+                    <h1 class="anim anim-d1">공간과 브랜드의<br><span class="gradient-text">완벽한 매칭</span>,<br>SpaceMatch</h1>
+                    <p class="hero-desc anim anim-d2">행사 검색부터 CRM 대시보드, 세무 지원, 셀러 커뮤니티까지<br>셀러에게 필요한 모든 것을 하나의 플랫폼에서
+                        제공합니다.</p>
+                    <div class="hero-cta anim anim-d3">
+                        <a href="/" class="btn btn-primary">플랫폼 바로가기 →</a>
+                        <a href="#services" class="btn btn-outline">서비스 알아보기</a>
+                    </div>
+                    <div class="hero-badges anim anim-d4">
+                        <div class="hb"><span class="hb-icon">📊</span> 매출 CRM</div>
+                        <div class="hb"><span class="hb-icon">🧾</span> 세무 자동화</div>
+                        <div class="hb"><span class="hb-icon">🌍</span> 11개국 지원</div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-card hc-1">
+                        <div
+                            style="width:100%;height:80px;background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border-radius:12px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-size:32px">
+                            🏪</div>
+                        <div class="hc-bar" style="background:#E0E7FF;width:75%"></div>
+                        <div class="hc-bar" style="background:#F1F5F9;width:50%"></div>
+                    </div>
+                    <div class="hero-card hc-2">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                            <div
+                                style="width:32px;height:32px;border-radius:8px;background:#D1FAE5;display:flex;align-items:center;justify-content:center">
+                                📈</div><span style="color:#10B981;font-weight:800;font-size:14px">+24.5%</span>
+                        </div>
+                        <div class="hc-bar" style="background:#D1FAE5;width:100%"></div>
+                        <div class="hc-bar" style="background:#F1F5F9;width:65%"></div>
+                    </div>
+                    <div class="hero-card hc-3">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                            <div
+                                style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);display:flex;align-items:center;justify-content:center">
+                                👥</div>
+                            <div>
+                                <div class="hc-bar" style="background:#E0E7FF;width:60px;margin:0"></div>
+                            </div>
+                        </div>
+                        <div class="hc-bar" style="background:#F5F3FF;width:85%"></div>
+                        <div class="hc-bar" style="background:#F1F5F9;width:50%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About -->
+    <section class="section" id="about">
+        <div class="container text-center">
+            <div class="badge"><span class="badge-dot"></span> ABOUT SPACEMATCH</div>
+            <h2 style="margin-bottom:16px">유휴 공간에 <span class="gradient-text">새로운 가치</span>를</h2>
+            <p class="sub-text" style="margin-bottom:48px">SpaceMatch는 전국의 유휴 공간과 성장하는 브랜드를 연결하여 새로운 비즈니스 기회를 만들어 가는
+                <strong>올인원 매칭 플랫폼</strong>입니다. 공간의 가치를 극대화하고, 브랜드에게는 고객과의 접점을 넓혀주는 가교 역할을 합니다.</p>
+            <div class="grid-3" style="max-width:900px;margin:0 auto">
+                <div class="card text-center anim">
+                    <div class="card-icon icon-indigo" style="margin:0 auto 20px">🤝</div>
+                    <h3>신뢰 Trust</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:8px">확인된 사업자 정보와 공간 정보를 기반으로 투명한 매칭 환경을
+                        보장합니다.</p>
+                </div>
+                <div class="card text-center anim anim-d1">
+                    <div class="card-icon icon-violet" style="margin:0 auto 20px">💡</div>
+                    <h3>혁신 Innovation</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:8px">직관적 대시보드와 통계 분석으로 공간 임대 프로세스를 효율적으로
+                        혁신합니다.</p>
+                </div>
+                <div class="card text-center anim anim-d2">
+                    <div class="card-icon icon-emerald" style="margin:0 auto 20px">🌱</div>
+                    <h3>상생 Win-Win</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:8px">공간 제공자는 수익을, 브랜드는 성장을 얻는 상생 모델을
+                        추구합니다.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="section section-alt">
+        <div class="container text-center">
+            <div class="badge"><span class="badge-dot"></span> PROVEN RESULTS</div>
+            <h2 style="margin-bottom:48px">검증된 <span class="gradient-text">성과</span></h2>
+            <div class="stat-grid">
+                <div class="stat-card anim">
+                    <div class="stat-num gradient-text">500+</div>
+                    <div class="stat-label">등록 셀러</div>
+                </div>
+                <div class="stat-card anim anim-d1">
+                    <div class="stat-num gradient-text">11</div>
+                    <div class="stat-label">지원 국가</div>
+                </div>
+                <div class="stat-card anim anim-d2">
+                    <div class="stat-num gradient-text">10K+</div>
+                    <div class="stat-label">매출 기록 건수</div>
+                </div>
+                <div class="stat-card anim anim-d3">
+                    <div class="stat-num gradient-text">98%</div>
+                    <div class="stat-label">사용자 만족도</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section class="section" id="services">
+        <div class="container">
+            <div class="text-center" style="margin-bottom:64px">
+                <div class="badge"><span class="badge-dot"></span> CORE SERVICES</div>
+                <h2>SpaceMatch <span class="gradient-text">핵심 서비스</span></h2>
+                <p class="sub-text" style="margin-top:12px">셀러와 공간 제공자 모두를 위한 유일한 올인원 매칭 플랫폼</p>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:80px">
+                <div class="card anim">
+                    <div class="card-icon icon-indigo">🔍</div>
+                    <h3>행사 검색 & 매칭</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:10px">전국 플리마켓, 팝업, 갤러리 등을 지역별·유형별 필터로 빠르게
+                        검색하고 클릭 한 번으로 입점 신청하세요.</p>
+                </div>
+                <div class="card anim anim-d1">
+                    <div class="card-icon icon-emerald">📊</div>
+                    <h3>매출 관리 CRM</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:10px">일/월/연간 매출 자동 집계, 상품별 수익률 트렌드, 엑셀
+                        임포트, 다채널 매출 원스톱 관리를 제공합니다.</p>
+                </div>
+                <div class="card anim anim-d2">
+                    <div class="card-icon icon-violet">🧾</div>
+                    <h3>세무 지원 시스템</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:10px">부가세/종합소득세 예상 세율 자동 계산, 신고 기한 알림, 국가별
+                        세율 커스터마이징으로 세금 걱정을 덜어드립니다.</p>
+                </div>
+                <div class="card anim anim-d3">
+                    <div class="card-icon icon-amber">👥</div>
+                    <h3>셀러 커뮤니티</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:10px">셀러·호스트 전용 게시판과 통합 커뮤니티에서 정보 공유,
+                        네트워킹, 파트너를 찾아보세요.</p>
+                </div>
+                <div class="card anim anim-d4">
+                    <div class="card-icon icon-rose">📂</div>
+                    <h3>ERP 엑셀 업로드</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:10px">네이버 스마트스토어, 쿠팡, Cafe24, Shopify,
+                        Amazon 등 주요 ERP 엑셀을 자동 인식하여 매출 데이터를 임포트합니다.</p>
+                </div>
+                <div class="card anim">
+                    <div class="card-icon icon-sky">📋</div>
+                    <h3>고객 분석 (RFM)</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:10px">RFM 기반 고객 세분화, 이탈 위험 감지, CRM 워크플로우
+                        자동화로 스마트한 고객 관리를 지원합니다.</p>
+                </div>
+            </div>
+
+            <!-- Detailed Feature 1 -->
+            <div class="feature-row anim">
+                <div class="feature-img">
+                    <div style="text-align:center">
+                        <div style="font-size:64px;margin-bottom:16px">📊</div>
+                        <div style="font-size:18px;font-weight:700;color:var(--text)">CRM 대시보드</div>
+                        <div style="font-size:13px;color:var(--text-sub);margin-top:8px">실시간 매출 · 차트 · KPI</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="badge"><span class="badge-dot"></span> CRM DASHBOARD</div>
+                    <h2 style="margin-bottom:12px">데이터 기반<br><span class="gradient-text">매출 의사결정</span></h2>
+                    <p class="sub-text-lg" style="margin:0;font-size:15px">일별/월별/연간 매출 데이터를 자동으로 집계하고, 트렌드 차트와 핵심 KPI를
+                        한눈에 확인하세요. 매출 예측(Forecast), 전월 대비 성장률, 요일별 분석까지 제공합니다.</p>
+                    <ul class="feature-list">
+                        <li>일/월/연간 매출 실시간 집계 및 통합 대시보드</li>
+                        <li>12개월 매출 트렌드 차트 및 전년 대비(YoY) 성장 분석</li>
+                        <li>매출 예측(Forecast) 및 분기별 목표 달성 확률</li>
+                        <li>엑셀/CSV 데이터 원클릭 내보내기 (Excel, Google Sheets)</li>
+                        <li>다국가 · 다통화 지원 (11개국, 20+ 통화)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Detailed Feature 2 -->
+            <div class="feature-row reverse anim">
+                <div class="feature-img">
+                    <div style="text-align:center">
+                        <div style="font-size:64px;margin-bottom:16px">🧾</div>
+                        <div style="font-size:18px;font-weight:700;color:var(--text)">세무 관리</div>
+                        <div style="font-size:13px;color:var(--text-sub);margin-top:8px">자동 세율 · 신고 알림</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="badge"><span class="badge-dot"></span> TAX SUPPORT</div>
+                    <h2 style="margin-bottom:12px">셀러를 위한<br><span class="gradient-text">세무 자동화</span></h2>
+                    <p class="sub-text-lg" style="margin:0;font-size:15px">국가별 부가세/종합소득세를 자동 계산하고, 신고 기한 알림과 세율 커스터마이징으로
+                        세무 부담을 획기적으로 줄여드립니다.</p>
+                    <ul class="feature-list">
+                        <li>국가별 세결 자동 계산 (부가세, 종합소득세)</li>
+                        <li>간이과세/일반과세 자동 구분 및 세율 적용</li>
+                        <li>소득세 구간별 누진세율 커스터마이징</li>
+                        <li>추가 공제 항목 설정 및 절세 시뮬레이션</li>
+                        <li>분기/반기/연간 세금 신고 기한 자동 알림</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Target Audience -->
+    <section class="section section-alt" id="target">
+        <div class="container">
+            <div class="text-center" style="margin-bottom:64px">
+                <div class="badge"><span class="badge-dot"></span> WHO IS IT FOR</div>
+                <h2>이런 분들을 위한 <span class="gradient-text">플랫폼</span></h2>
+            </div>
+            <div class="grid-2">
+                <div class="target-card anim">
+                    <div class="target-badge">🛍️ 입점 브랜드</div>
+                    <h3>셀러 (Seller)</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:8px">팝업스토어, 갤러리, 쇼룸 등 최적의 공간을 찾는 브랜드 사장님
+                    </p>
+                    <ul class="target-list">
+                        <li>호스트(공간) 탐색 & 상세 필터링</li>
+                        <li>클릭 한 번 입점 신청 & 실시간 추적</li>
+                        <li>매출 CRM 대시보드 & 세무 지원</li>
+                        <li>엑셀 데이터 업로드 (네이버/쿠팡/Shopify 등)</li>
+                        <li>셀러 전용 커뮤니티 & 네트워킹</li>
+                        <li>프로필 / 포트폴리오 관리</li>
+                    </ul>
+                </div>
+                <div class="target-card anim anim-d1">
+                    <div class="target-badge">🏢 공간 제공자</div>
+                    <h3>호스트 (Host)</h3>
+                    <p style="color:var(--text-sub);font-size:14px;margin-top:8px">유휴 공간에 브랜드를 유치하고 관리하는 공간 소유자·관리자</p>
+                    <ul class="target-list">
+                        <li>공간 등록 & 사진·상세정보 관리</li>
+                        <li>입점 신청 승인·반려 워크플로우</li>
+                        <li>셀러 탐색 & 카테고리별 모집</li>
+                        <li>취소 요청 & 계약 조건 관리</li>
+                        <li>활동 통계 & 지역별 분석</li>
+                        <li>호스트 전용 커뮤니티</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process -->
+    <section class="section" id="process">
+        <div class="container">
+            <div class="text-center" style="margin-bottom:64px">
+                <div class="badge"><span class="badge-dot"></span> HOW IT WORKS</div>
+                <h2>간단한 3단계로 <span class="gradient-text">시작하세요</span></h2>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <h3 style="margin-bottom:32px;color:var(--primary)">🛍️ 셀러 프로세스</h3>
+                    <div class="process-step anim">
+                        <div class="process-num">1</div>
+                        <div class="process-content">
+                            <h3>회원가입</h3>
+                            <p>이메일과 기본 정보만으로 간편하게 셀러 계정을 만드세요. 사업자번호, 브랜드명, 카테고리를 입력하면 완료입니다.</p>
+                        </div>
+                    </div>
+                    <div class="process-step anim anim-d1">
+                        <div class="process-num">2</div>
+                        <div class="process-content">
+                            <h3>공간 탐색 & 입점 신청</h3>
+                            <p>지역, 유형, 규모별 필터로 원하는 공간을 찾고 클릭 한 번으로 입점 신청하세요. D-Day 마감 카운트다운도 확인 가능합니다.</p>
+                        </div>
+                    </div>
+                    <div class="process-step anim anim-d2">
+                        <div class="process-num">3</div>
+                        <div class="process-content">
+                            <h3>매칭 & 운영 관리</h3>
+                            <p>공간 제공자의 승인 후 매칭 완료! 대시보드에서 입점 현황, 매출, 세무를 실시간으로 관리하세요.</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="margin-bottom:32px;color:var(--violet)">🏢 호스트 프로세스</h3>
+                    <div class="process-step anim">
+                        <div class="process-num" style="background:linear-gradient(135deg,#7C3AED,#A855F7)">1</div>
+                        <div class="process-content">
+                            <h3>공간 등록</h3>
+                            <p>보유 공간의 위치, 규모, 유형, 가격, 사진을 등록하세요. 모집 마감 기한(D-day)도 설정할 수 있습니다.</p>
+                        </div>
+                    </div>
+                    <div class="process-step anim anim-d1">
+                        <div class="process-num" style="background:linear-gradient(135deg,#7C3AED,#A855F7)">2</div>
+                        <div class="process-content">
+                            <h3>셀러 탐색 & 모집</h3>
+                            <p>카테고리별 셀러를 검색하고 프로필과 포트폴리오를 확인하세요. 커뮤니티에서 정보도 교류할 수 있습니다.</p>
+                        </div>
+                    </div>
+                    <div class="process-step anim anim-d2">
+                        <div class="process-num" style="background:linear-gradient(135deg,#7C3AED,#A855F7)">3</div>
+                        <div class="process-content">
+                            <h3>승인 & 관리</h3>
+                            <p>입점 신청을 검토·승인·반려하고, 대시보드에서 공간별 입점 현황과 통계를 한눈에 관리하세요.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison -->
+    <section class="section section-alt" id="comparison">
+        <div class="container">
+            <div class="text-center" style="margin-bottom:48px">
+                <div class="badge"><span class="badge-dot"></span> COMPARISON</div>
+                <h2>왜 <span class="gradient-text">SpaceMatch</span>인가요?</h2>
+            </div>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>기능</th>
+                        <th>SpaceMatch</th>
+                        <th>일반 공간 임대 사이트</th>
+                        <th>수동 관리 (엑셀)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>공간-브랜드 매칭</td>
+                        <td class="check">✓ 자동 매칭</td>
+                        <td class="check">✓ 수동</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>매출 CRM 대시보드</td>
+                        <td class="check">✓ 실시간</td>
+                        <td class="cross">✗</td>
+                        <td>△ 제한적</td>
+                    </tr>
+                    <tr>
+                        <td>세무 자동 계산</td>
+                        <td class="check">✓ 11개국</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>ERP 엑셀 자동 임포트</td>
+                        <td class="check">✓ 6개 플랫폼</td>
+                        <td class="cross">✗</td>
+                        <td>△ 수동 입력</td>
+                    </tr>
+                    <tr>
+                        <td>고객 분석 (RFM/CRM)</td>
+                        <td class="check">✓ AI 기반</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>다국어 / 다통화</td>
+                        <td class="check">✓ 11개국 20+통화</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>셀러 커뮤니티</td>
+                        <td class="check">✓ 전용 게시판</td>
+                        <td class="cross">✗</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                    <tr>
+                        <td>모바일 반응형</td>
+                        <td class="check">✓ 완벽 지원</td>
+                        <td>△ 부분</td>
+                        <td class="cross">✗</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Global -->
+    <section class="section" id="global">
+        <div class="container text-center">
+            <div class="badge"><span class="badge-dot"></span> GLOBAL</div>
+            <h2 style="margin-bottom:12px"><span class="gradient-text">11개국</span> 글로벌 지원</h2>
+            <p class="sub-text" style="margin-bottom:48px">각 국가별 언어, 통화, 세율 커스터마이징을 완벽 지원합니다</p>
+            <div class="global-flags">
+                <div class="flag-item">🇰🇷 한국</div>
+                <div class="flag-item">🇺🇸 미국</div>
+                <div class="flag-item">🇬🇧 영국</div>
+                <div class="flag-item">🇨🇦 캐나다</div>
+                <div class="flag-item">🇯🇵 일본</div>
+                <div class="flag-item">🇻🇳 베트남</div>
+                <div class="flag-item">🇹🇭 태국</div>
+                <div class="flag-item">🇰🇭 캄보디아</div>
+                <div class="flag-item">🇷🇺 러시아</div>
+                <div class="flag-item">🇺🇦 우크라이나</div>
+                <div class="flag-item">🇸🇬 싱가포르</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section section-alt" id="pricing">
+        <div class="container">
+            <div class="text-center" style="margin-bottom:48px">
+                <div class="badge"><span class="badge-dot"></span> PRICING</div>
+                <h2>합리적인 <span class="gradient-text">요금 체계</span></h2>
+            </div>
+            <div class="grid-3">
+                <div class="pricing-card anim">
+                    <h3>Free</h3>
+                    <p style="color:var(--text-sub);font-size:14px">개인 셀러</p>
+                    <div class="pricing-price">₩0</div>
+                    <div class="pricing-period">영구 무료</div>
+                    <ul class="pricing-list">
+                        <li>공간 탐색 & 입점 신청</li>
+                        <li>기본 매출 대시보드</li>
+                        <li>월 50건 데이터 입력</li>
+                        <li>커뮤니티 이용</li>
+                        <li>이메일 지원</li>
+                    </ul>
+                    <a href="/signup/seller" class="btn btn-outline" style="width:100%;justify-content:center">무료 시작</a>
+                </div>
+                <div class="pricing-card featured anim anim-d1">
+                    <div class="pricing-tag">추천</div>
+                    <h3>Pro</h3>
+                    <p style="color:var(--text-sub);font-size:14px">성장하는 셀러</p>
+                    <div class="pricing-price gradient-text">₩29,900</div>
+                    <div class="pricing-period">/ 월</div>
+                    <ul class="pricing-list">
+                        <li>Free 요금제 전체 포함</li>
+                        <li>무제한 데이터 & 엑셀 업로드</li>
+                        <li>세무 자동 계산 & 알림</li>
+                        <li>고객 분석 (RFM/CRM)</li>
+                        <li>데이터 내보내기 (Excel/Sheet)</li>
+                        <li>우선 고객 지원</li>
+                    </ul>
+                    <a href="/signup/seller" class="btn btn-primary" style="width:100%;justify-content:center">Pro
+                        시작하기</a>
+                </div>
+                <div class="pricing-card anim anim-d2">
+                    <h3>Enterprise</h3>
+                    <p style="color:var(--text-sub);font-size:14px">대규모 호스트/브랜드</p>
+                    <div class="pricing-price">별도 협의</div>
+                    <div class="pricing-period">맞춤 견적</div>
+                    <ul class="pricing-list">
+                        <li>Pro 요금제 전체 포함</li>
+                        <li>다국가 멀티 매장 관리</li>
+                        <li>API 연동 & 커스텀 리포트</li>
+                        <li>전담 매니저 배정</li>
+                        <li>SLA 보장 & 온보딩 교육</li>
+                    </ul>
+                    <a href="#contact" class="btn btn-outline" style="width:100%;justify-content:center">문의하기</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="contact">
+        <div class="container text-center">
+            <h2>지금 SpaceMatch를 시작하세요</h2>
+            <p style="max-width:500px;margin:0 auto 32px;font-size:1.05rem">무료 회원가입으로 모든 기능을 경험하세요.<br>궁금한 점이 있으시면 언제든
+                문의해 주세요.</p>
+            <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+                <a href="/signup/seller" class="btn btn-white">무료 회원가입 →</a>
+                <a href="http://pf.kakao.com/_xjGxoRX/chat" target="_blank" class="btn"
+                    style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)">💬 카카오톡
+                    문의</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <section class="footer-section">
+        <div class="container footer-inner">
+            <div>📍 <strong>SpaceMatch</strong> · 스페이스메치 · 대표 백세웅 · 사업자번호 638-20-02679</div>
+            <div>서울시 용산구 이촌로 · support@spacematch.co.kr</div>
+            <div>© 2026 SpaceMatch. All rights reserved.</div>
+        </div>
+    </section>
+
+    <script>
+        // Intersection Observer for fade-in animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.anim').forEach(el => {
+            el.style.animationPlayState = 'paused';
+            observer.observe(el);
+        });
+        // Smooth scroll for nav links
+        document.querySelectorAll('.nav-links a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    </script>
+</body>
+
+</html>
