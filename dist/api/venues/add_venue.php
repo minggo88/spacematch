@@ -200,99 +200,54 @@ if ($name && $location && ($price !== null && $price !== '')) {
     $status = in_array($role, ['admin', 'superadmin']) ? 'approved' : 'pending';
 
     try {
-        // Auto-migrate: add size column if not exists
-        $col_check = $conn->query("SHOW COLUMNS FROM venues LIKE 'size'");
-        $has_size_column = $col_check->fetch() ? true : false;
-        if (!$has_size_column) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN size VARCHAR(20) DEFAULT 'medium' AFTER type");
-            $has_size_column = true;
+        // Auto-migrate: run DDL once per session
+        if (empty($_SESSION['_ddl_venues_migrated'])) {
+            $migrate_cols = [
+                ['size', "ADD COLUMN size VARCHAR(20) DEFAULT 'medium' AFTER type"],
+                ['commission_rate', "ADD COLUMN commission_rate DECIMAL(5,2) DEFAULT 0 AFTER price"],
+                ['pricing_unit', "ADD COLUMN pricing_unit ENUM('daily', 'weekly', 'monthly') DEFAULT 'daily' AFTER price"],
+                ['recruitment_deadline', "ADD COLUMN recruitment_deadline DATE DEFAULT NULL"],
+                ['recruitment_closed', "ADD COLUMN recruitment_closed TINYINT(1) DEFAULT 0"],
+                ['max_sellers', "ADD COLUMN max_sellers INT DEFAULT 0"],
+                ['region', "ADD COLUMN region VARCHAR(50) DEFAULT '' AFTER location"],
+                ['recruitment_start', "ADD COLUMN recruitment_start DATE DEFAULT NULL"],
+                ['recruitment_end', "ADD COLUMN recruitment_end DATE DEFAULT NULL"],
+                ['event_start', "ADD COLUMN event_start DATE DEFAULT NULL"],
+                ['event_end', "ADD COLUMN event_end DATE DEFAULT NULL"],
+                ['event_periods', "ADD COLUMN event_periods TEXT DEFAULT NULL"],
+                ['latitude', "ADD COLUMN latitude DECIMAL(10,7) DEFAULT NULL"],
+                ['longitude', "ADD COLUMN longitude DECIMAL(10,7) DEFAULT NULL"],
+                ['avg_sales', "ADD COLUMN avg_sales VARCHAR(100) DEFAULT ''"],
+                ['sales_unit', "ADD COLUMN sales_unit VARCHAR(20) DEFAULT 'monthly'"],
+                ['popular_categories', "ADD COLUMN popular_categories TEXT DEFAULT NULL"],
+                ['target_customers', "ADD COLUMN target_customers TEXT DEFAULT NULL"],
+                ['attachments', "ADD COLUMN attachments TEXT DEFAULT NULL"],
+                ['is_premium', "ADD COLUMN is_premium TINYINT(1) DEFAULT 0"],
+            ];
+            foreach ($migrate_cols as $mc) {
+                try {
+                    $chk = $conn->query("SHOW COLUMNS FROM venues LIKE '{$mc[0]}'");
+                    if (!$chk->fetch()) {
+                        $conn->exec("ALTER TABLE venues {$mc[1]}");
+                    }
+                } catch (Exception $e) { /* already exists */
+                }
+            }
+            $_SESSION['_ddl_venues_migrated'] = true;
         }
 
-        // Auto-migrate: add commission_rate column if not exists
-        $col_check2 = $conn->query("SHOW COLUMNS FROM venues LIKE 'commission_rate'");
-        $has_commission_column = $col_check2->fetch() ? true : false;
-        if (!$has_commission_column) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN commission_rate DECIMAL(5,2) DEFAULT 0 AFTER price");
-            $has_commission_column = true;
-        }
-
-        // Auto-migrate: add pricing_unit column if not exists
-        $col_check_pu = $conn->query("SHOW COLUMNS FROM venues LIKE 'pricing_unit'");
-        if (!$col_check_pu->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN pricing_unit ENUM('daily', 'weekly', 'monthly') DEFAULT 'daily' AFTER price");
-        }
-
-        // Build column and value lists dynamically
+        // Build column and value lists (all columns now guaranteed to exist)
         $columns = "name, location, description, price, pricing_unit, type, images, owner_id, status";
         $values = ":name, :location, :description, :price, :pricing_unit, :type, :images, :owner_id, :status";
 
-        if ($has_size_column) {
-            $columns .= ", size";
-            $values .= ", :size";
-        }
-        if ($has_commission_column) {
-            $columns .= ", commission_rate";
-            $values .= ", :commission_rate";
-        }
+        $columns .= ", size, commission_rate";
+        $values .= ", :size, :commission_rate";
 
-        // Check for recruitment columns
-        $col_check3 = $conn->query("SHOW COLUMNS FROM venues LIKE 'recruitment_deadline'");
-        $has_deadline = $col_check3->fetch() ? true : false;
-        $col_check4 = $conn->query("SHOW COLUMNS FROM venues LIKE 'recruitment_closed'");
-        $has_closed = $col_check4->fetch() ? true : false;
+        $columns .= ", recruitment_deadline, recruitment_closed, max_sellers";
+        $values .= ", :recruitment_deadline, :recruitment_closed, :max_sellers";
 
-        if ($has_deadline) {
-            $columns .= ", recruitment_deadline";
-            $values .= ", :recruitment_deadline";
-        }
-        if ($has_closed) {
-            $columns .= ", recruitment_closed";
-            $values .= ", :recruitment_closed";
-        }
-
-        // Check for max_sellers column
-        $col_check5 = $conn->query("SHOW COLUMNS FROM venues LIKE 'max_sellers'");
-        $has_max_sellers = $col_check5->fetch() ? true : false;
-        if ($has_max_sellers) {
-            $columns .= ", max_sellers";
-            $values .= ", :max_sellers";
-        }
-
-        // Check for region column
-        $col_check_region = $conn->query("SHOW COLUMNS FROM venues LIKE 'region'");
-        $has_region = $col_check_region->fetch() ? true : false;
-        if (!$has_region) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN region VARCHAR(50) DEFAULT '' AFTER location");
-            $has_region = true;
-        }
-
-        // Auto-migrate: add new date columns if missing
-        $date_cols = ['recruitment_start', 'recruitment_end', 'event_start', 'event_end'];
-        foreach ($date_cols as $dc) {
-            $dc_check = $conn->query("SHOW COLUMNS FROM venues LIKE '{$dc}'");
-            if (!$dc_check->fetch()) {
-                $conn->exec("ALTER TABLE venues ADD COLUMN {$dc} DATE DEFAULT NULL");
-            }
-        }
-        // Add all 4 date columns to INSERT
-        $columns .= ", recruitment_start, recruitment_end, event_start, event_end";
-        $values .= ", :recruitment_start, :recruitment_end, :event_start, :event_end";
-
-        // Auto-migrate: add event_periods column if missing
-        $ep_check = $conn->query("SHOW COLUMNS FROM venues LIKE 'event_periods'");
-        if (!$ep_check->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN event_periods TEXT DEFAULT NULL");
-        }
-        $columns .= ", event_periods";
-        $values .= ", :event_periods";
-
-        // Check for lat/lng columns
-        $col_lat = $conn->query("SHOW COLUMNS FROM venues LIKE 'latitude'");
-        $has_lat = $col_lat->fetch() ? true : false;
-        if (!$has_lat) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN latitude DECIMAL(10,7) DEFAULT NULL");
-            $conn->exec("ALTER TABLE venues ADD COLUMN longitude DECIMAL(10,7) DEFAULT NULL");
-        }
+        $columns .= ", recruitment_start, recruitment_end, event_start, event_end, event_periods";
+        $values .= ", :recruitment_start, :recruitment_end, :event_start, :event_end, :event_periods";
 
         // Geocode the address
         $latitude = null;
@@ -305,50 +260,8 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $columns .= ", latitude, longitude";
         $values .= ", :latitude, :longitude";
 
-        // Auto-migrate: add avg_sales and popular_categories columns
-        $col_avg = $conn->query("SHOW COLUMNS FROM venues LIKE 'avg_sales'");
-        if (!$col_avg->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN avg_sales VARCHAR(100) DEFAULT ''");
-        }
-        $columns .= ", avg_sales";
-        $values .= ", :avg_sales";
-
-        // Auto-migrate: add sales_unit column
-        $col_su = $conn->query("SHOW COLUMNS FROM venues LIKE 'sales_unit'");
-        if (!$col_su->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN sales_unit VARCHAR(20) DEFAULT 'monthly'");
-        }
-        $columns .= ", sales_unit";
-        $values .= ", :sales_unit";
-
-        $col_pop = $conn->query("SHOW COLUMNS FROM venues LIKE 'popular_categories'");
-        if (!$col_pop->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN popular_categories TEXT DEFAULT NULL");
-        }
-        $columns .= ", popular_categories";
-        $values .= ", :popular_categories";
-
-        // Auto-migrate: add target_customers column
-        $col_tc = $conn->query("SHOW COLUMNS FROM venues LIKE 'target_customers'");
-        if (!$col_tc->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN target_customers TEXT DEFAULT NULL");
-        }
-        $columns .= ", target_customers";
-        $values .= ", :target_customers";
-
-        // Auto-migrate: add attachments column
-        $col_att = $conn->query("SHOW COLUMNS FROM venues LIKE 'attachments'");
-        if (!$col_att->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN attachments TEXT DEFAULT NULL");
-        }
-        $columns .= ", attachments";
-        $values .= ", :attachments";
-
-        // Auto-migrate: add is_premium column
-        $col_prem = $conn->query("SHOW COLUMNS FROM venues LIKE 'is_premium'");
-        if (!$col_prem->fetch()) {
-            $conn->exec("ALTER TABLE venues ADD COLUMN is_premium TINYINT(1) DEFAULT 0");
-        }
+        $columns .= ", avg_sales, sales_unit, popular_categories, target_customers, attachments";
+        $values .= ", :avg_sales, :sales_unit, :popular_categories, :target_customers, :attachments";
         // Check if vendor has active premium_space subscription
         $is_premium = 0;
         if ($role === 'host') {
@@ -361,10 +274,10 @@ if ($name && $location && ($price !== null && $price !== '')) {
             } catch (Exception $e) { /* ignore */
             }
         }
-        $columns .= ", is_premium";
-        $values .= ", :is_premium";
+        $columns .= ", region, is_premium";
+        $values .= ", :region, :is_premium";
 
-        $query = "INSERT INTO venues ({$columns}" . ($has_region ? ', region' : '') . ") VALUES ({$values}" . ($has_region ? ', :region' : '') . ")";
+        $query = "INSERT INTO venues ({$columns}) VALUES ({$values})";
 
         $stmt = $conn->prepare($query);
         $stmt->bindParam(":name", $name);
@@ -373,29 +286,17 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $stmt->bindParam(":price", $price);
         $stmt->bindParam(":pricing_unit", $pricing_unit);
         $stmt->bindParam(":type", $type);
-        if ($has_size_column) {
-            $stmt->bindParam(":size", $size);
-        }
-        if ($has_commission_column) {
-            $stmt->bindParam(":commission_rate", $commission_rate);
-        }
-        if ($has_deadline) {
-            $stmt->bindParam(":recruitment_deadline", $recruitment_deadline);
-        }
-        if ($has_closed) {
-            $stmt->bindParam(":recruitment_closed", $recruitment_closed);
-        }
-        if ($has_max_sellers) {
-            $stmt->bindParam(":max_sellers", $max_sellers);
-        }
+        $stmt->bindParam(":size", $size);
+        $stmt->bindParam(":commission_rate", $commission_rate);
+        $stmt->bindParam(":recruitment_deadline", $recruitment_deadline);
+        $stmt->bindParam(":recruitment_closed", $recruitment_closed);
+        $stmt->bindParam(":max_sellers", $max_sellers);
         $stmt->bindParam(":images", $images_json);
         $stmt->bindParam(":owner_id", $owner_id);
         $stmt->bindParam(":status", $status);
         $stmt->bindParam(":latitude", $latitude);
         $stmt->bindParam(":longitude", $longitude);
-        if ($has_region) {
-            $stmt->bindParam(":region", $region);
-        }
+        $stmt->bindParam(":region", $region);
         $stmt->bindParam(":recruitment_start", $recruitment_start);
         $stmt->bindParam(":recruitment_end", $recruitment_end);
         $stmt->bindParam(":event_start", $event_start);
@@ -412,11 +313,14 @@ if ($name && $location && ($price !== null && $price !== '')) {
             // [NOTIFICATION] Notify admins when a vendor registers a new venue
             if ($status === 'pending') {
                 try {
-                    $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
-                        id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
-                        message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                    if (empty($_SESSION['_ddl_notifications'])) {
+                        $conn->exec("CREATE TABLE IF NOT EXISTS notifications (
+                            id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type VARCHAR(50) NOT NULL,
+                            message TEXT NOT NULL, link VARCHAR(255), is_read BOOLEAN DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (is_read)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                        $_SESSION['_ddl_notifications'] = true;
+                    }
 
                     $adminQuery = "SELECT id FROM users WHERE role IN ('admin', 'superadmin')";
                     $admins = $conn->query($adminQuery)->fetchAll(PDO::FETCH_ASSOC);
@@ -480,7 +384,9 @@ if ($name && $location && ($price !== null && $price !== '')) {
             echo json_encode(array("success" => false, "message" => "베뉴 등록에 실패했습니다."));
         }
     } catch (PDOException $e) {
-        echo json_encode(array("success" => false, "message" => "DB Error: " . $e->getMessage()));
+        http_response_code(500);
+        error_log('[add_venue] ' . $e->getMessage());
+        echo json_encode(array("success" => false, "message" => "공간 등록 중 오류가 발생했습니다."));
     }
 
 } else {

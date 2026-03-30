@@ -18,19 +18,22 @@ if (isset($data->id)) {
     $user_role = $_SESSION['user_role'];
 
     try {
-        // Auto-create trash_bin table
-        $conn->exec("CREATE TABLE IF NOT EXISTS trash_bin (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            table_name VARCHAR(100) NOT NULL,
-            record_id VARCHAR(100) NOT NULL,
-            item_label VARCHAR(255) DEFAULT '',
-            record_data JSON NULL,
-            deleted_by INT NULL,
-            deleted_by_name VARCHAR(100) DEFAULT '',
-            deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_table (table_name),
-            INDEX idx_deleted_at (deleted_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        // Auto-create trash_bin table (once per session)
+        if (empty($_SESSION['_ddl_trash_bin'])) {
+            $conn->exec("CREATE TABLE IF NOT EXISTS trash_bin (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                table_name VARCHAR(100) NOT NULL,
+                record_id VARCHAR(100) NOT NULL,
+                item_label VARCHAR(255) DEFAULT '',
+                record_data JSON NULL,
+                deleted_by INT NULL,
+                deleted_by_name VARCHAR(100) DEFAULT '',
+                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_table (table_name),
+                INDEX idx_deleted_at (deleted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            $_SESSION['_ddl_trash_bin'] = true;
+        }
 
         // Fetch venue data
         $venueStmt = $conn->prepare("SELECT * FROM venues WHERE id = ?");
@@ -110,7 +113,9 @@ if (isset($data->id)) {
             echo json_encode(array("success" => false, "message" => "삭제할 베뉴를 찾을 수 없습니다."));
         }
     } catch (PDOException $e) {
-        echo json_encode(array("success" => false, "message" => "DB Error: " . $e->getMessage()));
+        http_response_code(500);
+        error_log('[delete_venue] ' . $e->getMessage());
+        echo json_encode(array("success" => false, "message" => "공간 삭제 중 오류가 발생했습니다."));
     }
 } else {
     echo json_encode(array("success" => false, "message" => "베뉴 ID가 필요합니다."));
