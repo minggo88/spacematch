@@ -99,7 +99,12 @@ const AdminCalcStats = () => {
         );
     }
 
-    const { summary, changes, chart, referrers, recent_logs, hourly } = data;
+    const summary = data?.summary || {};
+    const changes = data?.changes || {};
+    const chart = data?.chart || [];
+    const referrers = data?.referrers || [];
+    const recent_logs = data?.recent_logs || [];
+    const hourly = data?.hourly || [];
 
     // max값 계산 (차트 스케일링용)
     const maxChartValue = Math.max(...(chart || []).map(d =>
@@ -259,7 +264,8 @@ const AdminCalcStats = () => {
                             hour: i,
                         }));
                         const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-                        const areaPath = linePath + ` L${points[23].x},${padY + chartH} L${points[0].x},${padY + chartH} Z`;
+                        const lastPt = points[points.length - 1];
+                        const areaPath = linePath + ` L${lastPt.x},${padY + chartH} L${points[0].x},${padY + chartH} Z`;
                         return (
                             <svg viewBox={`0 0 ${svgW} ${svgH + 20}`} style={{ width: '100%', height: 'auto' }}>
                                 {[0, 0.5, 1].map((r, i) => (

@@ -26,8 +26,10 @@ $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? $_GET['action'] ?? 'list';
 
 // ── Auto-migration: ensure seller_stats table has all required columns ──
-try {
-    $conn->exec("CREATE TABLE IF NOT EXISTS seller_stats (
+// Only run migration once per session to avoid unnecessary DB load
+if (empty($_SESSION['seller_stats_migrated'])) {
+    try {
+        $conn->exec("CREATE TABLE IF NOT EXISTS seller_stats (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         country_code VARCHAR(2) NOT NULL DEFAULT 'KR',
@@ -59,82 +61,84 @@ try {
         INDEX idx_country (user_id, country_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Add missing columns for existing tables
-    $colsToAdd = [
-        'country_code' => "VARCHAR(2) NOT NULL DEFAULT 'KR' AFTER user_id",
-        'venue_type' => "VARCHAR(50) DEFAULT NULL AFTER best_selling_item",
-        'region' => "VARCHAR(100) DEFAULT NULL AFTER venue_type",
-        'region_detail' => "VARCHAR(500) DEFAULT NULL AFTER region",
-        'satisfaction' => "TINYINT DEFAULT NULL AFTER region_detail",
-        'memo' => "TEXT DEFAULT NULL AFTER satisfaction",
-        'currency' => "VARCHAR(3) DEFAULT 'KRW' AFTER memo",
-        'exchange_rate' => "DECIMAL(12,4) DEFAULT NULL AFTER currency",
-        'source' => "VARCHAR(50) DEFAULT 'manual' AFTER exchange_rate",
-        'import_batch_id' => "VARCHAR(36) DEFAULT NULL AFTER source",
-        'sales_channel' => "VARCHAR(100) DEFAULT NULL AFTER import_batch_id",
-        'product_name' => "VARCHAR(200) DEFAULT NULL AFTER sales_channel",
-        'quantity_sold' => "INT DEFAULT 0 AFTER product_name",
-        'cost_price' => "INT DEFAULT 0 AFTER quantity_sold",
-        'profit_margin' => "DECIMAL(5,2) DEFAULT NULL AFTER cost_price",
-        'discount_amount' => "BIGINT DEFAULT 0 AFTER profit_margin",
-        'tax_amount' => "BIGINT DEFAULT 0 AFTER discount_amount",
-        'shipping_cost' => "BIGINT DEFAULT 0 AFTER tax_amount",
-        'refund_amount' => "BIGINT DEFAULT 0 AFTER shipping_cost",
-        'commission_fee' => "BIGINT DEFAULT 0 AFTER refund_amount",
-        'net_revenue' => "BIGINT DEFAULT 0 AFTER commission_fee",
-        'payment_method' => "VARCHAR(100) DEFAULT NULL AFTER net_revenue",
-        'order_number' => "VARCHAR(200) DEFAULT NULL AFTER payment_method",
-        'sku' => "VARCHAR(200) DEFAULT NULL AFTER order_number",
-        'brand' => "VARCHAR(200) DEFAULT NULL AFTER sku",
-        'option_info' => "VARCHAR(500) DEFAULT NULL AFTER brand",
-        'return_qty' => "INT DEFAULT 0 AFTER option_info",
-        'profit_amount' => "BIGINT DEFAULT 0 AFTER return_qty",
-        'points_used' => "BIGINT DEFAULT 0 AFTER profit_amount",
-        'payment_status' => "VARCHAR(50) DEFAULT NULL AFTER points_used",
-        'customer_name' => "VARCHAR(200) DEFAULT NULL AFTER payment_status",
-        'staff_name' => "VARCHAR(200) DEFAULT NULL AFTER customer_name",
-        'store_name' => "VARCHAR(200) DEFAULT NULL AFTER staff_name",
-        'platform' => "VARCHAR(100) DEFAULT NULL AFTER store_name",
-        'supplier' => "VARCHAR(200) DEFAULT NULL AFTER platform",
-    ];
-    foreach ($colsToAdd as $col => $def) {
-        try {
-            $conn->query("SELECT `$col` FROM seller_stats LIMIT 1");
-        } catch (PDOException $ex) {
-            $conn->exec("ALTER TABLE seller_stats ADD COLUMN `$col` $def");
+        // Add missing columns for existing tables
+        $colsToAdd = [
+            'country_code' => "VARCHAR(2) NOT NULL DEFAULT 'KR' AFTER user_id",
+            'venue_type' => "VARCHAR(50) DEFAULT NULL AFTER best_selling_item",
+            'region' => "VARCHAR(100) DEFAULT NULL AFTER venue_type",
+            'region_detail' => "VARCHAR(500) DEFAULT NULL AFTER region",
+            'satisfaction' => "TINYINT DEFAULT NULL AFTER region_detail",
+            'memo' => "TEXT DEFAULT NULL AFTER satisfaction",
+            'currency' => "VARCHAR(3) DEFAULT 'KRW' AFTER memo",
+            'exchange_rate' => "DECIMAL(12,4) DEFAULT NULL AFTER currency",
+            'source' => "VARCHAR(50) DEFAULT 'manual' AFTER exchange_rate",
+            'import_batch_id' => "VARCHAR(36) DEFAULT NULL AFTER source",
+            'sales_channel' => "VARCHAR(100) DEFAULT NULL AFTER import_batch_id",
+            'product_name' => "VARCHAR(200) DEFAULT NULL AFTER sales_channel",
+            'quantity_sold' => "INT DEFAULT 0 AFTER product_name",
+            'cost_price' => "INT DEFAULT 0 AFTER quantity_sold",
+            'profit_margin' => "DECIMAL(5,2) DEFAULT NULL AFTER cost_price",
+            'discount_amount' => "BIGINT DEFAULT 0 AFTER profit_margin",
+            'tax_amount' => "BIGINT DEFAULT 0 AFTER discount_amount",
+            'shipping_cost' => "BIGINT DEFAULT 0 AFTER tax_amount",
+            'refund_amount' => "BIGINT DEFAULT 0 AFTER shipping_cost",
+            'commission_fee' => "BIGINT DEFAULT 0 AFTER refund_amount",
+            'net_revenue' => "BIGINT DEFAULT 0 AFTER commission_fee",
+            'payment_method' => "VARCHAR(100) DEFAULT NULL AFTER net_revenue",
+            'order_number' => "VARCHAR(200) DEFAULT NULL AFTER payment_method",
+            'sku' => "VARCHAR(200) DEFAULT NULL AFTER order_number",
+            'brand' => "VARCHAR(200) DEFAULT NULL AFTER sku",
+            'option_info' => "VARCHAR(500) DEFAULT NULL AFTER brand",
+            'return_qty' => "INT DEFAULT 0 AFTER option_info",
+            'profit_amount' => "BIGINT DEFAULT 0 AFTER return_qty",
+            'points_used' => "BIGINT DEFAULT 0 AFTER profit_amount",
+            'payment_status' => "VARCHAR(50) DEFAULT NULL AFTER points_used",
+            'customer_name' => "VARCHAR(200) DEFAULT NULL AFTER payment_status",
+            'staff_name' => "VARCHAR(200) DEFAULT NULL AFTER customer_name",
+            'store_name' => "VARCHAR(200) DEFAULT NULL AFTER staff_name",
+            'platform' => "VARCHAR(100) DEFAULT NULL AFTER store_name",
+            'supplier' => "VARCHAR(200) DEFAULT NULL AFTER platform",
+        ];
+        foreach ($colsToAdd as $col => $def) {
+            try {
+                $conn->query("SELECT `$col` FROM seller_stats LIMIT 1");
+            } catch (PDOException $ex) {
+                $conn->exec("ALTER TABLE seller_stats ADD COLUMN `$col` $def");
+            }
         }
-    }
 
-    // Auto-migrate INT columns to BIGINT to prevent overflow
-    $intToBigint = ['monthly_revenue', 'customer_count', 'transaction_count', 'avg_unit_price'];
-    foreach ($intToBigint as $col) {
+        // Auto-migrate INT columns to BIGINT to prevent overflow
+        $intToBigint = ['monthly_revenue', 'customer_count', 'transaction_count', 'avg_unit_price'];
+        foreach ($intToBigint as $col) {
+            try {
+                $colInfo = $conn->query("SHOW COLUMNS FROM seller_stats WHERE Field = '$col'")->fetch(PDO::FETCH_ASSOC);
+                if ($colInfo && stripos($colInfo['Type'], 'bigint') === false) {
+                    $conn->exec("ALTER TABLE seller_stats MODIFY COLUMN `$col` BIGINT DEFAULT 0");
+                }
+            } catch (PDOException $ex) { /* ignore */
+            }
+        }
+
+        // Migrate UNIQUE KEY: remove if exists (allow product-level data)
         try {
-            $colInfo = $conn->query("SHOW COLUMNS FROM seller_stats WHERE Field = '$col'")->fetch(PDO::FETCH_ASSOC);
-            if ($colInfo && stripos($colInfo['Type'], 'bigint') === false) {
-                $conn->exec("ALTER TABLE seller_stats MODIFY COLUMN `$col` BIGINT DEFAULT 0");
+            $keys = $conn->query("SHOW INDEX FROM seller_stats WHERE Key_name = 'uq_user_country_type_date'")->fetchAll();
+            if (count($keys) > 0) {
+                $conn->exec("ALTER TABLE seller_stats DROP INDEX uq_user_country_type_date");
             }
         } catch (PDOException $ex) { /* ignore */
         }
-    }
-
-    // Migrate UNIQUE KEY: remove if exists (allow product-level data)
-    try {
-        $keys = $conn->query("SHOW INDEX FROM seller_stats WHERE Key_name = 'uq_user_country_type_date'")->fetchAll();
-        if (count($keys) > 0) {
-            $conn->exec("ALTER TABLE seller_stats DROP INDEX uq_user_country_type_date");
+        try {
+            $keys = $conn->query("SHOW INDEX FROM seller_stats WHERE Key_name = 'uq_user_type_date'")->fetchAll();
+            if (count($keys) > 0) {
+                $conn->exec("ALTER TABLE seller_stats DROP INDEX uq_user_type_date");
+            }
+        } catch (PDOException $ex) { /* ignore */
         }
-    } catch (PDOException $ex) { /* ignore */
+    } catch (PDOException $e) {
+        // Table/columns already exist — ignore
     }
-    try {
-        $keys = $conn->query("SHOW INDEX FROM seller_stats WHERE Key_name = 'uq_user_type_date'")->fetchAll();
-        if (count($keys) > 0) {
-            $conn->exec("ALTER TABLE seller_stats DROP INDEX uq_user_type_date");
-        }
-    } catch (PDOException $ex) { /* ignore */
-    }
-} catch (PDOException $e) {
-    // Table/columns already exist — ignore
-}
+    $_SESSION['seller_stats_migrated'] = true;
+} // end migration check
 
 try {
     switch ($action) {
@@ -247,6 +251,23 @@ try {
             $quantitySold = intval($input['quantity_sold'] ?? 0);
             $costPrice = intval($input['cost_price'] ?? 0);
             $profitMargin = isset($input['profit_margin']) ? floatval($input['profit_margin']) : null;
+            // Phase 2: extended fields (previously missing from save action)
+            $discountAmount = intval($input['discount_amount'] ?? 0);
+            $taxAmount = intval($input['tax_amount'] ?? 0);
+            $shippingCost = intval($input['shipping_cost'] ?? 0);
+            $refundAmount = intval($input['refund_amount'] ?? 0);
+            $commissionFee = intval($input['commission_fee'] ?? 0);
+            $netRevenue = intval($input['net_revenue'] ?? 0);
+            $profitAmount = intval($input['profit_amount'] ?? 0);
+            $paymentMethod = trim($input['payment_method'] ?? '');
+            $orderNumber = trim($input['order_number'] ?? '');
+            $sku = trim($input['sku'] ?? '');
+            $brand = trim($input['brand'] ?? '');
+            $optionInfo = trim($input['option_info'] ?? '');
+            $customerName = trim($input['customer_name'] ?? '');
+            $staffName = trim($input['staff_name'] ?? '');
+            $storeName = trim($input['store_name'] ?? '');
+            $platform = trim($input['platform'] ?? '');
 
             if ($satisfaction < 0 || $satisfaction > 5)
                 $satisfaction = 0;
@@ -254,6 +275,14 @@ try {
             // Auto-calculate profit margin if not provided
             if ($profitMargin === null && $revenue > 0 && $costPrice > 0) {
                 $profitMargin = round((($revenue - $costPrice) / $revenue) * 100, 2);
+            }
+            // Auto-calculate net revenue if not provided
+            if ($netRevenue === 0 && $revenue > 0) {
+                $netRevenue = $revenue - $discountAmount - $taxAmount - $commissionFee - $refundAmount;
+            }
+            // Auto-calculate profit amount if not provided
+            if ($profitAmount === 0 && $revenue > 0 && $costPrice > 0) {
+                $profitAmount = $revenue - $costPrice;
             }
 
             // Check if record exists (by id if editing, otherwise by composite key including country_code)
@@ -273,7 +302,11 @@ try {
                     avg_unit_price = ?, best_selling_item = ?, venue_type = ?,
                     region = ?, region_detail = ?, satisfaction = ?, memo = ?,
                     currency = ?, source = ?, sales_channel = ?,
-                    product_name = ?, quantity_sold = ?, cost_price = ?, profit_margin = ?
+                    product_name = ?, quantity_sold = ?, cost_price = ?, profit_margin = ?,
+                    discount_amount = ?, tax_amount = ?, shipping_cost = ?, refund_amount = ?,
+                    commission_fee = ?, net_revenue = ?, profit_amount = ?,
+                    payment_method = ?, order_number = ?, sku = ?, brand = ?, option_info = ?,
+                    customer_name = ?, staff_name = ?, store_name = ?, platform = ?
                     WHERE id = ? AND user_id = ?");
                 $stmt->execute([
                     $countryCode,
@@ -294,6 +327,22 @@ try {
                     $quantitySold,
                     $costPrice,
                     $profitMargin,
+                    $discountAmount,
+                    $taxAmount,
+                    $shippingCost,
+                    $refundAmount,
+                    $commissionFee,
+                    $netRevenue,
+                    $profitAmount,
+                    $paymentMethod,
+                    $orderNumber,
+                    $sku,
+                    $brand,
+                    $optionInfo,
+                    $customerName,
+                    $staffName,
+                    $storeName,
+                    $platform,
                     $existing['id'],
                     $userId
                 ]);
@@ -302,8 +351,10 @@ try {
                 $stmt = $conn->prepare("INSERT INTO seller_stats 
                     (user_id, country_code, record_type, record_date, monthly_revenue, customer_count, transaction_count,
                      avg_unit_price, best_selling_item, venue_type, region, region_detail, satisfaction, memo,
-                     currency, source, sales_channel, product_name, quantity_sold, cost_price, profit_margin)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                     currency, source, sales_channel, product_name, quantity_sold, cost_price, profit_margin,
+                     discount_amount, tax_amount, shipping_cost, refund_amount, commission_fee, net_revenue, profit_amount,
+                     payment_method, order_number, sku, brand, option_info, customer_name, staff_name, store_name, platform)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $userId,
                     $countryCode,
@@ -325,7 +376,23 @@ try {
                     $productName,
                     $quantitySold,
                     $costPrice,
-                    $profitMargin
+                    $profitMargin,
+                    $discountAmount,
+                    $taxAmount,
+                    $shippingCost,
+                    $refundAmount,
+                    $commissionFee,
+                    $netRevenue,
+                    $profitAmount,
+                    $paymentMethod,
+                    $orderNumber,
+                    $sku,
+                    $brand,
+                    $optionInfo,
+                    $customerName,
+                    $staffName,
+                    $storeName,
+                    $platform
                 ]);
                 echo json_encode(["success" => true, "message" => "데이터가 저장되었습니다.", "id" => $conn->lastInsertId()]);
             }
@@ -356,7 +423,8 @@ try {
             }
             // Sanitize: only positive integers
             $ids = array_filter(array_map('intval', $ids), function ($v) {
-                return $v > 0; });
+                return $v > 0;
+            });
             if (count($ids) === 0) {
                 echo json_encode(["success" => false, "message" => "유효한 ID가 없습니다."]);
                 exit;
