@@ -124,8 +124,13 @@ const HostSellerDirectory = () => {
             const data = await res.json();
             if (data.success) {
                 setFavoriteIds(prev => data.is_favorite ? [...prev, sellerId] : prev.filter(id => id !== sellerId));
+            } else {
+                showToast(data.message || t('sellerDirectoryPage.actionFailed', '작업을 실패했습니다.'), 'error');
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            showToast(t('sellerDirectoryPage.serverError', '서버 통신 오류가 발생했습니다.'), 'error');
+            console.error(e);
+        }
         finally { setFavoriteLoading(prev => ({ ...prev, [sellerId]: false })); }
     }, []);
 

@@ -28,6 +28,16 @@ try {
         UNIQUE KEY uk_vendor_seller (host_id, seller_id),
         INDEX idx_vendor (host_id)
     )");
+
+    // Auto-migration for schema mismatch
+    $checkVendor = $conn->query("SHOW COLUMNS FROM seller_favorites LIKE 'vendor_id'");
+    if ($checkVendor->rowCount() > 0) {
+        $conn->exec("ALTER TABLE seller_favorites CHANGE COLUMN vendor_id host_id INT NOT NULL");
+    }
+    $checkUser = $conn->query("SHOW COLUMNS FROM seller_favorites LIKE 'user_id'");
+    if ($checkUser->rowCount() > 0) {
+        $conn->exec("ALTER TABLE seller_favorites CHANGE COLUMN user_id host_id INT NOT NULL");
+    }
 } catch (PDOException $e) { /* table exists */
 }
 
