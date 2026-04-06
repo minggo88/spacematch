@@ -697,7 +697,7 @@ const SellerStats = ({ userRole = 'seller' }) => {
     };
 
     // ── Tax Tab State ──
-    const [taxCountry, setTaxCountry] = useState(isHostMode ? selectedCountry : 'KR');
+    const taxCountry = selectedCountry || 'KR';
     const [taxResult, setTaxResult] = useState(null);
     const [taxLoading, setTaxLoading] = useState(false);
     const [taxSummary, setTaxSummary] = useState(null);
@@ -6302,20 +6302,7 @@ tr:last-child td{border-bottom:none}
                     {
                         activeTab === 'tax' && (
                             <div className="space-y-3">
-                                {/* Country Selector */}
-                                <div className="flex gap-2 flex-wrap">
-                                    {AVAILABLE_TAX_COUNTRIES.map(c => (
-                                        <button key={c.code}
-                                            onClick={() => setTaxCountry(c.code)}
-                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${taxCountry === c.code
-                                                ? 'bg-violet-600 text-white border-violet-600'
-                                                : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
-                                                }`}>
-                                            {c.flag} {c.name}
-                                        </button>
-                                    ))}
-                                </div>
-
+                                {/* Country Selector Removed: Unified with global selectedCountry */}
                                 {taxLoading ? (
                                     <div className="flex items-center justify-center py-16">
                                         <Loader2 size={32} className="text-violet-500 animate-spin" />
