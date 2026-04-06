@@ -41,7 +41,7 @@ const HostSellerDirectory = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedSeller, setSelectedSeller] = useState(null);
     // Contact access control state
-    const [contactAccess, setContactAccess] = useState({ can_view: 0, monthly_limit: 0, remaining: 0, viewed_ids: [] });
+    const [contactAccess, setContactAccess] = useState({ can_view: 0, monthly_limit: 0, remaining: 0, viewed_ids: [], is_expired: false, is_not_started: false });
     const [unlockedContacts, setUnlockedContacts] = useState({}); // { sellerId: { email, phone, instagram, business_no } }
     const [unlockLoading, setUnlockLoading] = useState(false);
     // Favorites state
@@ -81,6 +81,8 @@ const HostSellerDirectory = () => {
                         can_view: data.can_view_contacts,
                         monthly_limit: data.monthly_limit,
                         remaining: data.remaining,
+                        is_expired: data.is_expired,
+                        is_not_started: data.is_not_started,
                         viewed_ids: data.viewed_seller_ids || []
                     });
                     // Auto-load contacts for previously viewed sellers
@@ -717,19 +719,29 @@ const HostSellerDirectory = () => {
                                             <p className="text-sm font-bold text-white mb-1">{t('sellerDirectoryPage.contactLockedTitle')}</p>
                                             <p className="text-xs text-indigo-200/70 mb-4">{t('sellerDirectoryPage.contactLockedDesc')}</p>
                                             {contactAccess.can_view ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleUnlockContact(selectedSeller.id)}
-                                                        disabled={unlockLoading || contactAccess.remaining <= 0}
-                                                        className="w-full py-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-xl font-bold text-sm hover:from-indigo-400 hover:to-violet-400 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-900/30 transition-all flex items-center justify-center gap-2"
-                                                    >
-                                                        <Eye size={16} />
-                                                        {unlockLoading ? t('sellerDirectoryPage.loadingText') : contactAccess.remaining > 0 ? t('sellerDirectoryPage.unlockContact') : t('sellerDirectoryPage.monthlyExhausted')}
-                                                    </button>
-                                                    <p className="text-xs text-indigo-300/80 mt-2">
-                                                        {t('sellerDirectoryPage.monthlyRemaining', { remaining: contactAccess.remaining, limit: contactAccess.monthly_limit })}
-                                                    </p>
-                                                </>
+                                                contactAccess.is_expired ? (
+                                                    <div className="w-full py-3 bg-white/10 text-white rounded-xl font-bold text-sm border border-rose-400/30 text-center shadow-lg shadow-indigo-900/30">
+                                                        셀러 열람 기간이 지났습니다
+                                                    </div>
+                                                ) : contactAccess.is_not_started ? (
+                                                    <div className="w-full py-3 bg-white/10 text-white rounded-xl font-bold text-sm border border-amber-400/30 text-center shadow-lg shadow-indigo-900/30">
+                                                        셀러 열람 기간이 시작되지 않았습니다
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleUnlockContact(selectedSeller.id)}
+                                                            disabled={unlockLoading || contactAccess.remaining <= 0}
+                                                            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-xl font-bold text-sm hover:from-indigo-400 hover:to-violet-400 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-900/30 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <Eye size={16} />
+                                                            {unlockLoading ? t('sellerDirectoryPage.loadingText') : contactAccess.remaining > 0 ? t('sellerDirectoryPage.unlockContact') : t('sellerDirectoryPage.monthlyExhausted')}
+                                                        </button>
+                                                        <p className="text-xs text-indigo-300/80 mt-2">
+                                                            {t('sellerDirectoryPage.monthlyRemaining', { remaining: contactAccess.remaining, limit: contactAccess.monthly_limit })}
+                                                        </p>
+                                                    </>
+                                                )
                                             ) : (
                                                 <p className="text-xs text-amber-300 font-bold">{t('sellerDirectoryPage.noPermission')}</p>
                                             )}
