@@ -63,6 +63,20 @@ try {
     } catch (PDOException $e) {
     }
 
+    // Drop old unique constraints that prevent monthly re-views
+    try {
+        $conn->exec("ALTER TABLE seller_contact_views DROP INDEX vendor_id");
+    } catch (PDOException $e) {
+    }
+    try {
+        $conn->exec("ALTER TABLE seller_contact_views DROP INDEX uk_vendor_seller");
+    } catch (PDOException $e) {
+    }
+    try {
+        $conn->exec("ALTER TABLE seller_contact_views DROP INDEX uk_host_seller");
+    } catch (PDOException $e) {
+    }
+
     $conn->exec("CREATE TABLE IF NOT EXISTS seller_contact_views (
         id INT AUTO_INCREMENT PRIMARY KEY,
         host_id INT NOT NULL,
