@@ -45,6 +45,24 @@ try {
     } catch (PDOException $e) {
     }
 
+    // Auto-migrate: handle potential legacy column names for host_id to fix "Unknown column 'host_id'" DB Error
+    try {
+        $conn->exec("ALTER TABLE vendor_seller_access CHANGE COLUMN vendor_id host_id INT NOT NULL UNIQUE");
+    } catch (PDOException $e) {
+    }
+    try {
+        $conn->exec("ALTER TABLE vendor_seller_access CHANGE COLUMN user_id host_id INT NOT NULL UNIQUE");
+    } catch (PDOException $e) {
+    }
+    try {
+        $conn->exec("ALTER TABLE seller_contact_views CHANGE COLUMN vendor_id host_id INT NOT NULL");
+    } catch (PDOException $e) {
+    }
+    try {
+        $conn->exec("ALTER TABLE seller_contact_views CHANGE COLUMN user_id host_id INT NOT NULL");
+    } catch (PDOException $e) {
+    }
+
     $conn->exec("CREATE TABLE IF NOT EXISTS seller_contact_views (
         id INT AUTO_INCREMENT PRIMARY KEY,
         host_id INT NOT NULL,
