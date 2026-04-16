@@ -1,0 +1,48 @@
+{
+    "termsTitle": "Conditions d'utilisation",
+    "privacyTitle": "Politique de confidentialité",
+    "terms": {
+        "art1Title": "Article 1 (Objet)",
+        "art1Body": "Les présentes Conditions régissent les droits, obligations, responsabilités et autres questions nécessaires entre « SpaceMatch » (ci-après « la Société ») et ses membres concernant l'utilisation de la plateforme de courtage d'espaces et de tous les services connexes fournis par la Société.",
+        "art2Title": "Article 2 (Définitions)",
+        "art2Body1": "1. « Service » désigne la recherche d'espaces, le courtage, le jumelage et tous les services connexes fournis par la Société via sa plateforme (web/mobile).",
+        "art2Body2": "2. « Hôte » désigne un membre qui enregistre un espace sur le Service de la Société pour le louer ou recevoir des propositions.",
+        "art2Body3": "3. « Vendeur (Marque) » désigne un membre qui utilise le Service pour louer un espace d'un Hôte.",
+        "art3Title": "Article 3 (Nature du service et limitation de responsabilité)",
+        "art3Body": "La Société fournit uniquement un système d'intermédiation en ligne pour faciliter la location d'espaces et le jumelage pop-up entre Hôtes et Vendeurs, et n'assume aucune obligation en tant que vendeur ou acheteur direct. Toute responsabilité découlant des transactions incombe aux membres parties à la transaction.",
+        "art4Title": "Article 4 (Paiement et frais de service)",
+        "art4Body": "Les membres paient les frais de service et les loyers via les moyens de paiement fournis par la Société. La Société peut modifier les commissions et frais de service avec préavis.",
+        "art5Title": "Article 5 (Rétractation et politique de remboursement)",
+        "art5Body1": "1. Les rétractations et remboursements pour les locations et services auxiliaires payés via la plateforme suivent, en principe, la politique de remboursement individuelle de chaque Hôte.",
+        "art5Body2": "2. Si l'Hôte n'a pas clairement spécifié de politique distincte, la politique de remboursement standard de la Société s'applique :",
+        "art5Refund1": "Annulation 7 jours ou plus avant la date d'utilisation : remboursement de 100 % du paiement",
+        "art5Refund2": "Annulation 4 à 6 jours avant la date d'utilisation : remboursement de 50 % du paiement",
+        "art5Refund3": "Annulation 3 jours avant à la date d'utilisation : aucun remboursement",
+        "art5Body3": "3. En tant qu'intermédiaire en ligne, la Société assiste le processus de remboursement mais n'intervient pas dans les litiges civils ou pénaux entre les parties. Un remboursement intégral peut être accordé en cas de force majeure ou de faute avérée de l'Hôte."
+    },
+    "privacy": {
+        "s1Title": "1. Objectif de la collecte et de l'utilisation des données personnelles",
+        "s1Body": "SpaceMatch collecte et utilise les données personnelles de manière minimale aux fins suivantes. Les données collectées ne seront pas utilisées à d'autres fins; un consentement préalable sera obtenu en cas de changement d'objectif.",
+        "s1Item1": "Vérification de l'intention d'inscription, identification pour les services aux membres et prévention de la fraude",
+        "s1Item2": "Fourniture fluide des services principaux de SpaceMatch (recherche d'espaces, propositions, jumelage, paiement de location, etc.)",
+        "s1Item3": "Consultation client, traitement des plaintes et livraison d'avis importants",
+        "s2Title": "2. Catégories de données personnelles collectées et méthodes de collecte",
+        "s2Item1": "Obligatoire : courriel d'inscription et données de vérification, nom (ou personne de contact), numéro de téléphone, nom commercial et données d'immatriculation (pour les membres entreprises/Hôtes)",
+        "s2Item2": "Optionnel : titre du poste, département, catégories d'espaces pop-up préférées, etc.",
+        "s2Item3": "Collecte automatique : historique d'utilisation du service, journaux d'accès des appareils, témoins, enregistrements de paiement et de règlement",
+        "s3Title": "3. Durée de conservation et d'utilisation des données personnelles",
+        "s3Body": "En principe, les données personnelles sont détruites dès que l'objectif de la collecte est atteint. Toutefois, si la conservation est requise par la loi, les données sont conservées pendant les durées indiquées ci-dessous.",
+        "s3Item1": "Dossiers relatifs aux contrats, rétractations, remboursements : 5 ans",
+        "s3Item2": "Dossiers relatifs aux paiements et à la fourniture de biens/services : 5 ans",
+        "s3Item3": "Dossiers relatifs aux plaintes ou au règlement des différends : 3 ans",
+        "s3Item4": "Journaux d'accès : 3 mois",
+        "s4Title": "4. Fourniture et partage de données personnelles à des tiers",
+        "s4Body": "La Société ne fournit pas les données personnelles des utilisateurs à des tiers. Toutefois, lorsqu'un contrat de location est conclu, les informations essentielles (personne de contact, nom commercial) peuvent être partagées de manière limitée entre les parties (Vendeur et Hôte) pour l'exécution du service.",
+        "s5Title": "5. Droits des utilisateurs et modalités d'exercice",
+        "s5Body": "Les utilisateurs peuvent consulter ou modifier leurs données personnelles à tout moment via la page Mon profil de SpaceMatch. Ils peuvent également demander le retrait de leur consentement ou la suppression de leur compte. En cas de difficulté, veuillez contacter notre service client."
+    },
+    "footer": {
+        "terms": "Conditions d'utilisation",
+        "privacy": "Politique de confidentialité"
+    }
+}

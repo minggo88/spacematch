@@ -1,0 +1,48 @@
+{
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "terms": {
+        "art1Title": "Article 1 (Purpose)",
+        "art1Body": "These Terms govern the rights, obligations, responsibilities, and other necessary matters between \"SpaceMatch\" (hereinafter \"Company\") and its members in relation to the use of the space brokerage platform and all related services provided by the Company.",
+        "art2Title": "Article 2 (Definitions)",
+        "art2Body1": "1. \"Service\" refers to the space search, brokerage, matching, and all related services provided by the Company through its platform (web/mobile).",
+        "art2Body2": "2. \"Host\" refers to a member who registers a space on the Company's Service to offer it for rent or to receive proposals.",
+        "art2Body3": "3. \"Seller (Brand)\" refers to a member who uses the Service to rent a Host's space.",
+        "art3Title": "Article 3 (Nature of Service & Limitation of Liability)",
+        "art3Body": "The Company merely provides an online intermediary system for convenient space rental and pop-up matching between Hosts and Sellers, and does not assume any obligation as a direct seller or buyer regarding information negotiated and transacted directly between the parties. All responsibilities arising from transactions rest with the members who are parties to the transaction.",
+        "art4Title": "Article 4 (Payment & Service Fees)",
+        "art4Body": "Members shall pay service fees and venue rental charges through the payment methods provided by the Company. The Company may change brokerage commissions and service fees in accordance with service restructuring or policy changes, in which case prior notice or the terms amendment procedure will apply.",
+        "art5Title": "Article 5 (Withdrawal of Subscription & Refund Policy)",
+        "art5Body1": "1. Withdrawal of subscription and refunds for venue rentals and ancillary services paid through the platform shall, in principle, follow each Host's individually established and specified refund policy.",
+        "art5Body2": "2. Where a Host has not clearly specified a separate policy or the default policy applies, the Company's standard refund policy is as follows:",
+        "art5Refund1": "Cancellation requested 7 or more days before the scheduled use date: 100% refund of payment",
+        "art5Refund2": "Cancellation requested 4–6 days before the scheduled use date: 50% refund of payment",
+        "art5Refund3": "Cancellation requested 3 days before to the day of scheduled use: No refund",
+        "art5Body3": "3. As an online intermediary, the Company assists with systematic support for refund processes and settlement holds, but in principle does not intervene in civil or criminal disputes between parties regarding refund liability. Full refunds may be processed in cases of force majeure (e.g., natural disasters) or when the Host is clearly at fault (e.g., space becomes unavailable)."
+    },
+    "privacy": {
+        "s1Title": "1. Purpose of Collection and Use of Personal Information",
+        "s1Body": "SpaceMatch collects and uses personal information to the minimum extent necessary for the following purposes. The collected personal information will not be used for any purpose other than those stated below, and prior consent will be obtained if the purpose changes.",
+        "s1Item1": "Verification of membership registration intent, identification for membership services, and prevention of fraudulent use",
+        "s1Item2": "Smooth provision of SpaceMatch core services (space search, marketplace proposals, matching, venue rental payments, etc.)",
+        "s1Item3": "Customer consultation, complaint handling, and delivery of important notices",
+        "s2Title": "2. Categories of Personal Information Collected & Collection Methods",
+        "s2Item1": "Required: Email registration and verification information, name (or contact person), phone number, business name and business registration info (for corporate/Host members)",
+        "s2Item2": "Optional: Job title, department, preferred pop-up space categories, etc.",
+        "s2Item3": "Automatically collected: Service usage records, device access logs, cookies, transaction payment and settlement records",
+        "s3Title": "3. Retention and Use Period of Personal Information",
+        "s3Body": "In principle, personal information is promptly destroyed once the purpose of its collection and use has been fulfilled (e.g., upon membership withdrawal). However, where retention is required by applicable laws and regulations, information is retained for the periods specified below.",
+        "s3Item1": "Records relating to contracts, withdrawal of subscription, refunds, etc.: 5 years (Act on Consumer Protection in Electronic Commerce)",
+        "s3Item2": "Records relating to payment settlements and supply of goods/services: 5 years",
+        "s3Item3": "Records relating to consumer complaints or dispute resolution: 3 years",
+        "s3Item4": "Records relating to access logs: 3 months (Protection of Communications Secrets Act)",
+        "s4Title": "4. Provision and Sharing of Personal Information to Third Parties",
+        "s4Body": "The Company does not, in principle, provide users' personal information to external parties. However, when a space rental or matching contract is established and communication and mutual transactions are unavoidable, essential information (contact person, business name, etc.) may be provided on a limited basis between the parties (Seller and Host) for smooth service performance.",
+        "s5Title": "5. Users' Rights and How to Exercise Them",
+        "s5Body": "Users may view or modify their registered personal information at any time through the SpaceMatch My Page (profile settings), and may request withdrawal of consent or cancellation of membership (withdrawal). If normal processing is difficult, please contact our Customer Center (by email, etc.) and we will take prompt action."
+    },
+    "footer": {
+        "terms": "Terms of Service",
+        "privacy": "Privacy Policy"
+    }
+}
