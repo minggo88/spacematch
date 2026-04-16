@@ -14,43 +14,6 @@ import {
     MessageCircle, Flame, Clock, Eye, Heart, Share2
 } from 'lucide-react';
 
-/* ── Counter animation hook ── */
-const useCountUp = (target, duration = 2000, start = false) => {
-    const [count, setCount] = useState(0);
-    const numericTarget = parseInt(target.replace(/[^0-9]/g, ''));
-    useEffect(() => {
-        if (!start || !numericTarget) return;
-        let startTime;
-        const animate = (ts) => {
-            if (!startTime) startTime = ts;
-            const progress = Math.min((ts - startTime) / duration, 1);
-            setCount(Math.floor(progress * numericTarget));
-            if (progress < 1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
-    }, [start, numericTarget, duration]);
-    const suffix = target.replace(/[0-9,]/g, '');
-    const formatted = count.toLocaleString();
-    return `${formatted}${suffix}`;
-};
-
-/* ── Stat Card component (enables hook use at top level) ── */
-const StatCard = ({ stat, c, isStatsVisible }) => {
-    const displayed = useCountUp(stat.value, 1800, isStatsVisible);
-    return (
-        <div className="text-center group bg-white dark:bg-gray-800/80 rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-gray-700/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-500">
-            <div className={`w-12 h-12 mx-auto mb-4 rounded-xl ${c.iconBg} flex items-center justify-center ${c.iconText} group-hover:scale-110 transition-all duration-300`}>
-                {stat.icon}
-            </div>
-            <p className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-1 tabular-nums">{displayed}</p>
-            <p className="text-gray-400 text-xs md:text-sm font-medium">{stat.label}</p>
-            <div className="mt-4 mx-auto w-12 h-1 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                <div className={`h-full rounded-full ${c.bar} transition-all duration-[2000ms] ${isStatsVisible ? 'w-full' : 'w-0'}`} />
-            </div>
-        </div>
-    );
-};
-
 const LandingPage = () => {
     const { user } = useAuth();
     const { t, i18n } = useTranslation('landing');
@@ -623,40 +586,6 @@ const LandingPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <AdSlot slotId="landing_b" format="card" />
                         <AdSlot slotId="landing_b2" format="card" />
-                    </div>
-                </div>
-            </section>
-
-            {/* ━━━━━━ Stats Section — Light with Soft Colors ━━━━━━ */}
-            <section data-animate id="stats" className="py-20 md:py-28 relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-white to-violet-50/60 dark:from-indigo-950/40 dark:via-gray-900 dark:to-violet-950/30">
-                {/* Soft decorative blobs */}
-                <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[300px] h-[300px] bg-indigo-100/40 dark:bg-indigo-900/20 rounded-full blur-[100px]" />
-                <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[250px] h-[250px] bg-violet-100/40 dark:bg-violet-900/20 rounded-full blur-[80px]" />
-
-                <div className={`relative z-10 max-w-5xl mx-auto px-4 md:px-6 transition-all duration-1000 ${isVisible('stats') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-                    }`}>
-                    <div className="text-center mb-12 md:mb-16">
-                        <p className="text-indigo-600 text-xs md:text-sm font-bold tracking-[0.2em] uppercase mb-4">NUMBERS</p>
-                        <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tight">{t('stats.provenResults')}</h2>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-                        {[
-                            { value: '500+', label: t('stats.sellers'), icon: <ShoppingBag size={22} />, color: 'indigo' },
-                            { value: '50+', label: t('stats.regions'), icon: <MapPin size={22} />, color: 'violet' },
-                            { value: '10,000+', label: t('stats.salesRecords'), icon: <TrendingUp size={22} />, color: 'emerald' },
-                            { value: '98%', label: t('stats.satisfaction'), icon: <Star size={22} />, color: 'amber' },
-                        ].map((stat, i) => {
-                            const colors = {
-                                indigo: { iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconText: 'text-indigo-600 dark:text-indigo-400', bar: 'bg-indigo-500' },
-                                violet: { iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconText: 'text-violet-600 dark:text-violet-400', bar: 'bg-violet-500' },
-                                emerald: { iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconText: 'text-emerald-600 dark:text-emerald-400', bar: 'bg-emerald-500' },
-                                amber: { iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconText: 'text-amber-600 dark:text-amber-400', bar: 'bg-amber-500' },
-                            };
-                            const c = colors[stat.color];
-                            return (
-                                <StatCard key={i} stat={stat} c={c} isStatsVisible={isVisible('stats')} />
-                            );
-                        })}
                     </div>
                 </div>
             </section>
