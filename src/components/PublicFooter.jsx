@@ -20,6 +20,10 @@ const PublicFooter = () => {
                             <Link to="/how-it-works" className="hover:text-white transition-colors">{t('nav.howItWorks')}</Link>
                             <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
                             <Link to="/contact" className="hover:text-white transition-colors">{t('nav.contact')}</Link>
+                            <span className="text-gray-700 hidden md:inline">|</span>
+                            <Link to="/terms" className="hover:text-white transition-colors">이용약관</Link>
+                            <Link to="/privacy" className="font-bold hover:text-white transition-colors">개인정보처리방침</Link>
+                            <span className="text-gray-700 hidden md:inline">|</span>
                             <Link to="/signup/host" className="text-gray-600 hover:text-gray-400 transition-colors">행사 주최자</Link>
                         </div>
                     </div>
