@@ -62,6 +62,36 @@ try {
             viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_vendor_month (host_id, viewed_at)
         )");
+
+        // Auto-migrate: handle legacy column names and old unique constraints
+        try {
+            $conn->exec("ALTER TABLE vendor_seller_access CHANGE COLUMN vendor_id host_id INT NOT NULL UNIQUE");
+        } catch (PDOException $e) {
+        }
+        try {
+            $conn->exec("ALTER TABLE vendor_seller_access CHANGE COLUMN user_id host_id INT NOT NULL UNIQUE");
+        } catch (PDOException $e) {
+        }
+        try {
+            $conn->exec("ALTER TABLE seller_contact_views CHANGE COLUMN vendor_id host_id INT NOT NULL");
+        } catch (PDOException $e) {
+        }
+        try {
+            $conn->exec("ALTER TABLE seller_contact_views CHANGE COLUMN user_id host_id INT NOT NULL");
+        } catch (PDOException $e) {
+        }
+        try {
+            $conn->exec("ALTER TABLE seller_contact_views DROP INDEX vendor_id");
+        } catch (PDOException $e) {
+        }
+        try {
+            $conn->exec("ALTER TABLE seller_contact_views DROP INDEX uk_vendor_seller");
+        } catch (PDOException $e) {
+        }
+        try {
+            $conn->exec("ALTER TABLE seller_contact_views DROP INDEX uk_host_seller");
+        } catch (PDOException $e) {
+        }
         // Auto-migrate period columns
         try {
             $conn->exec("ALTER TABLE vendor_seller_access ADD COLUMN access_start DATE DEFAULT NULL AFTER monthly_limit");

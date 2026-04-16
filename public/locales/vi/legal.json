@@ -1,0 +1,48 @@
+{
+    "termsTitle": "Điều khoản dịch vụ",
+    "privacyTitle": "Chính sách bảo mật",
+    "terms": {
+        "art1Title": "Điều 1 (Mục đích)",
+        "art1Body": "Điều khoản này quy định quyền, nghĩa vụ, trách nhiệm và các vấn đề cần thiết khác giữa \"SpaceMatch\" (sau đây gọi là \"Công ty\") và thành viên liên quan đến việc sử dụng nền tảng môi giới không gian và tất cả các dịch vụ liên quan do Công ty cung cấp.",
+        "art2Title": "Điều 2 (Định nghĩa thuật ngữ)",
+        "art2Body1": "1. \"Dịch vụ\" có nghĩa là tìm kiếm không gian, môi giới, ghép nối và tất cả các dịch vụ liên quan do Công ty cung cấp thông qua nền tảng (web/di động).",
+        "art2Body2": "2. \"Chủ nhà\" (Host) là thành viên đăng ký không gian trên Dịch vụ của Công ty để cho thuê hoặc nhận đề xuất.",
+        "art2Body3": "3. \"Người bán\" (Seller/Brand) là thành viên sử dụng Dịch vụ để thuê không gian của Chủ nhà.",
+        "art3Title": "Điều 3 (Tính chất dịch vụ & Giới hạn trách nhiệm)",
+        "art3Body": "Công ty chỉ cung cấp hệ thống trung gian trực tuyến để thuê không gian và ghép nối pop-up thuận tiện giữa Chủ nhà và Người bán, và không chịu bất kỳ nghĩa vụ nào với tư cách là người bán hoặc người mua trực tiếp. Tất cả trách nhiệm phát sinh từ giao dịch thuộc về các thành viên là các bên trong giao dịch.",
+        "art4Title": "Điều 4 (Thanh toán & Phí dịch vụ)",
+        "art4Body": "Thành viên sẽ thanh toán phí dịch vụ và phí thuê địa điểm thông qua các phương thức thanh toán do Công ty cung cấp. Công ty có thể thay đổi hoa hồng môi giới và phí dịch vụ theo việc tái cấu trúc dịch vụ hoặc thay đổi chính sách, trong trường hợp đó sẽ thông báo trước.",
+        "art5Title": "Điều 5 (Hủy đăng ký & Chính sách hoàn tiền)",
+        "art5Body1": "1. Việc hủy đăng ký và hoàn tiền cho việc thuê địa điểm và dịch vụ phụ trợ đã thanh toán qua nền tảng, về nguyên tắc, tuân theo chính sách hoàn tiền riêng của từng Chủ nhà.",
+        "art5Body2": "2. Trong trường hợp Chủ nhà chưa quy định rõ ràng chính sách riêng, chính sách hoàn tiền tiêu chuẩn của Công ty như sau:",
+        "art5Refund1": "Yêu cầu hủy trước ngày sử dụng 7 ngày trở lên: Hoàn 100% số tiền thanh toán",
+        "art5Refund2": "Yêu cầu hủy trước ngày sử dụng 4-6 ngày: Hoàn 50% số tiền thanh toán",
+        "art5Refund3": "Yêu cầu hủy trước ngày sử dụng 3 ngày đến ngày sử dụng: Không hoàn tiền",
+        "art5Body3": "3. Với tư cách là trung gian trực tuyến, Công ty hỗ trợ hệ thống cho quy trình hoàn tiền nhưng về nguyên tắc không can thiệp vào tranh chấp dân sự hoặc hình sự giữa các bên. Hoàn tiền đầy đủ có thể được xử lý trong trường hợp bất khả kháng hoặc khi Chủ nhà rõ ràng có lỗi."
+    },
+    "privacy": {
+        "s1Title": "1. Mục đích thu thập và sử dụng thông tin cá nhân",
+        "s1Body": "SpaceMatch thu thập và sử dụng thông tin cá nhân ở mức tối thiểu cần thiết cho các mục đích sau. Thông tin thu thập sẽ không được sử dụng cho bất kỳ mục đích nào khác và sẽ xin đồng ý trước nếu mục đích thay đổi.",
+        "s1Item1": "Xác nhận ý định đăng ký thành viên, xác minh danh tính cho dịch vụ thành viên và ngăn chặn sử dụng gian lận",
+        "s1Item2": "Cung cấp suôn sẻ các dịch vụ chính của SpaceMatch (tìm kiếm không gian, đề xuất nhập cư, ghép nối, thanh toán thuê địa điểm, v.v.)",
+        "s1Item3": "Tư vấn khách hàng, xử lý khiếu nại và gửi thông báo quan trọng",
+        "s2Title": "2. Các hạng mục thông tin cá nhân được thu thập & Phương thức thu thập",
+        "s2Item1": "Bắt buộc: Thông tin đăng ký và xác minh email, tên (hoặc người liên hệ), số điện thoại, tên doanh nghiệp và thông tin đăng ký kinh doanh (đối với thành viên tổ chức/Chủ nhà)",
+        "s2Item2": "Tùy chọn: Chức danh, bộ phận, danh mục không gian pop-up ưa thích, v.v.",
+        "s2Item3": "Thu thập tự động: Hồ sơ sử dụng dịch vụ, nhật ký truy cập thiết bị, cookie, hồ sơ thanh toán giao dịch và quyết toán",
+        "s3Title": "3. Thời hạn lưu giữ và sử dụng thông tin cá nhân",
+        "s3Body": "Về nguyên tắc, thông tin cá nhân sẽ được hủy ngay khi mục đích thu thập và sử dụng đã hoàn thành. Tuy nhiên, nếu cần lưu giữ theo luật pháp liên quan, thông tin sẽ được lưu giữ trong các thời hạn quy định dưới đây.",
+        "s3Item1": "Hồ sơ về hợp đồng, hủy đăng ký, hoàn tiền: 5 năm",
+        "s3Item2": "Hồ sơ về thanh toán và cung cấp hàng hóa/dịch vụ: 5 năm",
+        "s3Item3": "Hồ sơ về khiếu nại hoặc giải quyết tranh chấp của người tiêu dùng: 3 năm",
+        "s3Item4": "Hồ sơ về nhật ký truy cập: 3 tháng",
+        "s4Title": "4. Cung cấp và chia sẻ thông tin cá nhân cho bên thứ ba",
+        "s4Body": "Công ty về nguyên tắc không cung cấp thông tin cá nhân của người dùng cho bên ngoài. Tuy nhiên, khi hợp đồng thuê không gian hoặc ghép nối được thiết lập, thông tin cần thiết (người liên hệ, tên doanh nghiệp, v.v.) có thể được cung cấp hạn chế giữa các bên (Người bán và Chủ nhà) để thực hiện dịch vụ suôn sẻ.",
+        "s5Title": "5. Quyền của người dùng và cách thực hiện",
+        "s5Body": "Người dùng có thể xem hoặc chỉnh sửa thông tin cá nhân đã đăng ký bất cứ lúc nào thông qua trang My Page của SpaceMatch (cài đặt hồ sơ), và có thể yêu cầu rút lại đồng ý hoặc hủy thành viên. Nếu xử lý bình thường gặp khó khăn, vui lòng liên hệ Trung tâm chăm sóc khách hàng và chúng tôi sẽ xử lý nhanh chóng."
+    },
+    "footer": {
+        "terms": "Điều khoản dịch vụ",
+        "privacy": "Chính sách bảo mật"
+    }
+}

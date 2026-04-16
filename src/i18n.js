@@ -16,7 +16,7 @@ i18n
             default: ['en'],
         },
         supportedLngs: ['ko', 'en', 'en-GB', 'en-CA', 'fr-CA', 'ja', 'vi', 'th', 'km', 'ru', 'uk'],
-        ns: ['common', 'auth', 'admin', 'seller', 'host', 'venue', 'ads', 'community', 'landing', 'chat'],
+        ns: ['common', 'auth', 'admin', 'seller', 'host', 'venue', 'ads', 'community', 'landing', 'chat', 'legal'],
         defaultNS: 'common',
         backend: {
             loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + Date.now(),

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 const PublicFooter = () => {
     const { t } = useTranslation('landing');
-
+    const { t: tLegal } = useTranslation('legal');
     return (
         <footer className="bg-gray-950 text-white py-5 md:py-6">
             <div className="max-w-7xl mx-auto px-4 md:px-6">
@@ -21,8 +21,8 @@ const PublicFooter = () => {
                             <Link to="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
                             <Link to="/contact" className="hover:text-white transition-colors">{t('nav.contact')}</Link>
                             <span className="text-gray-700 hidden md:inline">|</span>
-                            <Link to="/terms" className="hover:text-white transition-colors">이용약관</Link>
-                            <Link to="/privacy" className="font-bold hover:text-white transition-colors">개인정보처리방침</Link>
+                            <Link to="/terms" className="hover:text-white transition-colors">{tLegal('footer.terms')}</Link>
+                            <Link to="/privacy" className="font-bold hover:text-white transition-colors">{tLegal('footer.privacy')}</Link>
                             <span className="text-gray-700 hidden md:inline">|</span>
                             <Link to="/signup/host" className="text-gray-600 hover:text-gray-400 transition-colors">행사 주최자</Link>
                         </div>
