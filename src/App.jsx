@@ -15,8 +15,6 @@ import LandingPage from './pages/LandingPage';
 import ServicesPage from './pages/ServicesPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import AboutPage from './pages/AboutPage';
-import TermsPage from './pages/TermsPage';
-import PrivacyPage from './pages/PrivacyPage';
 import ContactPage from './pages/ContactPage';
 import RecruitmentDashboard from './pages/RecruitmentDashboard';
 import HostPublicProfile from './pages/HostPublicProfile';
@@ -212,8 +210,6 @@ function App() {
                                     <Route path="/services" element={<ServicesPage />} />
                                     <Route path="/how-it-works" element={<HowItWorksPage />} />
                                     <Route path="/about" element={<AboutPage />} />
-                                    <Route path="/terms" element={<TermsPage />} />
-                                    <Route path="/privacy" element={<PrivacyPage />} />
                                     <Route path="/contact" element={<ContactPage />} />
                                     <Route path="/recruitment" element={<RecruitmentDashboard />} />
                                     <Route path="/profile/:id" element={<HostPublicProfile />} />
