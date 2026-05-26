@@ -7,8 +7,24 @@
 include_once '../db_connect.php';
 session_start();
 
-// Admin only
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin'])) {
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+    exit;
+}
+$role = isset($_SESSION['user_role']) ? trim((string) $_SESSION['user_role']) : '';
+try {
+    $roleStmt = $conn->prepare("SELECT role FROM users WHERE id = ? LIMIT 1");
+    $roleStmt->execute([$_SESSION['user_id']]);
+    $rrow = $roleStmt->fetch(PDO::FETCH_ASSOC);
+    if ($rrow && array_key_exists('role', $rrow) && $rrow['role'] !== null && $rrow['role'] !== '') {
+        $role = trim((string) $rrow['role']);
+        $_SESSION['user_role'] = $role;
+    }
+} catch (Exception $e) { /* keep session role */
+}
+$roleNorm = strtolower(str_replace('super_admin', 'superadmin', $role));
+if (!in_array($roleNorm, ['admin', 'superadmin'], true)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Admin privileges required.']);
     exit;
@@ -71,12 +87,23 @@ try {
     } catch (PDOException $e) { /* column already exists */
     }
 
-    // Check if venue exists
-    $checkStmt = $conn->prepare("SELECT id FROM venues WHERE id = ?");
+    // 공간명 스냅샷: 조인 실패·이름 컬럼 공백 시에도 관리자 목록에 표시
+    try {
+        $conn->exec("ALTER TABLE venue_promotions ADD COLUMN snapshot_venue_name VARCHAR(255) DEFAULT NULL AFTER venue_id");
+    } catch (PDOException $e) { /* column already exists */
+    }
+
+    // Check if venue exists + 표시용 이름
+    $checkStmt = $conn->prepare("SELECT id, name FROM venues WHERE id = ? LIMIT 1");
     $checkStmt->execute([$venue_id]);
-    if (!$checkStmt->fetch()) {
+    $venueRow = $checkStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$venueRow) {
         echo json_encode(['success' => false, 'message' => 'Venue not found.']);
         exit;
+    }
+    $snapshotVenueName = isset($venueRow['name']) ? trim((string) $venueRow['name']) : '';
+    if ($snapshotVenueName === '') {
+        $snapshotVenueName = null;
     }
 
     // For category_featured, allow multiple promotions per venue (different categories)
@@ -98,16 +125,16 @@ try {
     if ($existing) {
         // Update existing
         $updateStmt = $conn->prepare("UPDATE venue_promotions 
-            SET tier = ?, featured_category = ?, start_date = ?, end_date = ?, admin_note = ?, display_order = ?, created_by = ?
+            SET tier = ?, featured_category = ?, start_date = ?, end_date = ?, admin_note = ?, display_order = ?, created_by = ?, snapshot_venue_name = ?
             WHERE id = ?");
-        $updateStmt->execute([$tier, $featured_category, $start_date, $end_date, $admin_note, $display_order, $admin_id, $existing['id']]);
+        $updateStmt->execute([$tier, $featured_category, $start_date, $end_date, $admin_note, $display_order, $admin_id, $snapshotVenueName, $existing['id']]);
         echo json_encode(['success' => true, 'message' => '프로모션이 업데이트되었습니다.', 'action' => 'updated']);
     } else {
         // Insert new
         $insertStmt = $conn->prepare("INSERT INTO venue_promotions 
-            (venue_id, tier, featured_category, start_date, end_date, admin_note, display_order, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $insertStmt->execute([$venue_id, $tier, $featured_category, $start_date, $end_date, $admin_note, $display_order, $admin_id]);
+            (venue_id, snapshot_venue_name, tier, featured_category, start_date, end_date, admin_note, display_order, created_by) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insertStmt->execute([$venue_id, $snapshotVenueName, $tier, $featured_category, $start_date, $end_date, $admin_note, $display_order, $admin_id]);
         echo json_encode(['success' => true, 'message' => '프로모션이 등록되었습니다.', 'action' => 'created']);
     }
 

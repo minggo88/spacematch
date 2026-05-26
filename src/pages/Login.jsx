@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { getContactLink } from '../utils/contactLinks';
 import { Lock, Mail, Home } from 'lucide-react';
+import SiteFooter from '../components/SiteFooter';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -68,7 +69,8 @@ const Login = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-[#0f1117] p-4">
+        <div className="flex flex-col min-h-screen bg-secondary dark:bg-[#0f1117]">
+            <div className="flex flex-1 items-center justify-center p-4">
             <div className="w-full max-w-md p-6 md:p-8 bg-white dark:bg-[#1a1b2e] rounded-xl shadow-lg dark:shadow-black/40 dark:border dark:border-[#2e3050]">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
@@ -158,6 +160,8 @@ const Login = () => {
                     </Link>
                 </div>
             </div>
+            </div>
+            <SiteFooter />
         </div>
     );
 };

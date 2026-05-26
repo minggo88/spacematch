@@ -9,6 +9,7 @@ import KakaoMap from '../../components/KakaoMap';
 import AdSlot from '../../components/AdSlot';
 import { COUNTRY_FLAGS } from '../../components/CountryBadge';
 import { useDemoGuard } from '../../hooks/useDemoGuard';
+import { getProfileCompletenessPercent } from '../../utils/profileCompleteness';
 
 const API_BASE = '/api';
 
@@ -165,16 +166,7 @@ const SellerDashboard = () => {
     // Profile completeness
     const [profileComplete, setProfileComplete] = useState(0);
     useEffect(() => {
-        if (!user) return;
-        let filled = 0;
-        const total = 6;
-        if (user.name) filled++;
-        if (user.email) filled++;
-        if (user.phone) filled++;
-        if (user.business_no) filled++;
-        if (user.description) filled++;
-        if (user.profile_image) filled++;
-        setProfileComplete(Math.round((filled / total) * 100));
+        setProfileComplete(getProfileCompletenessPercent(user));
     }, [user]);
 
     // Promotions from API — separated by type

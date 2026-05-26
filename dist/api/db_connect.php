@@ -61,11 +61,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-// Database Credentials
-$host = 'localhost';
-$db_name = 'spacematch';
-$username = 'spacematch';
-$password = 'qortpdnd91!@';
+// Database Credentials — 환경변수 우선, 없으면 .env 파일에서 로드
+$_envFile = __DIR__ . '/../../.env';
+if (file_exists($_envFile)) {
+    foreach (file($_envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $_line) {
+        if (strpos(trim($_line), '#') === 0 || strpos($_line, '=') === false) continue;
+        [$_k, $_v] = explode('=', $_line, 2);
+        if (!getenv(trim($_k))) putenv(trim($_k) . '=' . trim($_v));
+    }
+}
+$host     = getenv('DB_HOST') ?: 'localhost';
+$db_name  = getenv('DB_NAME') ?: 'spacematch';
+$username = getenv('DB_USER') ?: 'spacematch';
+$password = getenv('DB_PASS') ?: '';
 
 try {
     $conn = new PDO("mysql:host=" . $host . ";dbname=" . $db_name . ";charset=utf8mb4", $username, $password);

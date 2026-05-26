@@ -1,6 +1,7 @@
 <?php
 include_once '../db_connect.php';
 include_once '../utils/geocode.php';
+include_once '../utils/session_role.php';
 session_start();
 
 // Configure upload limits
@@ -9,8 +10,15 @@ session_start();
 @ini_set('memory_limit', '1024M');
 @ini_set('max_execution_time', '300');
 
-// Allow admin, superadmin, or vendor
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'host'])) {
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(array("success" => false, "message" => "로그인이 필요합니다."));
+    exit;
+}
+
+$role = sm_sync_session_role($conn);
+$roleNorm = sm_normalize_role($role);
+if (!sm_is_admin_role($roleNorm) && !sm_is_host_role($roleNorm)) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "Unauthorized access."));
     exit;
@@ -117,7 +125,7 @@ if (!in_array($pricing_unit, ['daily', 'weekly', 'monthly'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$user_role = $_SESSION['user_role'];
+$user_role = $roleNorm;
 
 try {
     // Auto-migrate: run DDL once per session
@@ -155,35 +163,42 @@ try {
         $_SESSION['_ddl_venues_migrated'] = true;
     }
 
-    // Geocode the address (re-geocode on every update to handle location changes)
+    // Geocode (관리자 수정은 응답 속도 우선)
     $latitude = null;
     $longitude = null;
-    $coords = geocodeAddress($location);
-    if ($coords) {
-        $latitude = $coords['lat'];
-        $longitude = $coords['lng'];
+    if (!sm_is_admin_role($user_role)) {
+        try {
+            $coords = geocodeAddress($location);
+            if ($coords) {
+                $latitude = $coords['lat'];
+                $longitude = $coords['lng'];
+            }
+        } catch (Exception $geoEx) {
+            error_log('[update_venue] geocode: ' . $geoEx->getMessage());
+        }
     }
 
     // 1. Check Ownership
     $check_stmt = $conn->prepare("SELECT owner_id FROM venues WHERE id = ?");
     $check_stmt->execute([$id]);
 
-    if ($check_stmt->rowCount() === 0) {
+    $ownerRow = $check_stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$ownerRow) {
         echo json_encode(array("success" => false, "message" => "존재하지 않는 베뉴입니다."));
         exit;
     }
 
-    $venue_owner_id = $check_stmt->fetchColumn();
+    $venue_owner_id = $ownerRow['owner_id'];
 
     // If vendor, must match owner_id
-    if ($user_role === 'host' && $venue_owner_id != $user_id) {
+    if (sm_is_host_role($user_role) && $venue_owner_id != $user_id) {
         http_response_code(403);
         echo json_encode(array("success" => false, "message" => "수정 권한이 없습니다."));
         exit;
     }
 
     // Vendor restriction: cannot modify if recruitment closed or approved sellers exist
-    if ($user_role === 'host') {
+    if (sm_is_host_role($user_role)) {
         // Check recruitment_closed
         $rcCheck = $conn->prepare("SELECT recruitment_closed FROM venues WHERE id = ?");
         $rcCheck->execute([$id]);

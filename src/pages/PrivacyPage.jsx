@@ -8,8 +8,9 @@ const PrivacyPage = () => {
     useEffect(() => { window.scrollTo(0, 0); }, []);
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen flex flex-col bg-white">
             <PublicNav />
+            <main className="flex-1">
             <section className="pt-32 pb-24 max-w-4xl mx-auto px-4 md:px-6">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">{t('privacyTitle')}</h1>
                 <div className="bg-gray-50 rounded-2xl p-8 md:p-10 border border-gray-100 text-gray-600 text-sm md:text-base leading-relaxed flex flex-col gap-8 break-keep">
@@ -50,6 +51,7 @@ const PrivacyPage = () => {
                     </section>
                 </div>
             </section>
+            </main>
             <PublicFooter />
         </div>
     );

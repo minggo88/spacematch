@@ -889,9 +889,9 @@ const CommunityPage = ({ type = 'general' }) => {
 
     // Navigate to a popular post
     const goToPopularPost = (postId) => {
-        // If on page 1 and post exists, just expand; otherwise navigate
         const found = posts.find(p => p.id === postId);
         if (found) {
+            // 현재 목록에 있으면 바로 펼치고 스크롤
             setExpandedPost(postId);
             if (!commentsMap[postId]) fetchComments(postId);
             incrementViewCount(postId);
@@ -899,10 +899,12 @@ const CommunityPage = ({ type = 'general' }) => {
                 document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         } else {
-            setFilterLabel('');
-            setPage(1);
-            setHighlightedPostId(postId);
-            setExpandedPost(postId);
+            // 없으면 ?post=ID 핸들러에 위임 — API에서 글을 직접 fetch해 목록 맨 위에 삽입 후 스크롤
+            setSearchParams(prev => {
+                const next = new URLSearchParams(prev);
+                next.set('post', String(postId));
+                return next;
+            });
         }
     };
 

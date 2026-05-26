@@ -52,14 +52,21 @@ const AdminPromotions = () => {
 
     const fetchData = async () => {
         try {
-            const res = await fetch(`${API_BASE}/promotions/get_admin_promotions.php`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/promotions/get_admin_promotions.php`, { credentials: 'include', cache: 'no-store' });
             const json = await res.json();
             if (json.success) {
                 setPromotions(json.promotions || []);
                 setAllVenues(json.venues || []);
+            } else {
+                setPromotions([]);
+                setAllVenues([]);
+                showToast(json.message || t('promotionsPage.loadFailed'), 'error');
             }
         } catch (err) {
             console.error(t('promotionsPage.loadFailed'), err);
+            setPromotions([]);
+            setAllVenues([]);
+            showToast(t('promotionsPage.loadFailed'), 'error');
         } finally {
             setLoading(false);
         }
@@ -174,6 +181,17 @@ const AdminPromotions = () => {
         return promotions.filter(p => p.tier === filterTier);
     }, [promotions, filterTier]);
 
+    /** API 조인이 비어도 동일 응답의 venues 배열로 표시 보강 */
+    const venueById = useMemo(() => {
+        const m = {};
+        (allVenues || []).forEach((v) => {
+            if (v == null || v.id == null || v.id === '') return;
+            const k = String(v.id).trim();
+            if (k) m[k] = v;
+        });
+        return m;
+    }, [allVenues]);
+
     const activeCount = promotions.filter(p => p.promo_status === 'active').length;
     const expiredCount = promotions.filter(p => p.promo_status === 'expired').length;
 
@@ -256,6 +274,38 @@ const AdminPromotions = () => {
                         const isExpired = promo.promo_status === 'expired';
                         const tierConf = TIER_CONFIG_KEYS[promo.tier];
                         const daysLeft = Math.ceil((new Date(promo.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+                        const vidKey = promo.venue_id != null && String(promo.venue_id) !== ''
+                            ? String(promo.venue_id).trim()
+                            : '';
+                        const vRow = vidKey ? venueById[vidKey] : null;
+                        const loc = (promo.venue_location || '').trim() || (vRow?.location || '').trim() || '';
+                        const typeRaw = promo.venue_type || vRow?.type || '';
+                        const typ = typeRaw ? (t(TYPE_LABEL_KEYS[typeRaw]) || typeRaw) : '';
+                        const titleExtras = [loc, typ].filter(Boolean);
+                        const rawTitle = (promo.venue_name || '').trim();
+                        const fromList = (vRow?.name || '').trim();
+                        const looksGeneric = !rawTitle || rawTitle === '(연결되지 않은 공간)' || /^공간 #\d+$/.test(rawTitle);
+                        const baseTitle = (looksGeneric && fromList) ? fromList : (rawTitle || `ID ${promo.venue_id ?? ''}`);
+                        const headline = titleExtras.length ? `${baseTitle} · ${titleExtras.join(' · ')}` : baseTitle;
+                        const vst = (promo.venue_status || '').trim() || (vRow?.status || '').trim() || '';
+                        let thumbImg = promo.venue_images?.[0];
+                        if (!thumbImg && vRow?.images) {
+                            let arr = [];
+                            if (Array.isArray(vRow.images)) arr = vRow.images;
+                            else if (typeof vRow.images === 'string') {
+                                try {
+                                    const p = JSON.parse(vRow.images);
+                                    if (Array.isArray(p)) arr = p;
+                                } catch { /* ignore */ }
+                            }
+                            thumbImg = arr[0];
+                        }
+                        const metaBits = [];
+                        if (vst) metaBits.push(vst);
+                        if (promo.venue_id != null && String(promo.venue_id) !== '') {
+                            metaBits.push(`venue_id ${promo.venue_id}`);
+                        }
+                        const metaLine = metaBits.filter(Boolean).join(' · ');
                         return (
                             <div key={promo.id}
                                 className={`bg-white rounded-2xl p-4 md:p-5 border transition-all ${isExpired ? 'border-gray-100 opacity-60' : 'border-gray-100 hover:shadow-md'
@@ -265,8 +315,8 @@ const AdminPromotions = () => {
                                     {/* Venue Info */}
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <div className="w-14 h-14 md:w-12 md:h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                                            {promo.venue_images?.[0] ? (() => {
-                                                const img = promo.venue_images[0];
+                                            {thumbImg ? (() => {
+                                                const img = thumbImg;
                                                 const src = img.startsWith('/') ? img : `/${img}`;
                                                 return <img src={src} alt="" className="w-full h-full object-cover" />;
                                             })() : (
@@ -275,7 +325,7 @@ const AdminPromotions = () => {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <h3 className="font-bold text-gray-900 truncate">{promo.venue_name}</h3>
+                                                <h3 className="font-bold text-gray-900 truncate">{headline}</h3>
                                                 <span className={`px-2 py-0.5 ${tierConf.color} text-white rounded-md text-xs font-bold`}>
                                                     {t(tierConf.labelKey)}
                                                 </span>
@@ -288,9 +338,9 @@ const AdminPromotions = () => {
                                                     <span className="px-2 py-0.5 bg-gray-200 text-gray-500 rounded-md text-xs font-bold">{t('promotionsPage.expired')}</span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-400 truncate mt-0.5">
-                                                {promo.venue_location} · {t(TYPE_LABEL_KEYS[promo.venue_type]) || promo.venue_type}
-                                            </p>
+                                            {metaLine ? (
+                                                <p className="text-xs text-gray-400 truncate mt-0.5">{metaLine}</p>
+                                            ) : null}
                                             {promo.admin_note && (
                                                 <p className="text-xs text-orange-600 font-medium mt-1 truncate flex items-center gap-1">
                                                     <Sparkles size={10} />{promo.admin_note}

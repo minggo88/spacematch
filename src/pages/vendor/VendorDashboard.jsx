@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Package, ShoppingBag, Users, TrendingUp, CheckCircle, AlertCircle, ArrowRight, UserCircle, Building, BarChart3, Send, Truck, Wallet, Clock, DollarSign } from 'lucide-react';
+import { getProfileCompletenessPercent } from '../../utils/profileCompleteness';
 
 const API_BASE = '/api';
 
@@ -17,16 +18,7 @@ const VendorDashboard = () => {
 
     // Calculate profile completion
     useEffect(() => {
-        if (!user) return;
-        let filled = 0;
-        let total = 6;
-        if (user.name) filled++;
-        if (user.email) filled++;
-        if (user.phone) filled++;
-        if (user.business_no) filled++;
-        if (user.description) filled++;
-        if (user.profile_image) filled++;
-        setProfileComplete(Math.round((filled / total) * 100));
+        setProfileComplete(getProfileCompletenessPercent(user));
     }, [user]);
 
     // Fetch all stats

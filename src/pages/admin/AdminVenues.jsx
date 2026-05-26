@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useData } from '../../context/DataContext';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,6 +23,8 @@ const AdminVenues = () => {
     const [loading, setLoading] = useState(true);
     const [confirmModal, setConfirmModal] = useState(null);
     const [toast, setToast] = useState(null);
+    const [venueSuccessModal, setVenueSuccessModal] = useState(null);
+    const venueSubmitLockRef = useRef(false);
 
     const showToast = useCallback((message, type = 'success') => {
         setToast({ message, type });
@@ -31,9 +33,13 @@ const AdminVenues = () => {
     const fetchAdminVenues = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/venues/get_all_venues_admin.php`, { credentials: 'include' });
+            const res = await fetch(`${API_BASE}/venues/get_all_venues_admin.php`, { credentials: 'include', cache: 'no-store' });
             const data = await res.json();
-            if (Array.isArray(data)) setAdminVenues(data);
+            if (Array.isArray(data)) {
+                setAdminVenues(data);
+            } else if (data && !data.success) {
+                showToast(data.message || t('venuesPage.errorOccurred'), 'error');
+            }
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     }, []);
@@ -123,31 +129,68 @@ const AdminVenues = () => {
 
     // Handlers
     const handleOpenDrawer = (venue = null) => {
+        if (venueSubmitLockRef.current) return;
         setSelectedVenue(venue);
         setIsDrawerOpen(true);
     };
 
     const handleCloseDrawer = () => {
+        if (venueSubmitLockRef.current) return;
         setIsDrawerOpen(false);
         setTimeout(() => setSelectedVenue(null), 300);
     };
 
     const handleModalSubmit = async (submitData) => {
-        const endpoint = selectedVenue
+        if (venueSubmitLockRef.current) {
+            return { success: false, message: '베뉴 등록 중입니다. 잠시만 기다려 주세요.' };
+        }
+        venueSubmitLockRef.current = true;
+
+        const isEdit = !!selectedVenue;
+        const endpoint = isEdit
             ? `${API_BASE}/venues/update_venue.php`
             : `${API_BASE}/venues/add_venue.php`;
+
         try {
-            const res = await fetch(endpoint, { method: 'POST', body: submitData });
-            const data = await res.json();
+            const res = await fetch(endpoint, { method: 'POST', credentials: 'include', body: submitData });
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                const msg = res.status === 403
+                    ? '권한이 없습니다. 다시 로그인해 주세요.'
+                    : '서버 응답을 처리할 수 없습니다.';
+                showToast(msg, 'error');
+                return { success: false, message: msg };
+            }
             if (data.success) {
-                showToast(selectedVenue ? t('venuesPage.updatedToast') : t('venuesPage.registeredToast'), 'success');
                 setIsDrawerOpen(false);
+                setSelectedVenue(null);
+
+                if (isEdit) {
+                    showToast(t('venuesPage.updatedToast'), 'success');
+                } else {
+                    setVenueSuccessModal({
+                        title: '등록되었습니다',
+                        message: data.message || '새 베뉴가 성공적으로 등록되었습니다.',
+                    });
+                }
+
                 fetchAdminVenues();
                 fetchVenues();
-            } else {
-                showToast(data.message || t('venuesPage.errorOccurred'), 'error');
+                return { success: true };
             }
-        } catch (err) { console.error(err); }
+            const errMsg = data.message || t('venuesPage.errorOccurred');
+            showToast(errMsg, 'error');
+            return { success: false, message: errMsg };
+        } catch (err) {
+            console.error(err);
+            showToast(t('venuesPage.errorOccurred'), 'error');
+            return { success: false, message: t('venuesPage.errorOccurred') };
+        } finally {
+            venueSubmitLockRef.current = false;
+        }
     };
 
     const handleDelete = (id) => {
@@ -680,6 +723,34 @@ const AdminVenues = () => {
                     </div>
                 )
             }
+
+            {venueSuccessModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setVenueSuccessModal(null)} />
+                    <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scaleIn">
+                        <div className="px-6 py-5 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                                    <CheckCircle size={24} className="text-emerald-600" />
+                                </div>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-gray-100">{venueSuccessModal.title}</h3>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5">
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{venueSuccessModal.message}</p>
+                        </div>
+                        <div className="px-6 pb-5">
+                            <button
+                                type="button"
+                                onClick={() => setVenueSuccessModal(null)}
+                                className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors"
+                            >
+                                확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ConfirmModal modal={confirmModal} onClose={() => setConfirmModal(null)} />
             <Toast toast={toast} onClose={() => setToast(null)} />

@@ -11,6 +11,7 @@ import { countryToLang, getPopupLocalized } from '../utils/translateText';
 import ChatPage from '../pages/ChatPage';
 import { subscribeToPush } from '../utils/pushNotifications';
 import OnboardingGuide from './OnboardingGuide';
+import SiteFooter from './SiteFooter';
 
 const Layout = () => {
     const { user, logout } = useAuth();
@@ -229,13 +230,13 @@ const Layout = () => {
     const adminLinks = [
         { to: '/admin', icon: Home, label: t('sidebar.home') },
         { to: '/admin/dashboard', icon: LayoutDashboard, label: t('sidebar.adminDashboard') },
+        { to: '/admin/applications', icon: ClipboardList, label: t('sidebar.applicationManagement') },
         { to: '/admin/analytics', icon: BarChart3, label: t('sidebar.analytics') },
         { to: '/admin/sellers', icon: ShoppingBag, label: t('sidebar.sellerDirectory') },
         { to: '/admin/hosts', icon: Building, label: t('sidebar.hostDirectory') },
         { to: '/admin/popular', icon: Flame, label: t('sidebar.popularSpaces') },
     ];
     const adminManagementLinks = [
-        { to: '/admin/applications', icon: ClipboardList, label: t('sidebar.applicationManagement') },
         { to: '/admin/cancellations', icon: AlertTriangle, label: t('sidebar.cancellationRequests') },
         { to: '/admin/venues', icon: Store, label: t('sidebar.venueManagement') },
         { to: '/admin/promotions', icon: Flame, label: t('sidebar.recruitmentManagement') },
@@ -1033,10 +1034,12 @@ const Layout = () => {
             `}</style>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto h-[calc(100vh-64px)] lg:h-screen px-6 py-4 lg:px-20 lg:py-8 relative">
-                <div className="max-w-screen-xl mx-auto">
+            <main className="flex-1 flex flex-col min-h-screen px-6 pt-4 pb-0 lg:px-20 lg:pt-8 lg:pb-0">
+                <div className="flex-1 max-w-screen-xl mx-auto w-full">
                     <Outlet />
                 </div>
+
+                <SiteFooter className="mt-10 -mx-6 lg:-mx-20 rounded-t-2xl overflow-hidden" />
 
                 {/* Floating Chat Button */}
                 <>

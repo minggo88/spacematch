@@ -1,9 +1,17 @@
 <?php
 include_once '../db_connect.php';
+include_once '../utils/session_role.php';
 session_start();
 
-// Allow only admin or superadmin
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin'])) {
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(array("success" => false, "message" => "Unauthorized access."));
+    exit;
+}
+
+$role = sm_sync_session_role($conn);
+$roleNorm = sm_normalize_role($role);
+if (!sm_is_admin_role($roleNorm)) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "Unauthorized access."));
     exit;

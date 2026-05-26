@@ -26,8 +26,14 @@ if (isset($_SESSION['user_id'])) {
     $stmt->bindParam(1, $user_id);
     $stmt->execute();
 
-    if ($stmt->rowCount() > 0) {
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    // MySQL PDO: SELECT 에서 rowCount() 가 0을 반환하는 경우가 있어 fetch 로 판별
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($row) {
+        if (in_array($row['status'], ['withdrawn', 'blocked'])) {
+            session_destroy();
+            echo json_encode(array("success" => false, "message" => "사용할 수 없는 계정입니다."));
+            exit;
+        }
 
         // Update session if needed
         $_SESSION['user_role'] = $row['role'];

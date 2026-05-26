@@ -85,18 +85,24 @@ const HostVenues = () => {
         setTimeout(() => setToast(null), 3000);
     };
 
-    const handleModalSubmit = (submitData) => {
+    const handleModalSubmit = async (submitData) => {
         const endpoint = editingVenue ? `${API_BASE}/venues/update_venue.php` : `${API_BASE}/venues/add_venue.php`;
-        return fetch(endpoint, { method: 'POST', credentials: 'include', body: submitData })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(editingVenue ? t('venuesPage.toastVenueUpdated') : t('venuesPage.toastVenueCreated'), 'success');
-                    setIsDrawerOpen(false); fetchMyVenues();
-                } else {
-                    showToast(data.message || t('venuesPage.toastError'), 'error');
-                }
-            }).catch(() => { showToast(t('venuesPage.toastError'), 'error'); });
+        try {
+            const res = await fetch(endpoint, { method: 'POST', credentials: 'include', body: submitData });
+            const data = await res.json();
+            if (data.success) {
+                showToast(editingVenue ? t('venuesPage.toastVenueUpdated') : t('venuesPage.toastVenueCreated'), 'success');
+                setIsDrawerOpen(false);
+                fetchMyVenues();
+                return { success: true };
+            }
+            const msg = data.message || t('venuesPage.toastError');
+            showToast(msg, 'error');
+            return { success: false, message: msg };
+        } catch {
+            showToast(t('venuesPage.toastError'), 'error');
+            return { success: false, message: t('venuesPage.toastError') };
+        }
     };
 
     const handleDelete = (id) => {

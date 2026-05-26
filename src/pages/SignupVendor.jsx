@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { User, Mail, Lock, Building, Phone, AlertCircle, Globe, Home, Package, CheckCircle2, Loader2 } from 'lucide-react';
+import SiteFooter from '../components/SiteFooter';
 import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
 import KeywordSelector from '../components/KeywordSelector';
 import {
@@ -130,7 +131,8 @@ const SignupVendor = () => {
     // Show approval pending screen after successful signup
     if (pendingApproval) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-secondary py-10 px-4">
+            <div className="flex flex-col min-h-screen bg-secondary">
+                <div className="flex flex-1 items-center justify-center py-10 px-4">
                 <div className="w-full max-w-lg p-8 bg-white rounded-xl shadow-lg text-center">
                     <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Package className="text-teal-600" size={36} />
@@ -155,6 +157,8 @@ const SignupVendor = () => {
                         {t('goToLoginPage')}
                     </Link>
                 </div>
+                </div>
+                <SiteFooter />
             </div>
         );
     }
@@ -182,7 +186,8 @@ const SignupVendor = () => {
     const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'vendor') && emailVerified;
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900 py-10 px-4">
+        <div className="flex flex-col min-h-screen bg-secondary dark:bg-gray-900">
+            <div className="flex flex-1 items-center justify-center py-10 px-4">
             <div className="w-full max-w-lg p-6 md:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
@@ -427,6 +432,8 @@ const SignupVendor = () => {
                     </Link>
                 </div>
             </div>
+            </div>
+            <SiteFooter />
         </div>
     );
 };

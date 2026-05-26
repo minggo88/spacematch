@@ -340,6 +340,7 @@
     "kakaoDesc": "카카오톡으로 공유합니다",
     "shareOther": "다른 앱으로 공유",
     "shareOtherDesc": "시스템 공유 메뉴를 엽니다",
+    "shareFailed": "공유에 실패했습니다",
     "hostCantApply": "호스트 계정은 신청 불가",
     "applied": "신청 완료",
     "applyNow": "입점 신청하기",

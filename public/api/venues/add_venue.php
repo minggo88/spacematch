@@ -1,6 +1,7 @@
 <?php
 include_once '../db_connect.php';
 include_once '../utils/geocode.php';
+include_once '../utils/session_role.php';
 include_once '../notifications/send_email.php';
 session_start();
 
@@ -10,8 +11,15 @@ session_start();
 @ini_set('memory_limit', '1024M');
 @ini_set('max_execution_time', '300');
 
-// Allow admin, superadmin, or vendor
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin', 'host'])) {
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(array("success" => false, "message" => "로그인이 필요합니다."));
+    exit;
+}
+
+$role = sm_sync_session_role($conn);
+$roleNorm = sm_normalize_role($role);
+if (!sm_is_admin_role($roleNorm) && !sm_is_host_role($roleNorm)) {
     http_response_code(403);
     echo json_encode(array("success" => false, "message" => "Unauthorized access."));
     exit;
@@ -110,11 +118,23 @@ if (!in_array($pricing_unit, ['daily', 'weekly', 'monthly'])) {
 
 if ($name && $location && ($price !== null && $price !== '')) {
 
-    $owner_id = $_SESSION['user_id'];
-    $role = $_SESSION['user_role'];
+    $owner_id = (int) $_SESSION['user_id'];
+    $role = $roleNorm;
+
+    // 관리자: 지정한 호스트(owner_id)에 등록 가능 (미지정 시 관리자 계정)
+    if (sm_is_admin_role($roleNorm)) {
+        $postedOwner = isset($_POST['owner_id']) ? (int) $_POST['owner_id'] : 0;
+        if ($postedOwner > 0) {
+            $ownChk = $conn->prepare("SELECT id FROM users WHERE id = ? AND role IN ('host') LIMIT 1");
+            $ownChk->execute([$postedOwner]);
+            if ($ownChk->fetch(PDO::FETCH_ASSOC)) {
+                $owner_id = $postedOwner;
+            }
+        }
+    }
 
     // Enforce Venue Limit for Vendors
-    if ($role === 'host') {
+    if (sm_is_host_role($roleNorm)) {
         try {
             $limit_stmt = $conn->prepare("SELECT venue_limit FROM users WHERE id = ?");
             $limit_stmt->execute([$owner_id]);
@@ -197,7 +217,7 @@ if ($name && $location && ($price !== null && $price !== '')) {
     }
 
     $images_json = json_encode($uploaded_images);
-    $status = in_array($role, ['admin', 'superadmin']) ? 'approved' : 'pending';
+    $status = sm_is_admin_role($roleNorm) ? 'approved' : 'pending';
 
     try {
         // Auto-migrate: run DDL once per session
@@ -249,13 +269,20 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $columns .= ", recruitment_start, recruitment_end, event_start, event_end, event_periods";
         $values .= ", :recruitment_start, :recruitment_end, :event_start, :event_end, :event_periods";
 
-        // Geocode the address
+        // Geocode: 관리자 등록은 응답 속도 우선(외부 API 최대 5초 대기 제거)
         $latitude = null;
         $longitude = null;
-        $coords = geocodeAddress($location);
-        if ($coords) {
-            $latitude = $coords['lat'];
-            $longitude = $coords['lng'];
+        $isAdminCreate = sm_is_admin_role($roleNorm);
+        if (!$isAdminCreate) {
+            try {
+                $coords = geocodeAddress($location);
+                if ($coords) {
+                    $latitude = $coords['lat'];
+                    $longitude = $coords['lng'];
+                }
+            } catch (Exception $geoEx) {
+                error_log('[add_venue] geocode: ' . $geoEx->getMessage());
+            }
         }
         $columns .= ", latitude, longitude";
         $values .= ", :latitude, :longitude";
@@ -264,7 +291,7 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $values .= ", :avg_sales, :sales_unit, :popular_categories, :target_customers, :attachments";
         // Check if vendor has active premium_space subscription
         $is_premium = 0;
-        if ($role === 'host') {
+        if (sm_is_host_role($roleNorm)) {
             try {
                 $prem_stmt = $conn->prepare("SELECT p.id FROM payments p JOIN payment_plans pp ON p.plan_id = pp.id WHERE p.user_id = ? AND pp.category = 'premium_space' AND p.status = 'confirmed' ORDER BY p.created_at DESC LIMIT 1");
                 $prem_stmt->execute([$owner_id]);
@@ -310,6 +337,22 @@ if ($name && $location && ($price !== null && $price !== '')) {
         $stmt->bindParam(":is_premium", $is_premium);
 
         if ($stmt->execute()) {
+            $newVenueId = (int) $conn->lastInsertId();
+            $response = array('success' => true, 'message' => '베뉴가 등록되었습니다.', 'id' => $newVenueId);
+
+            // 관리자 등록: 알림·푸시·이메일·지오코딩 생략 후 즉시 JSON 반환
+            if ($isAdminCreate) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($response);
+                exit;
+            }
+
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($response);
+            if (function_exists('fastcgi_finish_request')) {
+                @fastcgi_finish_request();
+            }
+
             // [NOTIFICATION] Notify admins when a vendor registers a new venue
             if ($status === 'pending') {
                 try {
@@ -364,26 +407,25 @@ if ($name && $location && ($price !== null && $price !== '')) {
                 }
             }
 
-            // [SPACE ALERTS] Notify subscribed sellers with matching preferences
+            // [SPACE ALERTS] Notify subscribed sellers (클라이언트 응답 후 백그라운드)
             try {
                 include_once __DIR__ . '/../notifications/trigger_alerts.php';
-                $newVenueId = $conn->lastInsertId();
-                triggerSpaceAlerts($conn, [
+                triggerSpaceAlerts($conn, array(
                     'id' => $newVenueId,
                     'name' => $name,
                     'region' => $region,
                     'type' => $type,
                     'price' => $price,
-                ]);
+                ));
             } catch (Exception $e) {
                 // Don't block venue creation if alert fails
             }
 
-            echo json_encode(array("success" => true, "message" => "베뉴가 등록되었습니다.", "id" => $conn->lastInsertId()));
+            exit;
         } else {
             echo json_encode(array("success" => false, "message" => "베뉴 등록에 실패했습니다."));
         }
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         http_response_code(500);
         error_log('[add_venue] ' . $e->getMessage());
         echo json_encode(array("success" => false, "message" => "공간 등록 중 오류가 발생했습니다."));

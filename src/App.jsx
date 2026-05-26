@@ -20,6 +20,7 @@ import RecruitmentDashboard from './pages/RecruitmentDashboard';
 import HostPublicProfile from './pages/HostPublicProfile';
 import AdSharePage from './pages/AdSharePage';
 import CampaignSharePage from './pages/CampaignSharePage';
+import HostSharePage from './pages/HostSharePage';
 import SecurityGuard from './components/SecurityGuard';
 
 // ── Lazy-loaded heavy pages (code splitting) ──
@@ -119,7 +120,7 @@ function App() {
 
                                     {/* Admin Routes — admin/superadmin only */}
                                     <Route path="/admin" element={<RoleRoute allowedRoles={['admin', 'superadmin']}><Layout /></RoleRoute>}>
-                                        <Route index element={<SellerDashboard />} />
+                                        <Route index element={<AdminDashboard />} />
                                         <Route path="dashboard" element={<AdminDashboard />} />
                                         <Route path="venues" element={<AdminVenues />} />
                                         <Route path="applications" element={<AdminApplications />} />
@@ -215,6 +216,7 @@ function App() {
                                     <Route path="/profile/:id" element={<HostPublicProfile />} />
                                     <Route path="/ad-report/:token" element={<AdSharePage />} />
                                     <Route path="/ad-campaign-report/:token" element={<CampaignSharePage />} />
+                                    <Route path="/host-share/:id" element={<HostSharePage />} />
                                 </Routes>
                             </Suspense>
                         </Router>

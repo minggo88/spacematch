@@ -1,18 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Phone, Building, Lock, Save, Camera, Tag, Instagram, ImagePlus, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Globe, FileText } from 'lucide-react';
+import { User, Mail, Phone, Building, Lock, Save, Camera, Tag, Instagram, ImagePlus, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Globe, FileText, Share2, Link2, Check, ExternalLink } from 'lucide-react';
 import { useDemoGuard } from '../../hooks/useDemoGuard';
 import KeywordSelector from '../../components/KeywordSelector';
 import { formatBusinessNumber } from '../../utils/validation';
 import { getBusinessRegConfig } from '../../utils/businessRegConfig';
+import { useNavigate } from 'react-router-dom';
 
 const SellerProfile = () => {
-    const { user, updateUserProfile, refreshUser, changePassword } = useAuth();
+    const { user, updateUserProfile, refreshUser, changePassword, withdraw } = useAuth();
     const { showToast } = useToast();
     const { t } = useTranslation('seller');
     const { isDemoUser, demoAlert } = useDemoGuard();
+    const navigate = useNavigate();
 
     const CATEGORY_OPTIONS = [
         { value: 'fashion', label: t('profilePage.categoryFashion') },
@@ -47,6 +50,82 @@ const SellerProfile = () => {
     ];
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
+
+    // ── 공유 메뉴 (host 전용) ──────────────────────────────
+    const [showShareMenu, setShowShareMenu] = useState(false);
+    const [shareCopied, setShareCopied] = useState(false);
+    const [shareMenuPos, setShareMenuPos] = useState({ left: 0, top: 0 });
+    const shareButtonRef = useRef(null);
+    const shareDropdownRef = useRef(null);
+
+    const getShareUrl = () => `${window.location.origin}/seller/hosts?host=${user.id}`;
+
+    const updateShareMenuPos = useCallback(() => {
+        if (!shareButtonRef.current) return;
+        const rect = shareButtonRef.current.getBoundingClientRect();
+        setShareMenuPos({ left: rect.left + rect.width / 2, top: rect.bottom + 8 });
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (!shareButtonRef.current?.contains(e.target) && !shareDropdownRef.current?.contains(e.target)) {
+                setShowShareMenu(false);
+            }
+        };
+        if (showShareMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [showShareMenu]);
+
+    useEffect(() => {
+        if (!showShareMenu) return;
+        updateShareMenuPos();
+        window.addEventListener('resize', updateShareMenuPos);
+        window.addEventListener('scroll', updateShareMenuPos, true);
+        return () => {
+            window.removeEventListener('resize', updateShareMenuPos);
+            window.removeEventListener('scroll', updateShareMenuPos, true);
+        };
+    }, [showShareMenu, updateShareMenuPos]);
+
+    const handleCopyLink = async () => {
+        const url = getShareUrl();
+        try { await navigator.clipboard.writeText(url); } catch {
+            const ta = document.createElement('textarea');
+            ta.value = url; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+        }
+        setShareCopied(true);
+        showToast('링크가 복사되었습니다!', 'success');
+        setTimeout(() => setShareCopied(false), 2000);
+    };
+
+    const handleKakaoShare = () => {
+        const url = getShareUrl();
+        const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`[SpaceMatch] ${user.name} 호스트`)}`;
+        window.open(kakaoUrl, '_blank', 'width=500,height=600');
+        setShowShareMenu(false);
+    };
+
+    const handleNativeShare = async () => {
+        try {
+            await navigator.share({ title: `[SpaceMatch] ${user.name} 호스트`, url: getShareUrl() });
+        } catch (e) {
+            if (e?.name !== 'AbortError') showToast('공유에 실패했습니다.', 'error');
+        }
+        setShowShareMenu(false);
+    };
+
+    const handleShareClick = (e) => {
+        e.stopPropagation();
+        if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+            handleNativeShare(); return;
+        }
+        if (!showShareMenu) updateShareMenuPos();
+        setShowShareMenu(prev => !prev);
+    };
+    // ────────────────────────────────────────────────────
 
     // Initialize profile with current user data
     const [profile, setProfile] = useState({
@@ -354,6 +433,7 @@ const SellerProfile = () => {
     };
 
     return (
+        <>
         <div className="max-w-4xl mx-auto pb-20 space-y-12">
 
             {/* Profile Header */}
@@ -393,9 +473,21 @@ const SellerProfile = () => {
                 <div className="text-center md:text-left z-10">
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-2">{user.name}</h2>
                     <p className="text-gray-500 font-medium mb-4">{user.email}</p>
-                    <span className="px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold border border-indigo-100">
-                        {user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : user.role === 'host' ? 'Host Account' : 'Seller Account'}
-                    </span>
+                    <div className="flex items-center gap-2 justify-center md:justify-start">
+                        <span className="px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold border border-indigo-100">
+                            {user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : user.role === 'host' ? 'Host Account' : 'Seller Account'}
+                        </span>
+                        {user.role === 'host' && (
+                            <button
+                                ref={shareButtonRef}
+                                onClick={handleShareClick}
+                                className="p-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 transition-colors inline-flex items-center"
+                                title="프로필 공유하기"
+                            >
+                                <Share2 size={14} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -718,9 +810,36 @@ const SellerProfile = () => {
                                 ></textarea>
                             </div>
 
-                            <div className="pt-4 flex justify-end">
+                            <div className="pt-4 flex flex-col items-end gap-2">
                                 <button type="submit" disabled={saving} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:-translate-y-0.5 transition-all flex items-center gap-2 disabled:opacity-50">
                                     <Save size={18} /> {saving ? t('profilePage.saving') : t('profilePage.saveInfo')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (isDemoUser) { demoAlert('회원 탈퇴'); return; }
+                                        const caution = [
+                                            '회원 탈퇴 시 아래 사항을 확인해주세요.',
+                                            '',
+                                            '1) 탈퇴 후에는 로그인할 수 없습니다.',
+                                            '2) 진행 중인 신청/정산/구독 상태에 영향을 줄 수 있습니다.',
+                                            '3) 일부 데이터는 법적/운영 정책에 따라 일정 기간 보관될 수 있습니다.',
+                                            '',
+                                            '정말 탈퇴를 진행하시겠습니까?'
+                                        ].join('\n');
+                                        if (!confirm(caution)) return;
+                                        if (!confirm('마지막 확인입니다. 회원 탈퇴를 진행할까요?')) return;
+                                        const res = await withdraw();
+                                        if (res?.success) {
+                                            alert('회원 탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.');
+                                            navigate('/');
+                                        } else {
+                                            alert(res?.message || '회원 탈퇴에 실패했습니다.');
+                                        }
+                                    }}
+                                    className="text-xs text-gray-400 hover:text-rose-400 transition-colors px-2 py-1 rounded bg-gray-50 hover:bg-gray-100"
+                                >
+                                    회원 탈퇴하기
                                 </button>
                             </div>
                         </form>
@@ -771,6 +890,74 @@ const SellerProfile = () => {
                 </div>
             </div>
         </div>
+
+        {/* 공유 드롭다운 — createPortal로 document.body에 마운트 */}
+        {showShareMenu && user.role === 'host' && createPortal(
+            <div
+                ref={shareDropdownRef}
+                className="fixed z-[9999] w-56 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+                style={{ left: shareMenuPos.left, top: shareMenuPos.top }}
+            >
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                    <p className="text-xs font-bold text-gray-700">공유하기</p>
+                </div>
+                <div className="p-1.5">
+                    <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-indigo-50 transition-colors group"
+                    >
+                        {shareCopied ? (
+                            <div className="w-8 h-8 flex items-center justify-center bg-emerald-100 rounded-lg">
+                                <Check size={16} className="text-emerald-600" />
+                            </div>
+                        ) : (
+                            <div className="w-8 h-8 flex items-center justify-center bg-gray-100 group-hover:bg-indigo-100 rounded-lg transition-colors">
+                                <Link2 size={16} className="text-gray-500 group-hover:text-indigo-600" />
+                            </div>
+                        )}
+                        <div className="text-left">
+                            <p className={`text-sm font-bold ${shareCopied ? 'text-emerald-600' : 'text-gray-700'}`}>
+                                {shareCopied ? '링크 복사됨' : '링크 복사'}
+                            </p>
+                            <p className="text-[10px] text-gray-400">클립보드에 URL 복사</p>
+                        </div>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleKakaoShare}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yellow-50 transition-colors group"
+                    >
+                        <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="#3C1E1E" aria-hidden="true">
+                                <path d="M12 3C6.48 3 2 6.36 2 10.5c0 2.69 1.76 5.04 4.4 6.38l-1.12 4.12c-.1.36.3.65.6.44L10.5 18.5c.49.06 1 .1 1.5.1 5.52 0 10-3.36 10-7.5S17.52 3 12 3z" />
+                            </svg>
+                        </div>
+                        <div className="text-left">
+                            <p className="text-sm font-bold text-gray-700">카카오톡</p>
+                            <p className="text-[10px] text-gray-400">카카오톡으로 공유</p>
+                        </div>
+                    </button>
+                    {navigator.share && (
+                        <button
+                            type="button"
+                            onClick={handleNativeShare}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors group"
+                        >
+                            <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg">
+                                <ExternalLink size={16} className="text-blue-600" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-bold text-gray-700">다른 앱으로 공유</p>
+                                <p className="text-[10px] text-gray-400">기기의 공유 기능 사용</p>
+                            </div>
+                        </button>
+                    )}
+                </div>
+            </div>,
+            document.body
+        )}
+        </>
     );
 };
 

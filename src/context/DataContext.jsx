@@ -1,8 +1,10 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext(null);
 
 export const DataProvider = ({ children }) => {
+    const { user } = useAuth();
     const [venues, setVenues] = useState([]);
     const [applications, setApplications] = useState([]);
     const [wishlist, setWishlist] = useState([]); // [{userId, venueId}]
@@ -50,10 +52,35 @@ export const DataProvider = ({ children }) => {
     const fetchApplications = async () => {
         try {
             const res = await fetch(`${API_BASE}/applications/get_applications.php`, { cache: 'no-store', credentials: 'include' });
-            const data = await res.json();
-            if (Array.isArray(data)) setApplications(data);
-            else if (data.message) console.warn(data.message);
-        } catch (e) { console.error(e); }
+            const text = await res.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : null;
+            } catch (parseErr) {
+                console.warn('get_applications: JSON 파싱 실패', res.status, String(text).slice(0, 200));
+                setApplications([]);
+                return;
+            }
+            if (Array.isArray(data)) {
+                setApplications(data);
+                return;
+            }
+            if (data && data.success === false) {
+                console.warn('get_applications:', res.status, data.message || data);
+                setApplications([]);
+                return;
+            }
+            if (!res.ok) {
+                console.warn('get_applications HTTP', res.status, data);
+                setApplications([]);
+                return;
+            }
+            console.warn('get_applications: 예상과 다른 응답 형식', typeof data);
+            setApplications([]);
+        } catch (e) {
+            console.error(e);
+            setApplications([]);
+        }
     };
 
     const fetchNotifications = async () => {
@@ -80,25 +107,30 @@ export const DataProvider = ({ children }) => {
         } catch (e) { console.error(e); }
     };
 
+    // 입점 신청 등은 세션 역할(admin/seller/host)에 따라 API 결과가 달라짐.
+    // 로그인 전에 마운트된 뒤 로그인만 하면 기존 []가 유지되므로 user가 바뀔 때마다 다시 로드한다.
     useEffect(() => {
+        if (!user?.id) {
+            setApplications([]);
+            fetchVenues();
+            fetchWishlist();
+            return;
+        }
         fetchVenues();
         fetchApplications();
         fetchWishlist();
+    }, [user?.id, user?.role]);
 
-        // Smart notification polling: only poll if authenticated
+    useEffect(() => {
+        if (!user?.id) return;
         let notifInterval = null;
         const startPolling = async () => {
             await fetchNotifications();
             notifInterval = setInterval(fetchNotifications, 10000);
         };
-        // Check if session exists before starting polling
-        fetch(`${API_BASE}/auth/me.php`, { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => { if (data.success) startPolling(); })
-            .catch(() => { });
-
+        startPolling();
         return () => { if (notifInterval) clearInterval(notifInterval); };
-    }, []);
+    }, [user?.id]);
 
     const addVenue = async (venue) => {
         try {

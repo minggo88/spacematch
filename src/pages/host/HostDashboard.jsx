@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Store, MapPin, BarChart3, Clock, CheckCircle, XCircle, Users, TrendingUp, Eye, ChevronRight, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { getProfileCompletenessPercent } from '../../utils/profileCompleteness';
 
 const API_BASE = '/api';
 
@@ -17,16 +18,7 @@ const HostDashboard = () => {
     // Profile completeness
     const [profileComplete, setProfileComplete] = useState(0);
     useEffect(() => {
-        if (!user) return;
-        let filled = 0;
-        const total = 6;
-        if (user.name) filled++;
-        if (user.email) filled++;
-        if (user.phone) filled++;
-        if (user.business_no) filled++;
-        if (user.description) filled++;
-        if (user.profile_image) filled++;
-        setProfileComplete(Math.round((filled / total) * 100));
+        setProfileComplete(getProfileCompletenessPercent(user));
     }, [user]);
 
     const fetchMyVenues = () => {

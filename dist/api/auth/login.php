@@ -7,9 +7,10 @@ if (isset($data->email) && isset($data->password)) {
     $email = $data->email;
     $password = $data->password;
 
-    $base_cols = "id, name, role, status, password, email, phone, profile_image, venue_limit";
+    // Keep column set aligned with me.php so post-login user matches session / dashboard completeness
+    $base_cols = "id, name, role, status, password, email, phone, business_no, profile_image, venue_limit";
 
-    // Dynamically include optional columns (same as me.php)
+    // Dynamically include optional columns (same as me.php, plus email_verified for gate below)
     $opt_cols = ['category', 'instagram', 'description', 'brand_name', 'real_name', 'is_public', 'country', 'is_demo', 'name_en', 'keywords', 'company_name', 'address', 'website', 'categories', 'email_verified'];
     foreach ($opt_cols as $oc) {
         $chk = $conn->query("SHOW COLUMNS FROM users LIKE '{$oc}'");
@@ -21,10 +22,9 @@ if (isset($data->email) && isset($data->password)) {
     $stmt = $conn->prepare($query);
     $stmt->bindParam(1, $email);
     $stmt->execute();
-    $num = $stmt->rowCount();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($num > 0) {
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($row) {
 
         // In a real app, use password_verify($password, $row['password'])
         // For now, since the schema has plain text 'admin' for admin, we support both or just plain text if that's what the user wants.
@@ -53,6 +53,10 @@ if (isset($data->email) && isset($data->password)) {
             }
             if ($row['status'] === 'blocked') {
                 echo json_encode(array("success" => false, "message" => "차단된 계정입니다. 관리자에게 문의하세요."));
+                exit;
+            }
+            if ($row['status'] === 'withdrawn') {
+                echo json_encode(array("success" => false, "message" => "탈퇴한 계정입니다. 다시 이용하시려면 고객센터로 문의해주세요.", "withdrawn" => true));
                 exit;
             }
 

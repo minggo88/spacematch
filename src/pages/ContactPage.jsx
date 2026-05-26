@@ -18,8 +18,9 @@ const ContactPage = () => {
     const isKo = isKorean(i18n.language);
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen flex flex-col bg-white">
             <PublicNav />
+            <main className="flex-1">
 
             {/* Hero */}
             <section className="pt-28 pb-16 md:pt-36 md:pb-24 bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 relative overflow-hidden">
@@ -147,6 +148,7 @@ const ContactPage = () => {
                 </div>
             </section>
 
+            </main>
             <PublicFooter />
         </div>
     );

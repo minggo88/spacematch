@@ -712,8 +712,9 @@ const RecruitmentDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-gray-50">
             <PublicNav />
+            <main className="flex-1">
 
             {/* ━━ Hero Banner Carousel (핫한 모집) ━━ */}
             <div className="pt-20 md:pt-24">
@@ -1095,6 +1096,7 @@ const RecruitmentDashboard = () => {
             )}
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            </main>
             <PublicFooter />
         </div>
     );

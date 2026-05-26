@@ -7,8 +7,24 @@
 include_once '../db_connect.php';
 session_start();
 
-// Admin only
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'superadmin'])) {
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+    exit;
+}
+$role = isset($_SESSION['user_role']) ? trim((string) $_SESSION['user_role']) : '';
+try {
+    $roleStmt = $conn->prepare("SELECT role FROM users WHERE id = ? LIMIT 1");
+    $roleStmt->execute([$_SESSION['user_id']]);
+    $rrow = $roleStmt->fetch(PDO::FETCH_ASSOC);
+    if ($rrow && array_key_exists('role', $rrow) && $rrow['role'] !== null && $rrow['role'] !== '') {
+        $role = trim((string) $rrow['role']);
+        $_SESSION['user_role'] = $role;
+    }
+} catch (Exception $e) { /* keep session role */
+}
+$roleNorm = strtolower(str_replace('super_admin', 'superadmin', $role));
+if (!in_array($roleNorm, ['admin', 'superadmin'], true)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Admin privileges required.']);
     exit;

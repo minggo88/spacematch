@@ -26,35 +26,8 @@ const NotificationPrompt = () => {
         // If user has permanently denied via browser settings, don't show
         if (Notification.permission === 'denied') return;
 
-        // Check dismissal history from localStorage
-        const dismissData = localStorage.getItem('spacematch_notif_dismiss');
-        if (dismissData) {
-            try {
-                const { count, lastDismissed } = JSON.parse(dismissData);
-                const now = Date.now();
-                const elapsed = now - lastDismissed;
-
-                // Smart delay algorithm: increase delay based on dismiss count
-                // 1st dismiss: show after 30 seconds
-                // 2nd dismiss: show after 2 minutes
-                // 3rd dismiss: show after 10 minutes  
-                // 4th+: show after 30 minutes
-                const delays = [30000, 120000, 600000, 1800000];
-                const delay = delays[Math.min(count - 1, delays.length - 1)] || 1800000;
-
-                if (elapsed < delay) {
-                    // Schedule to show after remaining delay
-                    const remaining = delay - elapsed;
-                    const timer = setTimeout(() => {
-                        setVisible(true);
-                        setTimeout(() => setAnimateIn(true), 50);
-                    }, remaining);
-                    return () => clearTimeout(timer);
-                }
-            } catch (e) {
-                // Invalid data, show prompt
-            }
-        }
+        // 이미 이 세션에서 한 번 표시했으면 다시 표시하지 않음
+        if (sessionStorage.getItem('spacematch_notif_shown')) return;
 
         // Show prompt after a 3-second delay on page load
         const timer = setTimeout(() => {
@@ -95,18 +68,8 @@ const NotificationPrompt = () => {
     }, [t]);
 
     const handleDismiss = useCallback(() => {
-        // Track dismiss count and timestamp
-        const dismissData = localStorage.getItem('spacematch_notif_dismiss');
-        let count = 1;
-        if (dismissData) {
-            try {
-                count = JSON.parse(dismissData).count + 1;
-            } catch (e) { /* ignored */ }
-        }
-        localStorage.setItem('spacematch_notif_dismiss', JSON.stringify({
-            count,
-            lastDismissed: Date.now()
-        }));
+        // 세션 내 재표시 방지
+        sessionStorage.setItem('spacematch_notif_shown', '1');
 
         setAnimateIn(false);
         setTimeout(() => setVisible(false), 300);

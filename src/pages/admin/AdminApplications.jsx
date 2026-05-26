@@ -60,6 +60,14 @@ const AdminApplications = () => {
         setToast({ message, type });
     }, []);
 
+    // 입점 목록은 관리자 화면 진입 시 한 번 더 동기화 (세션 역할 보정은 API에서 처리)
+    useEffect(() => {
+        if (user?.role === 'admin' || user?.role === 'superadmin') {
+            fetchApplications();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchApplications는 Context에서 비안정 참조
+    }, [user?.id, user?.role]);
+
     // Fetch seller profile via API (same format as seller directory)
     const fetchSellerProfile = async (userId) => {
         if (!userId) return;

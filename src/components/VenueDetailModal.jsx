@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { X, MapPin, Heart, Sparkles, ChevronLeft, ChevronRight, Store, Share2, Link2, Check, ExternalLink, Users, Calendar, Ruler, Clock, Coins, Tag, BarChart3, User } from 'lucide-react';
 import KakaoMap from './KakaoMap';
+import Toast from './Toast';
 
 const CATEGORY_OPTIONS = { food: '음식/요리', fashion: '패션/의류', beauty: '뷰티/화장품', art: '예술/공예', digital: '디지털/전자', lifestyle: '라이프스타일', pet: '반려동물', kids: '키즈/유아', sports: '스포츠/아웃도어', book: '도서/문구', eco: '친환경/에코', local: '지역특산물', health: '건강/웰빙', handmade: '핸드메이드', vintage: '빈티지/레트로', other: '기타' };
 
@@ -11,14 +13,26 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [copied, setCopied] = useState(false);
-    const shareMenuRef = useRef(null);
+    const [shareToast, setShareToast] = useState(null);
+    const [shareMenuPos, setShareMenuPos] = useState({ left: 0, bottom: 0 });
+    const shareButtonRef = useRef(null);
+    const shareDropdownRef = useRef(null);
+
+    const updateShareMenuPos = useCallback(() => {
+        if (!shareButtonRef.current) return;
+        const rect = shareButtonRef.current.getBoundingClientRect();
+        setShareMenuPos({
+            left: rect.left + rect.width / 2,
+            bottom: window.innerHeight - rect.top + 8,
+        });
+    }, []);
 
     // Close share menu on outside click
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (shareMenuRef.current && !shareMenuRef.current.contains(e.target)) {
-                setShowShareMenu(false);
-            }
+            const inButton = shareButtonRef.current?.contains(e.target);
+            const inMenu = shareDropdownRef.current?.contains(e.target);
+            if (!inButton && !inMenu) setShowShareMenu(false);
         };
         if (showShareMenu) {
             document.addEventListener('mousedown', handleClickOutside);
@@ -26,7 +40,22 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
         }
     }, [showShareMenu]);
 
+    useEffect(() => {
+        if (!showShareMenu) return;
+        updateShareMenuPos();
+        const onReposition = () => updateShareMenuPos();
+        window.addEventListener('resize', onReposition);
+        window.addEventListener('scroll', onReposition, true);
+        return () => {
+            window.removeEventListener('resize', onReposition);
+            window.removeEventListener('scroll', onReposition, true);
+        };
+    }, [showShareMenu, updateShareMenuPos]);
+
     if (!venue) return null;
+
+    const sharePath = isHost ? '/host' : '/seller';
+    const venueUrl = `${window.location.origin}${sharePath}?venue=${encodeURIComponent(venue.id)}`;
 
     const images = Array.isArray(venue.images) ? venue.images : [];
 
@@ -49,14 +78,9 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
         daily: t('venueDetail.unitDaily'), weekly: t('venueDetail.unitWeekly'), monthly: t('venueDetail.unitMonthly')
     };
 
-    // Share handlers
-    const venueUrl = `${window.location.origin}/venues/${venue.id}`;
-
     const handleCopyLink = async () => {
         try {
             await navigator.clipboard.writeText(venueUrl);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
         } catch {
             const textArea = document.createElement('textarea');
             textArea.value = venueUrl;
@@ -64,24 +88,30 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
         }
+        setCopied(true);
+        setShareToast({ message: t('venueDetail.linkCopied'), type: 'success' });
+        setTimeout(() => setCopied(false), 2000);
     };
 
     const handleNativeShare = async () => {
         try {
             await navigator.share({
                 title: venue.name,
-                text: `${venue.name} - ${venue.location}`,
-                url: venueUrl
+                text: `${venue.name} - ${venue.location || ''}`,
+                url: venueUrl,
             });
-        } catch { /* ignored */ }
+        } catch (e) {
+            if (e?.name !== 'AbortError') {
+                setShareToast({ message: t('venueDetail.shareFailed'), type: 'error' });
+            }
+        }
         setShowShareMenu(false);
     };
 
     const handleKakaoShare = () => {
-        const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?app_key=javascript_key&url=${encodeURIComponent(venueUrl)}&text=${encodeURIComponent(venue.name)}`;
+        const shareText = `[SpaceMatch] ${venue.name}`;
+        const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(venueUrl)}&text=${encodeURIComponent(shareText)}`;
         window.open(kakaoUrl, '_blank', 'width=500,height=600');
         setShowShareMenu(false);
     };
@@ -89,16 +119,83 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
     const handleShareClick = () => {
         if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
             handleNativeShare();
-        } else {
-            setShowShareMenu(!showShareMenu);
+            return;
         }
+        if (!showShareMenu) updateShareMenuPos();
+        setShowShareMenu((prev) => !prev);
     };
+
+    const shareMenuDropdown = showShareMenu ? (
+        <div
+            ref={shareDropdownRef}
+            className="fixed z-[70] w-56 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+            style={{ left: shareMenuPos.left, bottom: shareMenuPos.bottom }}
+        >
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="text-xs font-bold text-gray-700">{t('venueDetail.shareTitle')}</p>
+            </div>
+            <div className="p-1.5">
+                <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-indigo-50 transition-colors group"
+                >
+                    {copied ? (
+                        <div className="w-8 h-8 flex items-center justify-center bg-emerald-100 rounded-lg">
+                            <Check size={16} className="text-emerald-600" />
+                        </div>
+                    ) : (
+                        <div className="w-8 h-8 flex items-center justify-center bg-gray-100 group-hover:bg-indigo-100 rounded-lg transition-colors">
+                            <Link2 size={16} className="text-gray-500 group-hover:text-indigo-600" />
+                        </div>
+                    )}
+                    <div className="text-left">
+                        <p className={`text-sm font-bold ${copied ? 'text-emerald-600' : 'text-gray-700'}`}>
+                            {copied ? t('venueDetail.linkCopied') : t('venueDetail.copyLink')}
+                        </p>
+                        <p className="text-[10px] text-gray-400">{t('venueDetail.copyDesc')}</p>
+                    </div>
+                </button>
+                <button
+                    type="button"
+                    onClick={handleKakaoShare}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yellow-50 transition-colors group"
+                >
+                    <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#3C1E1E" aria-hidden>
+                            <path d="M12 3C6.48 3 2 6.36 2 10.5c0 2.69 1.76 5.04 4.4 6.38l-1.12 4.12c-.1.36.3.65.6.44L10.5 18.5c.49.06 1 .1 1.5.1 5.52 0 10-3.36 10-7.5S17.52 3 12 3z" />
+                        </svg>
+                    </div>
+                    <div className="text-left">
+                        <p className="text-sm font-bold text-gray-700">{t('venueDetail.kakaoTalk')}</p>
+                        <p className="text-[10px] text-gray-400">{t('venueDetail.kakaoDesc')}</p>
+                    </div>
+                </button>
+                {navigator.share && (
+                    <button
+                        type="button"
+                        onClick={handleNativeShare}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors group"
+                    >
+                        <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg">
+                            <ExternalLink size={16} className="text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-sm font-bold text-gray-700">{t('venueDetail.shareOther')}</p>
+                            <p className="text-[10px] text-gray-400">{t('venueDetail.shareOtherDesc')}</p>
+                        </div>
+                    </button>
+                )}
+            </div>
+        </div>
+    ) : null;
 
     const commissionRate = parseFloat(venue.commission_rate) || 0;
     const approvedCount = venue.approved_count || 0;
     const maxSellers = venue.max_sellers || 0;
 
     return (
+        <>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
@@ -511,75 +608,17 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                             </button>
 
                             {/* Share Button */}
-                            <div className="relative" ref={shareMenuRef}>
-                                <button
-                                    onClick={handleShareClick}
-                                    className="p-3 rounded-xl border border-gray-200 bg-white text-gray-400 hover:border-indigo-200 hover:text-indigo-500 transition-all duration-300 flex items-center justify-center flex-shrink-0"
-                                    title={t('venueDetail.shareTitle')}
-                                >
-                                    <Share2 size={22} />
-                                </button>
-
-                                {/* Share Dropdown */}
-                                {showShareMenu && (
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50"
-                                        style={{ animation: 'fadeInUp 0.2s ease-out' }}>
-                                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                            <p className="text-xs font-bold text-gray-700">{t('venueDetail.shareTitle')}</p>
-                                        </div>
-                                        <div className="p-1.5">
-                                            <button
-                                                onClick={handleCopyLink}
-                                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-indigo-50 transition-colors group"
-                                            >
-                                                {copied ? (
-                                                    <div className="w-8 h-8 flex items-center justify-center bg-emerald-100 rounded-lg">
-                                                        <Check size={16} className="text-emerald-600" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-8 h-8 flex items-center justify-center bg-gray-100 group-hover:bg-indigo-100 rounded-lg transition-colors">
-                                                        <Link2 size={16} className="text-gray-500 group-hover:text-indigo-600" />
-                                                    </div>
-                                                )}
-                                                <div className="text-left">
-                                                    <p className={`text-sm font-bold ${copied ? 'text-emerald-600' : 'text-gray-700'}`}>
-                                                        {copied ? t('venueDetail.linkCopied') : t('venueDetail.copyLink')}
-                                                    </p>
-                                                    <p className="text-[10px] text-gray-400">{t('venueDetail.copyDesc')}</p>
-                                                </div>
-                                            </button>
-                                            <button
-                                                onClick={handleKakaoShare}
-                                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yellow-50 transition-colors group"
-                                            >
-                                                <div className="w-8 h-8 flex items-center justify-center bg-yellow-100 rounded-lg">
-                                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="#3C1E1E">
-                                                        <path d="M12 3C6.48 3 2 6.36 2 10.5c0 2.69 1.76 5.04 4.4 6.38l-1.12 4.12c-.1.36.3.65.6.44L10.5 18.5c.49.06 1 .1 1.5.1 5.52 0 10-3.36 10-7.5S17.52 3 12 3z" />
-                                                    </svg>
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="text-sm font-bold text-gray-700">{t('venueDetail.kakaoTalk')}</p>
-                                                    <p className="text-[10px] text-gray-400">{t('venueDetail.kakaoDesc')}</p>
-                                                </div>
-                                            </button>
-                                            {navigator.share && (
-                                                <button
-                                                    onClick={handleNativeShare}
-                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors group"
-                                                >
-                                                    <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg">
-                                                        <ExternalLink size={16} className="text-blue-600" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <p className="text-sm font-bold text-gray-700">{t('venueDetail.shareOther')}</p>
-                                                        <p className="text-[10px] text-gray-400">{t('venueDetail.shareOtherDesc')}</p>
-                                                    </div>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <button
+                                ref={shareButtonRef}
+                                type="button"
+                                onClick={handleShareClick}
+                                className="p-3 rounded-xl border border-gray-200 bg-white text-gray-400 hover:border-indigo-200 hover:text-indigo-500 transition-all duration-300 flex items-center justify-center flex-shrink-0"
+                                title={t('venueDetail.shareTitle')}
+                                aria-expanded={showShareMenu}
+                                aria-haspopup="true"
+                            >
+                                <Share2 size={22} />
+                            </button>
 
                             <button
                                 onClick={() => onApply(venue)}
@@ -606,7 +645,13 @@ const VenueDetailModal = ({ venue, onClose, onApply, onToggleWishlist, isApplied
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
+            {shareMenuDropdown && createPortal(shareMenuDropdown, document.body)}
+            {shareToast && createPortal(
+                <Toast toast={shareToast} onClose={() => setShareToast(null)} />,
+                document.body
+            )}
+        </>
     );
 };
 

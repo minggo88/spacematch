@@ -14,12 +14,14 @@ try {
     // Ensure featured/verified columns exist (once per session)
     if (empty($_SESSION['_ddl_browse_hosts'])) {
         $auto_cols = [
-            'is_featured' => 'TINYINT(1) DEFAULT 0',
+            'is_featured'   => 'TINYINT(1) DEFAULT 0',
             'featured_start' => 'DATE DEFAULT NULL',
-            'featured_end' => 'DATE DEFAULT NULL',
-            'is_verified' => 'TINYINT(1) DEFAULT 0',
+            'featured_end'   => 'DATE DEFAULT NULL',
+            'is_verified'    => 'TINYINT(1) DEFAULT 0',
             'verified_start' => 'DATE DEFAULT NULL',
-            'verified_end' => 'DATE DEFAULT NULL'
+            'verified_end'   => 'DATE DEFAULT NULL',
+            'profile_image'  => 'VARCHAR(255) DEFAULT NULL',
+            'description'    => 'TEXT DEFAULT NULL'
         ];
         foreach ($auto_cols as $col => $def) {
             try {
@@ -40,7 +42,7 @@ try {
 
         // Dynamically check available venue columns
         $venue_opt_cols = [];
-        foreach (['size', 'description', 'commission_rate', 'pricing_unit'] as $oc) {
+        foreach (['size', 'description', 'commission_rate', 'pricing_unit', 'event_periods'] as $oc) {
             try {
                 $chk = $conn->query("SHOW COLUMNS FROM venues LIKE '{$oc}'");
                 if ($chk->fetch())
@@ -53,13 +55,14 @@ try {
     }
 
     $today = date('Y-m-d');
+
     // Get all active hosts with parameterized date
-    $query = "SELECT 
-                u.id, u.name, u.email, u.phone, u.business_no, u.is_featured, u.featured_start, u.featured_end, u.is_verified, u.verified_start, u.verified_end, u.created_at,
+    $query = "SELECT
+                u.id, u.name, u.email, u.phone, u.business_no, u.profile_image, u.description, u.is_featured, u.featured_start, u.featured_end, u.is_verified, u.verified_start, u.verified_end, u.created_at,
                 (SELECT COUNT(*) FROM venues v WHERE v.owner_id = u.id AND v.status = 'approved') as venue_count,
                 (SELECT GROUP_CONCAT(DISTINCT v2.location SEPARATOR '||') FROM venues v2 WHERE v2.owner_id = u.id AND v2.status = 'approved') as venue_locations,
                 (SELECT GROUP_CONCAT(DISTINCT v3.type SEPARATOR '||') FROM venues v3 WHERE v3.owner_id = u.id AND v3.status = 'approved') as venue_types
-              FROM users u 
+              FROM users u
               WHERE u.role = 'host' AND u.status = 'active'
               ORDER BY (CASE WHEN u.is_featured = 1 AND (u.featured_start IS NULL OR u.featured_start <= :today1) AND (u.featured_end IS NULL OR u.featured_end >= :today2) THEN 1 ELSE 0 END) DESC, u.created_at DESC";
 
@@ -81,6 +84,9 @@ try {
     $today = date('Y-m-d');
     foreach ($hosts as &$vendor) {
         $vendor['venue_count'] = intval($vendor['venue_count']);
+        // optional 컬럼 fallback
+        if (!isset($vendor['profile_image'])) $vendor['profile_image'] = null;
+        if (!isset($vendor['description']))   $vendor['description'] = '';
 
         // Apply period-based checks
         $raw_featured = intval($vendor['is_featured'] ?? 0);

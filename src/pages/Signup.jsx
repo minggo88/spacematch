@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { User, Mail, Lock, Building, Tag, Instagram, Phone, AlertCircle, Globe, Home, CheckCircle2, Loader2 } from 'lucide-react';
+import SiteFooter from '../components/SiteFooter';
 import TermsAgreement, { isRequiredAgreed } from '../components/TermsAgreement';
 import KeywordSelector from '../components/KeywordSelector';
 import {
@@ -228,7 +229,8 @@ const Signup = () => {
     const isValid = !hasFormErrors && isRequiredAgreed(agreements, 'seller') && emailVerified;
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900 py-10 px-4">
+        <div className="flex flex-col min-h-screen bg-secondary dark:bg-gray-900">
+            <div className="flex flex-1 items-center justify-center py-10 px-4">
             <div className="w-full max-w-lg p-6 md:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-primary">SpaceMatch</h1>
@@ -569,6 +571,8 @@ const Signup = () => {
                     </Link>
                 </div>
             </div>
+            </div>
+            <SiteFooter />
         </div>
     );
 };

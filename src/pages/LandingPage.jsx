@@ -93,8 +93,9 @@ const LandingPage = () => {
     const isVisible = (id) => visibleSections.has(id);
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden">
+        <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 overflow-x-hidden">
             <PublicNav transparent />
+            <main className="flex-1">
 
             {/* ━━━━━━ Hero Section — Bright & Airy Light Mode ━━━━━━ */}
             <section id="hero" className="relative min-h-screen flex items-center overflow-hidden">
@@ -645,6 +646,7 @@ const LandingPage = () => {
             </section>
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            </main>
             <PublicFooter />
         </div>
     );

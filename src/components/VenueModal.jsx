@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Store, MapPin, Filter, Plus, Trash2, Camera, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Users, Calendar, Minus, BarChart3, Tag, Paperclip, FileText, Download } from 'lucide-react';
+import { X, Store, MapPin, Filter, Plus, Trash2, Camera, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Users, Calendar, Minus, BarChart3, Tag, Paperclip, FileText, Download, Loader2 } from 'lucide-react';
 import DaumPostcode from 'react-daum-postcode';
 
 const API_BASE = '/api';
@@ -64,6 +64,7 @@ const VenueModal = ({
         commission_rate: '',
         pricing_unit: 'daily',
         type: 'popup',
+        owner_id: '',
         images: [],
         attachments: [],
         recruitment_start: '',
@@ -80,6 +81,9 @@ const VenueModal = ({
     const [customCategory, setCustomCategory] = useState('');
     const [attachmentFiles, setAttachmentFiles] = useState([]);
     const attachmentInputRef = useRef(null);
+    const [adminHosts, setAdminHosts] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
 
     // Address State
     const [isPostcodeOpen, setIsPostcodeOpen] = useState(false);
@@ -91,6 +95,17 @@ const VenueModal = ({
     // Initial Data Loading
     // Determine mode: edit / duplicate / create
     const isDuplicateMode = !venue && !!initialData;
+
+    useEffect(() => {
+        if (isOpen && isAdmin && !venue) {
+            fetch(`${API_BASE}/venues/get_hosts_for_admin.php`, { credentials: 'include' })
+                .then((r) => r.json())
+                .then((json) => {
+                    if (json.success && Array.isArray(json.hosts)) setAdminHosts(json.hosts);
+                })
+                .catch(() => setAdminHosts([]));
+        }
+    }, [isOpen, isAdmin, venue]);
 
     useEffect(() => {
         if (isOpen) {
@@ -121,6 +136,7 @@ const VenueModal = ({
                     commission_rate: source.commission_rate ? String(source.commission_rate) : '',
                     pricing_unit: source.pricing_unit || 'daily',
                     type: source.type || 'popup',
+                    owner_id: source.owner_id ? String(source.owner_id) : '',
                     size: source.size || 'medium',
                     images: source.images || [],
                     // Dates: reset for duplicate, keep for edit
@@ -165,6 +181,7 @@ const VenueModal = ({
                     commission_rate: '',
                     pricing_unit: 'daily',
                     type: 'popup',
+                    owner_id: '',
                     size: 'medium',
                     images: [],
                     recruitment_start: '',
@@ -182,6 +199,8 @@ const VenueModal = ({
             }
             setSelectedFiles([]);
             setIsPostcodeOpen(false);
+            setSubmitting(false);
+            setSubmitError('');
         }
     }, [isOpen, venue, initialData]);
 
@@ -241,7 +260,16 @@ const VenueModal = ({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submitting) return;
 
+        const locCombined = `${formData.location} ${formData.detailAddress}`.trim();
+        if (!formData.name?.trim() || !locCombined || formData.price === '' || formData.price == null) {
+            setSubmitError('공간 이름, 주소, 이용료는 필수입니다. 주소는 「주소 검색」으로 입력해 주세요.');
+            return;
+        }
+
+        setSubmitError('');
+        setSubmitting(true);
         // Construct submission data
         const submitData = new FormData();
         submitData.append('name', formData.name);
@@ -295,7 +323,21 @@ const VenueModal = ({
             submitData.append('id', venue.id);
         }
 
-        await onSubmit(submitData);
+        if (isAdmin && formData.owner_id) {
+            submitData.append('owner_id', String(formData.owner_id));
+        }
+
+        try {
+            const result = await onSubmit(submitData);
+            if (result && result.success === false) {
+                setSubmitError(result.message || '등록에 실패했습니다.');
+                setSubmitting(false);
+            }
+            // 성공 시 부모가 모달을 닫음 → submitting 유지(중복 클릭 방지)
+        } catch {
+            setSubmitError('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
+            setSubmitting(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -305,11 +347,11 @@ const VenueModal = ({
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-                onClick={onClose}
+                onClick={submitting ? undefined : onClose}
             />
 
             {/* Modal Panel */}
-            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scaleIn">
+            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scaleIn isolate">
 
                 {/* Header */}
                 <div className="p-6 md:p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900 sticky top-0 z-10">
@@ -322,14 +364,54 @@ const VenueModal = ({
                             <p className="text-sm text-gray-500 dark:text-gray-400">{venue ? '등록된 공간 정보를 수정합니다' : isDuplicateMode ? '기존 공간을 복제하여 새로 등록합니다' : '새로운 공간을 등록하여 서비스해보세요'}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={submitting}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-40 disabled:pointer-events-none"
+                    >
                         <X size={24} />
                     </button>
                 </div>
 
+                {submitting && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/85 dark:bg-gray-900/90 backdrop-blur-[2px] rounded-3xl">
+                        <Loader2 size={40} className="text-indigo-600 animate-spin mb-4" />
+                        <p className="text-base font-bold text-gray-900 dark:text-gray-100">
+                            {venue ? '공간 정보를 저장하는 중입니다…' : '베뉴 등록중입니다…'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">잠시만 기다려 주세요</p>
+                    </div>
+                )}
+
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 custom-scrollbar">
                     <form id="venue-form" onSubmit={handleSubmit} className="space-y-6">
+                        {submitError && (
+                            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                                {submitError}
+                            </div>
+                        )}
+                        {isAdmin && !venue && (
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">담당 호스트</label>
+                                <select
+                                    name="owner_id"
+                                    value={formData.owner_id}
+                                    onChange={handleFormChange}
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 focus:bg-white dark:focus:bg-gray-700 focus:border-indigo-500 rounded-xl outline-none transition-all font-medium text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="">관리자 계정(직접 등록)</option>
+                                    {adminHosts.map((h) => (
+                                        <option key={h.id} value={h.id}>
+                                            {(h.brand_name || h.name || h.email) + (h.email ? ` (${h.email})` : '')}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-gray-400 mt-1">호스트를 선택하면 해당 호스트의 공간으로 등록됩니다.</p>
+                            </div>
+                        )}
+
                         {/* Name */}
                         <div>
                             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 is-required">공간 이름</label>
@@ -1018,17 +1100,31 @@ const VenueModal = ({
                     </div>
                     <div className="flex gap-3">
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="px-6 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            disabled={submitting}
+                            className="px-6 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             취소
                         </button>
                         <button
                             type="submit"
                             form="venue-form"
-                            className="px-8 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all flex items-center gap-2"
+                            disabled={submitting}
+                            className="px-8 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed min-w-[140px] justify-center"
                         >
-                            {venue ? <><CheckCircle2 size={18} /> 수정 완료</> : isDuplicateMode ? <><Plus size={18} /> 복제 등록</> : <><Plus size={18} /> 베뉴 등록</>}
+                            {submitting ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    {venue ? '저장 중…' : '베뉴 등록중입니다…'}
+                                </>
+                            ) : venue ? (
+                                <><CheckCircle2 size={18} /> 수정 완료</>
+                            ) : isDuplicateMode ? (
+                                <><Plus size={18} /> 복제 등록</>
+                            ) : (
+                                <><Plus size={18} /> 베뉴 등록</>
+                            )}
                         </button>
                     </div>
                 </div>

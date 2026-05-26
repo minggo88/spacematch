@@ -52,7 +52,7 @@ try {
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode($notifications);
-
+} catch (PDOException $e) {
     error_log('[get_notifications] ' . $e->getMessage());
     echo json_encode([]);
 }

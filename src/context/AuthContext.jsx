@@ -57,8 +57,19 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
 
             if (data.success) {
-                setUser(data.user);
-                return { success: true, user: data.user };
+                // login.php row can drift from me.php; completeness uses fields like business_no/description
+                let nextUser = data.user;
+                try {
+                    const meRes = await fetch(`${API_BASE}/me.php`, { credentials: 'include' });
+                    const meData = await meRes.json();
+                    if (meData.success && meData.user) {
+                        nextUser = meData.user;
+                    }
+                } catch (e) {
+                    console.warn('Post-login user sync failed:', e);
+                }
+                setUser(nextUser);
+                return { success: true, user: nextUser };
             } else {
                 return { success: false, message: data.message };
             }
@@ -74,6 +85,25 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
         } catch (error) {
             console.error("Logout error", error);
+        }
+    };
+
+    const withdraw = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/withdraw.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ id: user?.id })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setUser(null);
+            }
+            return data;
+        } catch (error) {
+            console.error("Withdraw error", error);
+            return { success: false, message: "회원 탈퇴 처리 중 오류가 발생했습니다." };
         }
     };
 
@@ -198,7 +228,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, signup, sendVerification, verifyEmail, loading, updateUserProfile, refreshUser, toggleUserBlock, changePassword }}>
+        <AuthContext.Provider value={{ user, login, logout, withdraw, signup, sendVerification, verifyEmail, loading, updateUserProfile, refreshUser, toggleUserBlock, changePassword }}>
             {!loading && children}
         </AuthContext.Provider>
     );

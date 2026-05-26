@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SiteFooter from '../components/SiteFooter';
 import { ShoppingBag, Building2, TrendingUp, Shield, Users, ArrowRight, CheckCircle } from 'lucide-react';
 
 const SignupSelection = () => {
@@ -8,7 +9,8 @@ const SignupSelection = () => {
     const { t } = useTranslation('auth');
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0f1117] px-4 transition-colors">
+        <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f1117] transition-colors">
+            <div className="flex flex-1 items-center justify-center px-4 py-8">
             <div className="w-full max-w-2xl p-8 bg-white dark:bg-[#1a1b2e] rounded-2xl shadow-2xl dark:shadow-black/40 border border-gray-100 dark:border-[#2e3050] transition-colors">
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-4">SpaceMatch</h1>
@@ -76,6 +78,8 @@ const SignupSelection = () => {
                     </p>
                 </div>
             </div>
+            </div>
+            <SiteFooter />
         </div>
     );
 };

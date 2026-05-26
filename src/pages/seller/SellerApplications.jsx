@@ -185,8 +185,8 @@ const SellerApplications = () => {
                                 {/* Content Section */}
                                 <div className="p-5 md:p-6 flex flex-col justify-between flex-1">
                                     <div>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
+                                        <div className="flex justify-between items-start gap-2 mb-2">
+                                            <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="text-lg font-bold text-gray-900 line-clamp-1">{app.venue_name}</h4>
                                                     {app.is_priority == 1 && (
@@ -199,12 +199,11 @@ const SellerApplications = () => {
                                                     <MapPin size={14} /> {app.venue_location || t('appPage.noLocation')}
                                                 </p>
                                             </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5
+                                            <span className={`inline-flex items-center shrink-0 self-start whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold border
                                                 ${app.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                     app.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                                         app.status === 'cancelled' ? 'bg-gray-50 text-gray-500 border-gray-200' :
                                                             'bg-red-50 text-red-700 border-red-200'}`}>
-                                                <div className={`w-2 h-2 rounded-full ${app.status === 'pending' ? 'bg-yellow-500' : app.status === 'approved' ? 'bg-emerald-500' : app.status === 'cancelled' ? 'bg-gray-400' : 'bg-red-500'}`}></div>
                                                 {app.status === 'pending' ? t('appPage.statusPending') : app.status === 'approved' ? t('appPage.statusApproved') : app.status === 'cancelled' ? t('appPage.statusCancelled') : t('appPage.statusRejected')}
                                             </span>
                                         </div>

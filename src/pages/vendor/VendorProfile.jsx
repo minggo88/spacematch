@@ -3,16 +3,18 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Building, Camera, Save, User, Mail, Phone, FileText, Package, MapPin, Globe, Briefcase, CheckCircle, AlertCircle } from 'lucide-react';
 import Toast from '../../components/Toast';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE = '/api';
 
 const VendorProfile = () => {
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, withdraw } = useAuth();
     const { t } = useTranslation('common');
     const fileInputRef = useRef(null);
     const [toast, setToast] = useState(null);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const navigate = useNavigate();
 
     const [form, setForm] = useState({
         name: '',
@@ -380,6 +382,49 @@ const VendorProfile = () => {
                             </button>
                         </div>
                     )}
+                </div>
+
+                {/* Account Withdrawal */}
+                <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl border border-rose-100 dark:border-rose-900/40 p-6">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 flex-shrink-0">
+                            <AlertCircle size={18} />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">회원 탈퇴</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                탈퇴하면 계정이 비활성화되어 로그인할 수 없고, 일부 데이터는 복구가 어려울 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            const caution = [
+                                '회원 탈퇴 시 아래 사항을 확인해주세요.',
+                                '',
+                                '1) 탈퇴 후에는 로그인할 수 없습니다.',
+                                '2) 진행 중인 신청/정산/구독 상태에 영향을 줄 수 있습니다.',
+                                '3) 일부 데이터는 법적/운영 정책에 따라 일정 기간 보관될 수 있습니다.',
+                                '',
+                                '정말 탈퇴를 진행하시겠습니까?'
+                            ].join('\n');
+
+                            if (!confirm(caution)) return;
+                            if (!confirm('마지막 확인입니다. 회원 탈퇴를 진행할까요?')) return;
+
+                            const res = await withdraw();
+                            if (res?.success) {
+                                alert('회원 탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.');
+                                navigate('/');
+                            } else {
+                                alert(res?.message || '회원 탈퇴에 실패했습니다.');
+                            }
+                        }}
+                        className="mt-4 w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm transition-colors"
+                    >
+                        회원 탈퇴하기
+                    </button>
                 </div>
             </div>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
