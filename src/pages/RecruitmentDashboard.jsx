@@ -611,7 +611,7 @@ const RecruitmentDashboard = () => {
                                     ₩{parseInt(venue.price).toLocaleString()}{getPricingUnitLabel(venue.pricing_unit)}
                                 </p>
                             )}
-                            {parseFloat(venue.commission_rate) > 0 && (
+                            {user && parseFloat(venue.commission_rate) > 0 && (
                                 <p className="flex items-center gap-2 text-sm text-gray-600">
                                     <span className="text-gray-400 flex-shrink-0 font-bold text-sm"></span>
                                     {t('commissionRate', { rate: venue.commission_rate })}

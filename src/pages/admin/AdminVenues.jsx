@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import {
     Plus, X, Search, Filter, MapPin, Calendar,
@@ -16,7 +17,9 @@ const API_BASE = '/api';
 
 const AdminVenues = () => {
     const { deleteVenue, fetchVenues } = useData();
+    const { user } = useAuth();
     const { t } = useTranslation('admin');
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
     // Own data fetch from admin endpoint (includes owner_name, owner_email)
     const [adminVenues, setAdminVenues] = useState([]);
@@ -45,6 +48,35 @@ const AdminVenues = () => {
     }, []);
 
     useEffect(() => { fetchAdminVenues(); }, [fetchAdminVenues]);
+
+    const handleVenueAction = (venueId, status) => {
+        const isApprove = status === 'approved';
+        setConfirmModal({
+            title: isApprove ? t('venuesPage.approveVenue', '공간 승인') : t('venuesPage.rejectVenue', '공간 거절'),
+            message: isApprove ? t('venuesPage.approveVenueConfirm', '이 공간을 승인하시겠습니까?') : t('venuesPage.rejectVenueConfirm', '이 공간을 거절하시겠습니까?'),
+            type: isApprove ? 'success' : 'danger',
+            confirmLabel: isApprove ? t('venuesPage.approve', '승인') : t('venuesPage.reject', '거절'),
+            onConfirm: () => {
+                setConfirmModal(null);
+                fetch(`${API_BASE}/venues/manage_venue_status.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ id: venueId, status })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast(t('venuesPage.processed', '처리되었습니다.'), 'success');
+                            fetchAdminVenues();
+                            fetchVenues();
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    });
+            }
+        });
+    };
 
     // View & UI state
     const [viewMode, setViewMode] = useState('grid');
@@ -542,7 +574,15 @@ const AdminVenues = () => {
                                 <button onClick={() => setStatsVenue(venue)} className="p-2 bg-white text-indigo-600 rounded-full hover:bg-indigo-500 hover:text-white transition-colors shadow-lg">
                                     <BarChart3 size={14} />
                                 </button>
-                                <button onClick={() => handleOpenDrawer(venue)} className="p-2 bg-white text-gray-900 rounded-full hover:bg-indigo-500 hover:text-white transition-colors shadow-lg">
+                                {isAdmin && venue.status === 'pending' && (<>
+                                    <button onClick={() => handleVenueAction(venue.id, 'approved')} className="p-2 bg-white text-emerald-600 rounded-full hover:bg-emerald-500 hover:text-white transition-colors shadow-lg focus:outline-none focus:ring-0" title={t('venuesPage.approve', '승인')}>
+                                        <CheckCircle size={14} />
+                                    </button>
+                                    <button onClick={() => handleVenueAction(venue.id, 'rejected')} className="p-2 bg-white text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors shadow-lg focus:outline-none focus:ring-0" title={t('venuesPage.reject', '거절')}>
+                                        <XCircle size={14} />
+                                    </button>
+                                </>)}
+                                <button onClick={() => handleOpenDrawer(venue)} className="p-2 bg-white text-gray-900 rounded-full hover:bg-indigo-500 hover:text-white transition-colors shadow-lg focus:outline-none focus:ring-0">
                                     <Edit3 size={14} />
                                 </button>
                                 <button onClick={() => handleDelete(venue.id)} className="p-2 bg-white text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors shadow-lg">
@@ -625,9 +665,25 @@ const AdminVenues = () => {
                                             >
                                                 <BarChart3 size={14} />
                                             </button>
+                                            {isAdmin && venue.status === 'pending' && (<>
+                                                <button
+                                                    onClick={() => handleVenueAction(venue.id, 'approved')}
+                                                    className="p-1.5 md:p-2 rounded-lg text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors focus:outline-none focus:ring-0"
+                                                    title={t('venuesPage.approve', '승인')}
+                                                >
+                                                    <CheckCircle size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleVenueAction(venue.id, 'rejected')}
+                                                    className="p-1.5 md:p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors focus:outline-none focus:ring-0"
+                                                    title={t('venuesPage.reject', '거절')}
+                                                >
+                                                    <XCircle size={14} />
+                                                </button>
+                                            </>)}
                                             <button
                                                 onClick={() => handleOpenDrawer(venue)}
-                                                className="p-1.5 md:p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                                className="p-1.5 md:p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors focus:outline-none focus:ring-0"
                                                 title={t('venuesPage.editVenue')}
                                             >
                                                 <Edit3 size={14} />

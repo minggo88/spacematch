@@ -91,9 +91,15 @@ if (in_array($ext, $videoExts))
     $messageType = 'video';
 
 // Create upload directory
-$uploadDir = dirname(__DIR__) . '/uploads/chat/';
+// dirname(__DIR__) = public/api/chat → public/api
+// dirname(dirname(__DIR__)) = public/api → public  (web root)
+$uploadDir = dirname(dirname(__DIR__)) . '/uploads/chat/';
 if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0755, true);
+    if (!mkdir($uploadDir, 0755, true)) {
+        http_response_code(500);
+        echo json_encode(["success" => false, "message" => "업로드 디렉토리를 생성할 수 없습니다."]);
+        exit;
+    }
 }
 
 // Generate unique filename

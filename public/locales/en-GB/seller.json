@@ -210,7 +210,8 @@
     "cancelSuccess": "Application cancelled.",
     "cancelFailed": "Failed to cancel.",
     "cancelReasonRequired": "Please enter a reason for cancellation.",
-    "cancelRequestFailed": "Failed to submit cancellation request."
+    "cancelRequestFailed": "Failed to submit cancellation request.",
+    "rejectionReason": "Rejection Reason"
   },
   "profilePage": {
     "visibilityTitle": "Seller Discovery Visibility",

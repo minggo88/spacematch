@@ -137,6 +137,45 @@ const getRegionOptions = (code) => {
     return REGION_OPTIONS_BY_COUNTRY[code] || REGION_OPTIONS_BY_COUNTRY['ko'];
 };
 
+const TrendingCard = React.memo(({ venue, onSelect, onWishlist, isWishlisted }) => {
+    const { t } = useTranslation('seller');
+    const firstImage = venue.images?.[0];
+    const imgSrc = firstImage?.startsWith?.('uploads/') ? `/${firstImage}` : firstImage;
+    return (
+        <div
+            className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-violet-200 shadow-md hover:shadow-xl transition-all duration-400 hover:-translate-y-1 cursor-pointer"
+            onClick={() => onSelect(venue)}
+        >
+            <div className="relative h-40 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+                {imgSrc ? (
+                    <img src={imgSrc} alt={venue.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <Store size={36} className="text-violet-300" />
+                    </div>
+                )}
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2.5 py-1 bg-violet-600 text-white rounded-lg text-xs font-bold shadow">
+                    <TrendingUp size={11} />
+                    {t('trending')}
+                </div>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onWishlist(); }}
+                    className="absolute top-2.5 right-2.5 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-all"
+                >
+                    <Heart size={14} className={isWishlisted ? "text-rose-500 fill-rose-500" : "text-gray-400"} />
+                </button>
+            </div>
+            <div className="p-4">
+                <h3 className="font-extrabold text-gray-900 mb-1.5 group-hover:text-violet-600 transition-colors text-sm truncate">{venue.name}</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <span className="flex items-center gap-1"><MapPin size={11} />{venue.location?.split(' ').slice(0, 2).join(' ')}</span>
+                    <span>{t(`typeLabels.${venue.type}`, venue.type)}</span>
+                </div>
+            </div>
+        </div>
+    );
+});
+
 const SellerDashboard = () => {
     const { venues, applyForVenue, applications, wishlist, toggleWishlist } = useData();
     const { user } = useAuth();
@@ -494,44 +533,6 @@ const SellerDashboard = () => {
         );
     };
 
-    const TrendingCard = ({ venue }) => {
-        const firstImage = venue.images?.[0];
-        const imgSrc = firstImage?.startsWith?.('uploads/') ? `/${firstImage}` : firstImage;
-        const isWishlisted = wishlist.some(w => w.userId === user.email && w.venueId === venue.id);
-        return (
-            <div
-                className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-violet-200 shadow-md hover:shadow-xl transition-all duration-400 hover:-translate-y-1 cursor-pointer"
-                onClick={() => setSelectedVenue(venue)}
-            >
-                <div className="relative h-40 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
-                    {imgSrc ? (
-                        <img src={imgSrc} alt={venue.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <Store size={36} className="text-violet-300" />
-                        </div>
-                    )}
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2.5 py-1 bg-violet-600 text-white rounded-lg text-xs font-bold shadow">
-                        <TrendingUp size={11} />
-                        {t('trending')}
-                    </div>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); toggleWishlist(user.email, venue.id); }}
-                        className="absolute top-2.5 right-2.5 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-all"
-                    >
-                        <Heart size={14} className={isWishlisted ? "text-rose-500 fill-rose-500" : "text-gray-400"} />
-                    </button>
-                </div>
-                <div className="p-4">
-                    <h3 className="font-extrabold text-gray-900 mb-1.5 group-hover:text-violet-600 transition-colors text-sm truncate">{venue.name}</h3>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <span className="flex items-center gap-1"><MapPin size={11} />{venue.location?.split(' ').slice(0, 2).join(' ')}</span>
-                        <span>{t(`typeLabels.${venue.type}`, venue.type)}</span>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     const VenueCard = ({ venue }) => {
         const isApplied = myApplications.some(app => String(app.venue_id) === String(venue.id) || String(app.venueId) === String(venue.id));
@@ -1096,7 +1097,12 @@ const SellerDashboard = () => {
                     <div ref={trendingRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scroll-smooth">
                         {trendingVenues.map((venue) => (
                             <div key={venue.id} className="flex-shrink-0 w-64 md:w-72">
-                                <TrendingCard venue={venue} />
+                                <TrendingCard
+                                    venue={venue}
+                                    onSelect={setSelectedVenue}
+                                    onWishlist={() => toggleWishlist(user.email, venue.id)}
+                                    isWishlisted={wishlist.some(w => w.userId === user?.email && w.venueId === venue.id)}
+                                />
                             </div>
                         ))}
                     </div>

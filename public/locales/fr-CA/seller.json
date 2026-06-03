@@ -210,7 +210,8 @@
     "cancelSuccess": "Candidature annulée.",
     "cancelFailed": "Échec de l'annulation.",
     "cancelReasonRequired": "Veuillez entrer une raison d'annulation.",
-    "cancelRequestFailed": "Échec de la soumission de la demande d'annulation."
+    "cancelRequestFailed": "Échec de la soumission de la demande d'annulation.",
+    "rejectionReason": "Raison du refus"
   },
   "profilePage": {
     "visibilityTitle": "Visibilité dans le répertoire vendeurs",

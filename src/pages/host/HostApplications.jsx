@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Store, MessageSquare, CheckCircle, XCircle, ChevronDown, ChevronLeft, ChevronRight, Mail, Phone, Instagram, Search, Calendar, Clock, Tag, AlertTriangle, X, Paperclip, FileText, Download, Eye, User, ImageIcon, Zap, BadgeCheck, MessageCircle } from 'lucide-react';
 import { useDemoGuard } from '../../hooks/useDemoGuard';
@@ -10,6 +10,7 @@ const API_BASE = '/api';
 const HostApplications = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { t } = useTranslation('host');
     const { isDemoUser, demoAlert } = useDemoGuard();
 
@@ -61,7 +62,11 @@ const HostApplications = () => {
     const [lightboxPhotos, setLightboxPhotos] = useState([]);
     const [lightboxIndex, setLightboxIndex] = useState(0);
     // Priority viewing subscription state
-    const [hasViewingSub, setHasViewingSub] = useState(false);
+    // ?__sub=1 로 접속 시 강제 활성화 (테스트용)
+    const _forceSubTest = searchParams.get('__sub') === '1';
+    const [hasViewingSub, setHasViewingSub] = useState(_forceSubTest);
+    // 화면 디버그용 — ?__debug=1 로 접속 시 표시
+    const [_subDbg, _setSubDbg] = useState(null);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -83,10 +88,19 @@ const HostApplications = () => {
 
     // Check priority_viewing subscription
     useEffect(() => {
+        if (_forceSubTest) { _setSubDbg({ forced: true }); return; }
         fetch(`${API_BASE}/payments/check_subscription.php?category=priority_viewing`, { credentials: 'include' })
-            .then(r => r.json())
-            .then(d => { if (d.active) setHasViewingSub(true); })
-            .catch(() => { });
+            .then(r => r.text())
+            .then(text => {
+                try {
+                    const d = JSON.parse(text);
+                    _setSubDbg({ status: 200, active: d.subscription?.active, success: d.success, raw: text.substring(0, 120) });
+                    if (d.subscription?.active) setHasViewingSub(true);
+                } catch (e) {
+                    _setSubDbg({ parseError: true, raw: text.substring(0, 200) });
+                }
+            })
+            .catch(e => { _setSubDbg({ fetchError: e.message }); });
     }, []);
 
     const fetchSellerDetail = async (userId) => {
@@ -178,6 +192,26 @@ const HostApplications = () => {
 
     return (
         <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+            {/* ── 화면 디버그 패널: ?__debug=1 로 접속 시 표시 ── */}
+            {searchParams.get('__debug') === '1' && (
+                <div style={{ position: 'fixed', bottom: 12, right: 12, zIndex: 99999, background: '#111827', color: '#a3e635', padding: '10px 14px', borderRadius: 10, fontSize: 11, fontFamily: 'monospace', border: '1px solid #374151', maxWidth: 320, wordBreak: 'break-all', lineHeight: 1.6 }}>
+                    <div style={{ color: '#818cf8', fontWeight: 'bold', marginBottom: 6 }}>🔍 구독 디버그 패널</div>
+                    <div>__sub 파라미터: <b>{searchParams.get('__sub') ?? 'null'}</b></div>
+                    <div>hasViewingSub: <b style={{ color: hasViewingSub ? '#34d399' : '#f87171' }}>{String(hasViewingSub)}</b></div>
+                    {_subDbg ? (
+                        <>
+                            {_subDbg.forced && <div style={{ color: '#fbbf24' }}>강제 활성화 모드 (__sub=1)</div>}
+                            {_subDbg.fetchError && <div style={{ color: '#f87171' }}>fetch 오류: {_subDbg.fetchError}</div>}
+                            {_subDbg.parseError && <div style={{ color: '#f87171' }}>JSON 파싱 실패 (서버가 HTML 반환)</div>}
+                            {_subDbg.raw != null && <div>응답: {_subDbg.raw}</div>}
+                            {_subDbg.active != null && <div>API active: <b style={{ color: _subDbg.active ? '#34d399' : '#f87171' }}>{String(_subDbg.active)}</b></div>}
+                            {_subDbg.success != null && <div>API success: {String(_subDbg.success)}</div>}
+                        </>
+                    ) : (
+                        <div style={{ color: '#9ca3af' }}>API 응답 대기중…</div>
+                    )}
+                </div>
+            )}
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-extrabold text-gray-900">{t('applicationsPage.title')}</h1>

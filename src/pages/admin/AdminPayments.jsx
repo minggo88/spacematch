@@ -83,6 +83,11 @@ const AdminPayments = () => {
     // Detail modal
     const [detailModal, setDetailModal] = useState(null);
 
+    // Grant subscription modal
+    const [grantModal, setGrantModal] = useState(false);
+    const [grantForm, setGrantForm] = useState({ email: '', plan_id: '', note: '' });
+    const [grantLoading, setGrantLoading] = useState(false);
+
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -337,6 +342,45 @@ const AdminPayments = () => {
             else showToast(data.message || t('paymentsPage.processFailed'), 'error');
         } catch (err) { showToast(t('paymentsPage.errorOccurred'), 'error'); }
         finally { setProcessing(false); }
+    };
+
+    const handleGrantSubscription = async () => {
+        if (!grantForm.email.trim() || !grantForm.plan_id) {
+            showToast('이메일과 플랜을 모두 입력해주세요.', 'error');
+            return;
+        }
+        setGrantLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin_grant_subscription.php`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'grant', ...grantForm, plan_id: parseInt(grantForm.plan_id) })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message);
+                setGrantModal(false);
+                setGrantForm({ email: '', plan_id: '', note: '' });
+                fetchPayments();
+            } else {
+                showToast(data.message || '구독 부여에 실패했습니다.', 'error');
+            }
+        } catch (err) { showToast('오류가 발생했습니다.', 'error'); }
+        finally { setGrantLoading(false); }
+    };
+
+    const handleRevokeSubscription = async (paymentId) => {
+        if (!window.confirm('이 구독을 취소하시겠습니까?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin_grant_subscription.php`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'revoke', payment_id: paymentId, note: '관리자 구독 취소' })
+            });
+            const data = await res.json();
+            if (data.success) { showToast(data.message); fetchPayments(); }
+            else showToast(data.message || '취소에 실패했습니다.', 'error');
+        } catch (err) { showToast('오류가 발생했습니다.', 'error'); }
     };
 
     const filteredPayments = useMemo(() => {
@@ -673,6 +717,14 @@ const AdminPayments = () => {
                                 <option value="confirmed">{t('paymentsPage.statusConfirmed')}</option>
                                 <option value="rejected">{t('paymentsPage.statusRejected')}</option>
                             </select>
+                            {/* 구독 직접 부여 */}
+                            <button
+                                onClick={() => setGrantModal(true)}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity ml-auto"
+                            >
+                                <Plus size={15} />
+                                구독 직접 부여
+                            </button>
                         </div>
                     </div>
 
@@ -718,6 +770,12 @@ const AdminPayments = () => {
                                                                     <button onClick={() => { setConfirmModal({ ...p, _rejectMode: true }); setAdminNote(''); }}
                                                                         className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">{t('paymentsPage.reject')}</button>
                                                                 </>
+                                                            )}
+                                                            {p.status === 'confirmed' && p.payment_type === 'subscription' && (
+                                                                <button onClick={() => handleRevokeSubscription(p.id)}
+                                                                    className="px-3 py-1.5 bg-red-50 text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">
+                                                                    구독취소
+                                                                </button>
                                                             )}
                                                         </div>
                                                     </td>
@@ -948,6 +1006,71 @@ const AdminPayments = () => {
                         <div className="flex gap-3">
                             <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50">{t('paymentsPage.cancel')}</button>
                             <button onClick={() => handleDeletePlan(deleteConfirm.id)} className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600">{t('paymentsPage.delete')}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ Grant Subscription Modal ═══ */}
+            {grantModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setGrantModal(false)}>
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                    <div className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setGrantModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                        <h3 className="text-lg font-extrabold text-gray-900 mb-1">구독 직접 부여</h3>
+                        <p className="text-xs text-gray-500 mb-5">사용자에게 결제 없이 구독 플랜을 즉시 활성화합니다.</p>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">사용자 이메일 <span className="text-red-500">*</span></label>
+                                <input
+                                    type="email"
+                                    value={grantForm.email}
+                                    onChange={e => setGrantForm(f => ({ ...f, email: e.target.value }))}
+                                    placeholder="ajincopor@gmail.com"
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">구독 플랜 <span className="text-red-500">*</span></label>
+                                <select
+                                    value={grantForm.plan_id}
+                                    onChange={e => setGrantForm(f => ({ ...f, plan_id: e.target.value }))}
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                >
+                                    <option value="">플랜 선택</option>
+                                    {plans.filter(p => p.is_active).map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name} ({p.category || '카테고리 없음'} / {p.period})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">관리자 메모 (선택)</label>
+                                <input
+                                    type="text"
+                                    value={grantForm.note}
+                                    onChange={e => setGrantForm(f => ({ ...f, note: e.target.value }))}
+                                    placeholder="예: 프리미엄 테스트 계정 부여"
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                />
+                            </div>
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                                <p className="text-xs text-amber-700">
+                                    <b>주의:</b> 선택한 플랜의 기간(monthly/yearly/once)에 따라 구독 만료일이 자동 계산됩니다.
+                                    만료 후에는 재부여가 필요합니다.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setGrantModal(false)}
+                                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">
+                                취소
+                            </button>
+                            <button onClick={handleGrantSubscription} disabled={grantLoading}
+                                className="flex-1 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60">
+                                {grantLoading ? '처리중...' : '구독 부여'}
+                            </button>
                         </div>
                     </div>
                 </div>

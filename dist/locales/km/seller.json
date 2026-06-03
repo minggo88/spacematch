@@ -210,7 +210,8 @@
     "cancelSuccess": "បានបោះបង់ពាក្យ។",
     "cancelFailed": "បោះបង់បរាជ័យ។",
     "cancelReasonRequired": "សូមបញ្ចូលហេតុផលបោះបង់។",
-    "cancelRequestFailed": "ផ្ញើសំណើបោះបង់បរាជ័យ។"
+    "cancelRequestFailed": "ផ្ញើសំណើបោះបង់បរាជ័យ។",
+    "rejectionReason": "មូលហេតុនៃការបដិសេធ"
   },
   "profilePage": {
     "visibilityTitle": "ការមើលឃើញការរកឃើញអ្នកលក់",

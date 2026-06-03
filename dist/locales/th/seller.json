@@ -210,7 +210,8 @@
     "cancelSuccess": "ยกเลิกใบสมัครแล้ว",
     "cancelFailed": "ยกเลิกไม่สำเร็จ",
     "cancelReasonRequired": "กรุณาระบุเหตุผลในการยกเลิก",
-    "cancelRequestFailed": "ส่งคำขอยกเลิกไม่สำเร็จ"
+    "cancelRequestFailed": "ส่งคำขอยกเลิกไม่สำเร็จ",
+    "rejectionReason": "เหตุผลการปฏิเสธ"
   },
   "profilePage": {
     "visibilityTitle": "การมองเห็นการค้นพบผู้ขาย",

@@ -210,7 +210,8 @@
     "cancelSuccess": "Заявка отменена.",
     "cancelFailed": "Не удалось отменить.",
     "cancelReasonRequired": "Укажите причину отмены.",
-    "cancelRequestFailed": "Не удалось отправить запрос на отмену."
+    "cancelRequestFailed": "Не удалось отправить запрос на отмену.",
+    "rejectionReason": "Причина отказа"
   },
   "profilePage": {
     "visibilityTitle": "Видимость профиля продавца",

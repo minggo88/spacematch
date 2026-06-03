@@ -104,6 +104,14 @@ $category = $_GET['category'] ?? null;
 
 if ($category) {
     $sub = hasActiveSubscription($conn, $userId, $category);
+
+    // priority_viewing: if no plan with that exact category exists, fall back to
+    // the standard admin-managed premium category ('프리미엄 서비스') so that hosts
+    // who purchased the Premium plan are correctly granted access.
+    if (!$sub && $category === 'priority_viewing') {
+        $sub = hasActiveSubscription($conn, $userId, '프리미엄 서비스');
+    }
+
     echo json_encode([
         'success' => true,
         'subscription' => $sub ?: ['active' => false],

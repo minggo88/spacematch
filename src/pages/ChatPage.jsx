@@ -11,7 +11,7 @@ import {
 import { COUNTRY_FLAGS } from '../components/CountryBadge';
 
 const API_BASE = '/api';
-const POLL_INTERVAL = 2000;
+const POLL_INTERVAL = 3000;
 
 const LANG_OPTIONS = [
     { code: 'ko', label: '한국어', flag: '🇰🇷' },
@@ -95,7 +95,11 @@ const ChatPage = ({ isPopup = false }) => {
             const data = await res.json();
             if (data.success && data.messages?.length > 0) {
                 if (isPolling) {
-                    setMessages(prev => [...prev, ...data.messages]);
+                    setMessages(prev => {
+                        const existingIds = new Set(prev.map(m => String(m.id)));
+                        const newMsgs = data.messages.filter(m => !existingIds.has(String(m.id)));
+                        return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
+                    });
                 } else {
                     setMessages(data.messages);
                 }
@@ -171,7 +175,7 @@ const ChatPage = ({ isPopup = false }) => {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_user_id: targetUserId })
+                body: JSON.stringify({ target_user_id: targetUserId, ...(isAdmin && { type: 'cs' }) })
             });
             const data = await res.json();
             if (data.success) {
@@ -287,7 +291,10 @@ const ChatPage = ({ isPopup = false }) => {
             const data = await res.json();
             if (data.success) {
                 isNearBottomRef.current = true; // force scroll to bottom on own send
-                setMessages(prev => [...prev, data.message]);
+                setMessages(prev => {
+                    if (prev.some(m => String(m.id) === String(data.message.id))) return prev;
+                    return [...prev, data.message];
+                });
                 lastMsgIdRef.current = parseInt(data.message.id);
                 fetchConversations();
             }
@@ -317,12 +324,18 @@ const ChatPage = ({ isPopup = false }) => {
             const data = await res.json();
             if (data.success) {
                 isNearBottomRef.current = true; // force scroll to bottom on own upload
-                setMessages(prev => [...prev, data.message]);
+                setMessages(prev => {
+                    if (prev.some(m => String(m.id) === String(data.message.id))) return prev;
+                    return [...prev, data.message];
+                });
                 lastMsgIdRef.current = parseInt(data.message.id);
                 fetchConversations();
+            } else {
+                alert(data.message || t('uploadFailed', '파일 업로드에 실패했습니다.'));
             }
         } catch (e) {
             console.error('Failed to upload file:', e);
+            alert(t('uploadError', '파일 업로드 중 오류가 발생했습니다.'));
         } finally {
             setUploading(false);
         }

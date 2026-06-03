@@ -216,6 +216,14 @@ const SellerApplications = () => {
                                             </div>
                                         </div>
 
+                                        {/* Rejection Reason Banner */}
+                                        {app.status === 'rejected' && app.rejection_reason && (
+                                            <div className="mt-3 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200">
+                                                <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">{t('appPage.rejectionReason')}</p>
+                                                <p className="text-sm text-red-700 leading-relaxed">{app.rejection_reason}</p>
+                                            </div>
+                                        )}
+
                                         {/* Cancel Request Status Banner */}
                                         {cancelInfo && (
                                             <div className={`mt-3 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2

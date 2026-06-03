@@ -210,7 +210,8 @@
     "cancelSuccess": "Đã hủy đơn đăng ký.",
     "cancelFailed": "Hủy thất bại.",
     "cancelReasonRequired": "Vui lòng nhập lý do hủy.",
-    "cancelRequestFailed": "Gửi yêu cầu hủy thất bại."
+    "cancelRequestFailed": "Gửi yêu cầu hủy thất bại.",
+    "rejectionReason": "Lý do từ chối"
   },
   "profilePage": {
     "visibilityTitle": "Hiển thị khám phá Người bán",

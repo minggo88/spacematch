@@ -33,25 +33,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Get POST data
-$name = isset($_POST['name']) ? htmlspecialchars(strip_tags($_POST['name'])) : null;
-$location = isset($_POST['location']) ? htmlspecialchars(strip_tags($_POST['location'])) : null;
-$price = isset($_POST['price']) ? htmlspecialchars(strip_tags($_POST['price'])) : null;
+$name = isset($_POST['name']) ? strip_tags($_POST['name']) : null;
+$location = isset($_POST['location']) ? strip_tags($_POST['location']) : null;
+$price = isset($_POST['price']) ? strip_tags($_POST['price']) : null;
 $commission_rate = isset($_POST['commission_rate']) ? floatval($_POST['commission_rate']) : 0;
-$description = isset($_POST['description']) ? htmlspecialchars(strip_tags($_POST['description'])) : '';
-$type = isset($_POST['type']) ? htmlspecialchars(strip_tags($_POST['type'])) : 'popup';
-$size = isset($_POST['size']) ? htmlspecialchars(strip_tags($_POST['size'])) : 'medium';
-$pricing_unit = isset($_POST['pricing_unit']) ? htmlspecialchars(strip_tags($_POST['pricing_unit'])) : 'daily';
+$description = isset($_POST['description']) ? strip_tags($_POST['description']) : '';
+$type = isset($_POST['type']) ? strip_tags($_POST['type']) : 'popup';
+$size = isset($_POST['size']) ? strip_tags($_POST['size']) : 'medium';
+$pricing_unit = isset($_POST['pricing_unit']) ? strip_tags($_POST['pricing_unit']) : 'daily';
 $recruitment_deadline = isset($_POST['recruitment_deadline']) && $_POST['recruitment_deadline'] !== '' ? $_POST['recruitment_deadline'] : null;
 $recruitment_closed = isset($_POST['recruitment_closed']) ? intval($_POST['recruitment_closed']) : 0;
 $max_sellers = isset($_POST['max_sellers']) ? intval($_POST['max_sellers']) : 0;
-$region = isset($_POST['region']) ? htmlspecialchars(strip_tags($_POST['region'])) : '';
+$region = isset($_POST['region']) ? strip_tags($_POST['region']) : '';
 $recruitment_start = isset($_POST['recruitment_start']) && $_POST['recruitment_start'] !== '' ? $_POST['recruitment_start'] : null;
 $recruitment_end = isset($_POST['recruitment_end']) && $_POST['recruitment_end'] !== '' ? $_POST['recruitment_end'] : null;
 $event_start = isset($_POST['event_start']) && $_POST['event_start'] !== '' ? $_POST['event_start'] : null;
 $event_end = isset($_POST['event_end']) && $_POST['event_end'] !== '' ? $_POST['event_end'] : null;
 $event_periods = isset($_POST['event_periods']) ? $_POST['event_periods'] : null;
-$avg_sales = isset($_POST['avg_sales']) ? htmlspecialchars(strip_tags($_POST['avg_sales'])) : '';
-$sales_unit = isset($_POST['sales_unit']) ? htmlspecialchars(strip_tags($_POST['sales_unit'])) : 'monthly';
+$avg_sales = isset($_POST['avg_sales']) ? strip_tags($_POST['avg_sales']) : '';
+$sales_unit = isset($_POST['sales_unit']) ? strip_tags($_POST['sales_unit']) : 'monthly';
 $popular_categories = isset($_POST['popular_categories']) ? $_POST['popular_categories'] : '[]';
 $target_customers = isset($_POST['target_customers']) ? $_POST['target_customers'] : '[]';
 

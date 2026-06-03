@@ -124,12 +124,30 @@ export const DataProvider = ({ children }) => {
     useEffect(() => {
         if (!user?.id) return;
         let notifInterval = null;
-        const startPolling = async () => {
-            await fetchNotifications();
-            notifInterval = setInterval(fetchNotifications, 10000);
+
+        const startInterval = () => {
+            if (notifInterval) clearInterval(notifInterval);
+            notifInterval = setInterval(fetchNotifications, 30000);
         };
-        startPolling();
-        return () => { if (notifInterval) clearInterval(notifInterval); };
+
+        const handleVisibility = () => {
+            if (document.hidden) {
+                clearInterval(notifInterval);
+                notifInterval = null;
+            } else {
+                fetchNotifications();
+                startInterval();
+            }
+        };
+
+        fetchNotifications();
+        startInterval();
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            clearInterval(notifInterval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, [user?.id]);
 
     const addVenue = async (venue) => {

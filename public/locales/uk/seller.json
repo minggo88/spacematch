@@ -210,7 +210,8 @@
     "cancelSuccess": "Заявку скасовано.",
     "cancelFailed": "Не вдалося скасувати.",
     "cancelReasonRequired": "Вкажіть причину скасування.",
-    "cancelRequestFailed": "Не вдалося надіслати запит на скасування."
+    "cancelRequestFailed": "Не вдалося надіслати запит на скасування.",
+    "rejectionReason": "Причина відмови"
   },
   "profilePage": {
     "visibilityTitle": "Видимість профілю продавця",

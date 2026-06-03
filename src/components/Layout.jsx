@@ -1046,9 +1046,9 @@ const Layout = () => {
                     {/* FAB Button */}
                     <button
                         onClick={() => setShowChatPopup(!showChatPopup)}
-                        className={`fixed bottom-6 right-6 lg:bottom-10 lg:right-10 w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center transition-all duration-300 z-[9999] ${showChatPopup
-                            ? 'bg-gray-800 hover:bg-gray-900 text-white shadow-xl shadow-gray-500/30 scale-90 rotate-90'
-                            : 'bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 hover:from-indigo-400 hover:via-violet-400 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110'
+                        className={`fixed w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center transition-all duration-300 z-[9999] ${showChatPopup
+                            ? 'top-8 right-6 lg:top-auto lg:bottom-10 lg:right-10 bg-gray-800 hover:bg-gray-900 text-white shadow-xl shadow-gray-500/30 scale-90 rotate-90'
+                            : 'bottom-6 right-6 lg:bottom-10 lg:right-10 bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 hover:from-indigo-400 hover:via-violet-400 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110'
                             }`}
                         title={t('sidebar.chat')}
                     >

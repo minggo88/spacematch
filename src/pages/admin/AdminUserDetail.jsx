@@ -126,7 +126,7 @@ const AdminUserDetail = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                     <h3 className="text-lg font-bold text-gray-900">
-                        {user.role === 'host' ? '\ub4f1\ub85d\ub41c \ubca0\ub274 \ubaa9\ub85d' : user.role === 'seller' ? '\uc785\uc810 \uc2e0\uccad \ub0b4\uc5ed' : '\ud65c\ub3d9 \ub0b4\uc5ed'}
+                        {user.role === 'host' ? '\ub4f1\ub85d\ub41c \ubca0\ub274 \ubaa9\ub85d' : '\uc785\uc810 \uc2e0\uccad \ub0b4\uc5ed'}
                     </h3>
                 </div>
 
@@ -156,7 +156,7 @@ const AdminUserDetail = () => {
                                 </div>
                             ))}
                         </div>
-                    ) : user.role === 'seller' && applications.length > 0 ? (
+                    ) : applications.length > 0 ? (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-gray-500">

@@ -68,6 +68,22 @@ try {
 } catch (PDOException $e) { /* ignore */
 }
 
+function deep_decode($str) {
+    if (!is_string($str)) return $str;
+    $prev = null;
+    while ($prev !== $str) {
+        $prev = $str;
+        $str = html_entity_decode($str, ENT_QUOTES, 'UTF-8');
+    }
+    return $str;
+}
+
+function decode_venue_fields(&$venue) {
+    foreach (['name', 'description', 'location', 'type', 'size', 'region', 'avg_sales'] as $field) {
+        if (isset($venue[$field])) $venue[$field] = deep_decode($venue[$field]);
+    }
+}
+
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 
 if ($id) {
@@ -86,6 +102,7 @@ if ($id) {
     if ($result && $result['images']) {
         $result['images'] = json_decode($result['images']);
     }
+    if ($result) decode_venue_fields($result);
 
     echo json_encode($result);
 } else {
@@ -107,6 +124,7 @@ if ($id) {
         } else {
             $venue['images'] = [];
         }
+        decode_venue_fields($venue);
     }
 
     echo json_encode($results);

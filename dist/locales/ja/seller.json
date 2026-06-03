@@ -210,7 +210,8 @@
     "cancelSuccess": "申請が取り消されました。",
     "cancelFailed": "取り消しに失敗しました。",
     "cancelReasonRequired": "取り消し理由を入力してください。",
-    "cancelRequestFailed": "取り消しリクエストの送信に失敗しました。"
+    "cancelRequestFailed": "取り消しリクエストの送信に失敗しました。",
+    "rejectionReason": "却下理由"
   },
   "profilePage": {
     "visibilityTitle": "セラー発見可視性",

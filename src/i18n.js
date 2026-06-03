@@ -19,7 +19,7 @@ i18n
         ns: ['common', 'auth', 'admin', 'seller', 'host', 'venue', 'ads', 'community', 'landing', 'chat', 'legal'],
         defaultNS: 'common',
         backend: {
-            loadPath: '/locales/{{lng}}/{{ns}}.json?v=' + Date.now(),
+            loadPath: '/locales/{{lng}}/{{ns}}.json',
         },
         interpolation: {
             escapeValue: false,

@@ -210,7 +210,8 @@
     "cancelSuccess": "신청이 취소되었습니다.",
     "cancelFailed": "취소에 실패했습니다.",
     "cancelReasonRequired": "취소 사유를 반드시 작성해주세요.",
-    "cancelRequestFailed": "취소 신청에 실패했습니다."
+    "cancelRequestFailed": "취소 신청에 실패했습니다.",
+    "rejectionReason": "거절 사유"
   },
   "profilePage": {
     "visibilityTitle": "셀러 탐색 공개 설정",

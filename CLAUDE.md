@@ -1,30 +1,49 @@
 # CLAUDE.md — SpaceMatch
 
-## 아키텍처 (3-Layer)
+## 소스 맵 (필수 참조)
 
-**Layer 1 — Directive** (`directives/`): 목표·입력·도구·출력·엣지케이스를 정의한 Markdown SOP  
-**Layer 2 — Orchestration** (Claude): 지시 읽기 → 도구 순서 결정 → 오류 처리 → 지시 업데이트  
-**Layer 3 — Execution** (`execution/`): 결정론적 Python 스크립트 — API 호출·데이터 처리·파일 작업
+**코드 수정 전 반드시 읽기**: [`docs/source-map.md`](docs/source-map.md)
 
-> 단계별 90% 정확도 = 5단계 후 59% 성공. 복잡성을 결정론적 코드에 위임해 Claude는 의사결정에 집중한다.
+이 파일에는 전체 소스 구조가 정리되어 있다:
+- 모든 페이지 파일과 URL 매핑
+- 모든 PHP API 모듈과 파일 목록
+- Context / Hook / Component 역할
+- 다국어 네임스페이스 구조
+- 빌드·배포 경로
 
-## 파일 구조
+> 새 파일을 만들거나 기존 파일을 크게 변경했으면 `docs/source-map.md`도 갱신한다.
+
+---
+
+## 프로젝트 개요
+
+**SpaceMatch** — 공간 호스트(Host)와 셀러(Seller) 간 B2B 매칭 플랫폼.  
+**스택**: React 18 + Vite 5 + TailwindCSS (프론트) / PHP + MySQL (백엔드) / Cafe24 호스팅
+
+**사용자 역할**: `superadmin` · `admin` · `host` · `seller` · `vendor`  
+**지원 언어**: 11개 (`ko` · `en` · `en-CA` · `en-GB` · `fr-CA` · `ja` · `km` · `ru` · `th` · `uk` · `vi`)
+
+---
+
+## 파일 구조 (핵심 경로)
 
 | 경로 | 용도 |
 |------|------|
-| `directives/` | Markdown SOP |
-| `execution/` | Python 스크립트 |
-| `.tmp/` | 중간 파일 (커밋 금지, 재생성 가능) |
+| `src/` | React 프론트엔드 소스 |
+| `public/api/` | PHP 백엔드 API |
+| `public/locales/` | 다국어 JSON 파일 |
+| `dist/` | 빌드 결과물 (커밋 포함 — 배포용) |
+| `docs/` | 배포 로그 + critical.md + source-map.md |
 | `.env` | 환경변수·API 키 |
 
-결과물은 클라우드(Google Sheets/Slides 등)에 저장. 로컬은 처리 전용.
+---
 
 ## 운영 원칙
 
-1. **도구 먼저** — 스크립트 작성 전 `execution/`에 기존 도구 확인
-2. **Self-anneal** — 오류 시: 수정 → 테스트 → 디렉티브 업데이트 (유료 API는 먼저 사용자 확인)
-3. **디렉티브 갱신** — 발견한 제약·더 나은 접근법·엣지케이스를 directives에 기록
-4. **다국어 동기화** — 수정 시 항상 다국어 파일도 함께 수정
+1. **소스 맵 먼저** — 코드 작성 전 `docs/source-map.md`에서 관련 파일 위치 확인
+2. **다국어 동기화** — 문자열 추가/수정 시 `public/locales/` 11개 언어 모두 수정
+3. **Self-anneal** — 오류 시: 수정 → 테스트 → source-map 갱신 (유료 API는 먼저 사용자 확인)
+4. **소스맵 갱신** — 새 파일·모듈 추가 시 `docs/source-map.md` 업데이트
 
 ---
 
