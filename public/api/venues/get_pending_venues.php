@@ -21,15 +21,7 @@ try {
     $stmt->execute();
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    function deep_decode($str) {
-        if (!is_string($str)) return $str;
-        $prev = null;
-        while ($prev !== $str) {
-            $prev = $str;
-            $str = html_entity_decode($str, ENT_QUOTES, 'UTF-8');
-        }
-        return $str;
-    }
+
 
     // Decode images
     foreach ($results as &$venue) {

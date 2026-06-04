@@ -55,6 +55,8 @@ try {
         exit;
     }
 
+    decode_fields($user, ['name', 'description', 'brand_name', 'instagram', 'category']);
+
     // Mask contact info if vendor is viewing a seller profile (NOT admin)
     $requester_role = $_SESSION['user_role'] ?? '';
     if ($requester_role === 'host' && $user['role'] === 'seller') {

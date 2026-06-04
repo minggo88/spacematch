@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header('Content-Type: application/json; charset=utf-8');
 include_once '../db_connect.php';
 session_start();
@@ -59,32 +59,32 @@ try {
     // Allowed fields for self-update
     if (isset($data->name) && !empty(trim($data->name))) {
         $updates[] = "name = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->name)));
+        $params[] = strip_tags(trim($data->name));
     }
 
     if (isset($data->phone)) {
         $updates[] = "phone = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->phone)));
+        $params[] = strip_tags(trim($data->phone));
     }
 
     if (isset($data->description)) {
         $updates[] = "description = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->description)));
+        $params[] = strip_tags(trim($data->description));
     }
 
     if (isset($data->category)) {
         $updates[] = "category = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->category)));
+        $params[] = strip_tags(trim($data->category));
     }
 
     if (isset($data->instagram)) {
         $updates[] = "instagram = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->instagram)));
+        $params[] = strip_tags(trim($data->instagram));
     }
 
     if (isset($data->brandName)) {
         $updates[] = "brand_name = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->brandName)));
+        $params[] = strip_tags(trim($data->brandName));
     }
 
     if (isset($data->is_public)) {
@@ -94,57 +94,57 @@ try {
 
     if (isset($data->country)) {
         $updates[] = "country = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->country)));
+        $params[] = strip_tags(trim($data->country));
     }
 
     if (isset($data->realName)) {
         $updates[] = "real_name = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->realName)));
+        $params[] = strip_tags(trim($data->realName));
     }
 
     if (isset($data->nameEn)) {
         $updates[] = "name_en = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->nameEn)));
+        $params[] = strip_tags(trim($data->nameEn));
     }
 
     if (isset($data->businessNumber) || isset($data->business_no)) {
         $biz_val = isset($data->businessNumber) ? $data->businessNumber : $data->business_no;
         $updates[] = "business_no = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($biz_val)));
+        $params[] = strip_tags(trim($biz_val));
     }
 
     // Vendor-specific fields
     if (isset($data->company_name)) {
         $updates[] = "company_name = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->company_name)));
+        $params[] = strip_tags(trim($data->company_name));
     }
 
     if (isset($data->address)) {
         $updates[] = "address = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->address)));
+        $params[] = strip_tags(trim($data->address));
     }
 
     if (isset($data->website)) {
         $updates[] = "website = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->website)));
+        $params[] = strip_tags(trim($data->website));
     }
 
     if (isset($data->categories)) {
         $updates[] = "categories = ?";
-        $params[] = htmlspecialchars(strip_tags(trim($data->categories)));
+        $params[] = strip_tags(trim($data->categories));
     }
 
     if (isset($data->keywords)) {
         if (is_array($data->keywords)) {
             $sanitized = array_map(function ($kw) {
-                return htmlspecialchars(strip_tags(trim($kw)));
+                return strip_tags(trim($kw));
             }, $data->keywords);
             $sanitized = array_filter($sanitized);
             $updates[] = "keywords = ?";
             $params[] = json_encode(array_values($sanitized), JSON_UNESCAPED_UNICODE);
         } else {
             $updates[] = "keywords = ?";
-            $params[] = htmlspecialchars(strip_tags(trim($data->keywords)));
+            $params[] = strip_tags(trim($data->keywords));
         }
     }
 
@@ -164,6 +164,7 @@ try {
     $fetch = $conn->prepare("SELECT {$base_cols} FROM users WHERE id = ?");
     $fetch->execute([$user_id]);
     $updatedUser = $fetch->fetch(PDO::FETCH_ASSOC);
+    decode_fields($updatedUser, ['name', 'description', 'brand_name', 'instagram', 'real_name', 'name_en', 'category', 'company_name', 'address', 'categories', 'keywords', 'phone']);
 
     // Update ALL session variables to stay in sync
     $_SESSION['user_name'] = $updatedUser['name'];

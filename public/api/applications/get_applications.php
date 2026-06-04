@@ -127,8 +127,9 @@ foreach ($results as &$row) {
 }
 unset($row);
 
-// Decode images JSON
+// Decode HTML entities and images JSON
 foreach ($results as &$row) {
+    decode_fields($row, ['applicant_name', 'venue_name', 'description', 'instagram', 'applicant_description', 'applicant_brand', 'applicant_category']);
     if (isset($row['venue_images'])) {
         $row['venue_images'] = json_decode($row['venue_images']);
     }

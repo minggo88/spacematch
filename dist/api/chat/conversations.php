@@ -175,6 +175,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             unset($conv);
         }
 
+        foreach ($conversations as &$conv) {
+            decode_fields($conv, ['other_name']);
+        }
+        unset($conv);
+
         echo json_encode([
             "success" => true,
             "conversations" => $conversations,

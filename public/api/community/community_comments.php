@@ -78,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $isLikedStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM community_comment_likes WHERE comment_id = ? AND user_id = ?");
 
         foreach ($allComments as &$c) {
+            decode_fields($c, ['content', 'user_name']);
             $c['id'] = intval($c['id']);
             $c['post_id'] = intval($c['post_id']);
             $c['parent_id'] = $c['parent_id'] ? intval($c['parent_id']) : null;
@@ -138,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $post_id = intval($data->post_id);
     $parent_id = isset($data->parent_id) ? intval($data->parent_id) : null;
-    $content = htmlspecialchars(strip_tags(trim($data->content)));
+    $content = strip_tags(trim($data->content));
     $original_lang = isset($data->original_lang) ? trim($data->original_lang) : 'ko';
 
     // Verify post exists

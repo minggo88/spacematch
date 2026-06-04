@@ -78,6 +78,7 @@ try {
     $today = date('Y-m-d');
     foreach ($sellers as &$seller) {
         $seller['app_count'] = intval($seller['app_count']);
+        decode_fields($seller, ['name', 'description', 'category', 'instagram']);
 
         // Apply period-based checks: only show as featured/verified if within active period
         $raw_featured = intval($seller['is_featured'] ?? 0);

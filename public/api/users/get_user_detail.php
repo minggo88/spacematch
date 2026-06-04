@@ -22,6 +22,7 @@ try {
         exit;
     }
 
+    decode_fields($user, ['name', 'description', 'brand_name', 'instagram', 'real_name', 'name_en', 'category', 'company_name', 'address']);
     $response = [
         "success" => true,
         "user" => $user,

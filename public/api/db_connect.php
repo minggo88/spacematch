@@ -87,4 +87,18 @@ try {
     echo json_encode(array("message" => "서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."));
     exit();
 }
+
+// HTML 엔티티 → 원문 복원 (DB에 저장된 &#039; &amp; 등 제거)
+function deep_decode($v) {
+    if (!is_string($v)) return $v;
+    $p = null;
+    while ($p !== $v) { $p = $v; $v = html_entity_decode($v, ENT_QUOTES, 'UTF-8'); }
+    return $v;
+}
+function decode_fields(&$row, array $fields) {
+    foreach ($fields as $f) { if (isset($row[$f])) $row[$f] = deep_decode($row[$f]); }
+}
+function decode_rows(&$rows, array $fields) {
+    foreach ($rows as &$r) decode_fields($r, $fields);
+}
 ?>

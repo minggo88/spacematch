@@ -136,27 +136,27 @@ try {
     }
 
     // ── 4. Prepare data ──
-    $name = htmlspecialchars(strip_tags($data->name));
-    $real_name = isset($data->realName) ? htmlspecialchars(strip_tags($data->realName)) : null;
-    $name_en = isset($data->nameEn) ? htmlspecialchars(strip_tags($data->nameEn)) : null;
-    $business_no = isset($data->businessNumber) ? htmlspecialchars(strip_tags($data->businessNumber)) : null;
-    $email = htmlspecialchars(strip_tags($data->email));
-    $phone = isset($data->phone) ? htmlspecialchars(strip_tags($data->phone)) : null;
+    $name = strip_tags($data->name);
+    $real_name = isset($data->realName) ? strip_tags($data->realName) : null;
+    $name_en = isset($data->nameEn) ? strip_tags($data->nameEn) : null;
+    $business_no = isset($data->businessNumber) ? strip_tags($data->businessNumber) : null;
+    $email = strip_tags($data->email);
+    $phone = isset($data->phone) ? strip_tags($data->phone) : null;
     $password_hash = password_hash($data->password, PASSWORD_BCRYPT);
 
     $valid_roles = ['seller', 'host', 'vendor'];
     $role = (isset($data->role) && in_array($data->role, $valid_roles)) ? $data->role : 'seller';
     $initialStatus = ($role === 'host' || $role === 'vendor') ? 'pending' : 'active';
 
-    $category = isset($data->category) ? htmlspecialchars(strip_tags($data->category)) : null;
-    $country = isset($data->country) ? htmlspecialchars(strip_tags($data->country)) : null;
-    $instagram = isset($data->instagram) ? htmlspecialchars(strip_tags($data->instagram)) : null;
-    $description = isset($data->description) ? htmlspecialchars(strip_tags($data->description)) : null;
+    $category = isset($data->category) ? strip_tags($data->category) : null;
+    $country = isset($data->country) ? strip_tags($data->country) : null;
+    $instagram = isset($data->instagram) ? strip_tags($data->instagram) : null;
+    $description = isset($data->description) ? strip_tags($data->description) : null;
     $marketing = (isset($data->marketing_agreed) && $data->marketing_agreed) ? 1 : 0;
     $keywords = null;
     if (isset($data->keywords) && is_array($data->keywords) && count($data->keywords) > 0) {
         $sanitized = array_map(function ($kw) {
-            return htmlspecialchars(strip_tags(trim($kw)));
+            return strip_tags(trim($kw));
         }, $data->keywords);
         $sanitized = array_filter($sanitized);
         $keywords = json_encode(array_values($sanitized), JSON_UNESCAPED_UNICODE);

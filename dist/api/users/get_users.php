@@ -82,6 +82,7 @@ try {
   $stmt = $conn->prepare($query);
   $stmt->execute($params);
   $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  decode_rows($results, ['name']);
 
   echo json_encode(["success" => true, "users" => $results]);
 

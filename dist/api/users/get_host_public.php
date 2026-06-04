@@ -66,6 +66,8 @@ try {
         exit;
     }
 
+    decode_fields($host, ['name', 'description']);
+
     // Process is_featured / is_verified (period-based)
     $raw_featured = intval($host['is_featured'] ?? 0);
     $raw_verified = intval($host['is_verified'] ?? 0);

@@ -84,6 +84,7 @@ try {
     $today = date('Y-m-d');
     foreach ($hosts as &$vendor) {
         $vendor['venue_count'] = intval($vendor['venue_count']);
+        decode_fields($vendor, ['name', 'description']);
         // optional 컬럼 fallback
         if (!isset($vendor['profile_image'])) $vendor['profile_image'] = null;
         if (!isset($vendor['description']))   $vendor['description'] = '';

@@ -68,20 +68,8 @@ try {
 } catch (PDOException $e) { /* ignore */
 }
 
-function deep_decode($str) {
-    if (!is_string($str)) return $str;
-    $prev = null;
-    while ($prev !== $str) {
-        $prev = $str;
-        $str = html_entity_decode($str, ENT_QUOTES, 'UTF-8');
-    }
-    return $str;
-}
-
 function decode_venue_fields(&$venue) {
-    foreach (['name', 'description', 'location', 'type', 'size', 'region', 'avg_sales'] as $field) {
-        if (isset($venue[$field])) $venue[$field] = deep_decode($venue[$field]);
-    }
+    decode_fields($venue, ['name', 'description', 'location', 'type', 'size', 'region', 'avg_sales']);
 }
 
 $id = isset($_GET['id']) ? $_GET['id'] : null;

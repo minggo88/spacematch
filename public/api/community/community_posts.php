@@ -165,6 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $singlePost = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($singlePost) {
+                decode_fields($singlePost, ['title', 'content', 'label', 'user_name']);
                 $singlePost['id'] = intval($singlePost['id']);
                 $singlePost['user_id'] = intval($singlePost['user_id']);
                 $singlePost['view_count'] = intval($singlePost['view_count']);
@@ -299,6 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         foreach ($posts as &$post) {
+            decode_fields($post, ['title', 'content', 'label', 'user_name']);
             $post['id'] = intval($post['id']);
             $post['user_id'] = intval($post['user_id']);
             $post['view_count'] = intval($post['view_count']);
@@ -341,9 +343,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json; charset=utf-8');
 
     $type = isset($_POST['type']) ? $_POST['type'] : '';
-    $title = isset($_POST['title']) ? htmlspecialchars(strip_tags(trim($_POST['title']))) : '';
-    $content = isset($_POST['content']) ? htmlspecialchars(strip_tags(trim($_POST['content']))) : '';
-    $label = isset($_POST['label']) ? htmlspecialchars(strip_tags(trim($_POST['label']))) : '';
+    $title = isset($_POST['title']) ? strip_tags(trim($_POST['title'])) : '';
+    $content = isset($_POST['content']) ? strip_tags(trim($_POST['content'])) : '';
+    $label = isset($_POST['label']) ? strip_tags(trim($_POST['label'])) : '';
     $is_notice = 0;
     if ($is_admin && isset($_POST['is_notice'])) {
         $is_notice = intval($_POST['is_notice']);
