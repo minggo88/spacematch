@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // ─── Ad System Diagnostic Tool ───
 // 사용 후 반드시 삭제하세요!
 include_once '../db_connect.php';
@@ -59,6 +59,7 @@ try {
         echo "</table>";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "<p style='color:red'>❌ DB 에러: " . $e->getMessage() . "</p>";
 }
 
@@ -121,6 +122,7 @@ foreach ($slots as $slot) {
             echo "<tr><td><b>{$slot}</b></td><td style='color:gray'>— 등록된 광고 없음</td><td>-</td></tr>";
         }
     } catch (PDOException $e) {
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
         echo "<tr><td>{$slot}</td><td class='inactive'>❌ 에러</td><td>" . $e->getMessage() . "</td></tr>";
     }
 }

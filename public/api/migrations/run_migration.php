@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // DB 연결 파일 포함 (경로 확인 필요: 이 파일이 public/api/migrations/ 에 위치한다고 가정)
 // public/api/migrations/run_migration.php -> ../../../db_connect.php (X)
 // 보통 public/api 에 db_connect.php가 없으면 상위나 ../db_connect.php 등을 찾음
@@ -42,6 +42,7 @@ try {
     }
 
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "<p style='color:red'>[오류] SQL 실행 중 문제가 발생했습니다: " . $e->getMessage() . "</p>";
 }
 

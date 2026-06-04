@@ -194,8 +194,12 @@ if ($name && $location && ($price !== null && $price !== '')) {
             if ($file_error === UPLOAD_ERR_OK) {
                 $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
                 $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $realMime = finfo_file($finfo, $file_tmp);
+                finfo_close($finfo);
 
-                if (in_array($ext, $allowed)) {
+                if (in_array($ext, $allowed) && in_array($realMime, $allowedMimes)) {
                     $new_name = uniqid('venue_', true) . "." . $ext;
                     $destination = $upload_dir . $new_name;
 

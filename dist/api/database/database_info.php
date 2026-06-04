@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header('Content-Type: application/json; charset=utf-8');
 include_once '../db_connect.php';
 session_start();
@@ -29,7 +29,8 @@ try {
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["error" => "DB 연결 실패: " . $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(["error" => '서버 오류가 발생했습니다.']);
     exit;
 }
 
@@ -433,7 +434,8 @@ switch ($action) {
         } catch (PDOException $e) {
             if ($dbConn->inTransaction())
                 $dbConn->rollBack();
-            echo json_encode(["error" => "삭제 중 오류: " . $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(["error" => '서버 오류가 발생했습니다.']);
         }
         break;
 
@@ -523,7 +525,8 @@ switch ($action) {
                 "inserted_id" => $newId
             ]);
         } catch (PDOException $e) {
-            echo json_encode(["error" => "추가 중 오류: " . $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(["error" => '서버 오류가 발생했습니다.']);
         }
         break;
 
@@ -599,7 +602,8 @@ switch ($action) {
                 ]);
             }
         } catch (PDOException $e) {
-            echo json_encode(["error" => "최적화 중 오류: " . $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(["error" => '서버 오류가 발생했습니다.']);
         }
         break;
 

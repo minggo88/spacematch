@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * 카카오톡 알림톡 발송 플레이스홀더
  * 
@@ -76,7 +76,8 @@ function sendKakaoAlert($phoneNumber, $templateCode, $variables = [])
 
     } catch (Exception $e) {
         error_log("[Kakao] Error: " . $e->getMessage());
-        return ['success' => false, 'message' => $e->getMessage()];
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        return ['success' => false, 'message' => '서버 오류가 발생했습니다.'];
     }
 }
 
@@ -97,7 +98,8 @@ function sendKakaoAlertToUser($conn, $userId, $templateCode, $variables = [])
         return sendKakaoAlert($user['phone'], $templateCode, $variables);
     } catch (Exception $e) {
         error_log("[Kakao] User lookup error: " . $e->getMessage());
-        return ['success' => false, 'message' => $e->getMessage()];
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        return ['success' => false, 'message' => '서버 오류가 발생했습니다.'];
     }
 }
 

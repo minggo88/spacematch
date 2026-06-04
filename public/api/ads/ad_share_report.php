@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Public: Get ad report by share token (no auth required)
 include_once '../db_connect.php';
 header('Content-Type: application/json; charset=utf-8');
@@ -102,6 +102,7 @@ try {
     ]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
 }
 ?>

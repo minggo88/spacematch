@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Ad Share Report — Excel Export (CSV with BOM for Korean Excel compatibility)
 include_once '../db_connect.php';
 
@@ -105,6 +105,7 @@ try {
     fclose($output);
 } catch (PDOException $e) {
     http_response_code(500);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo 'Error: ' . $e->getMessage();
 }
 ?>

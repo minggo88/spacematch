@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once '../db_connect.php';
 
 try {
@@ -17,6 +17,7 @@ try {
     $conn->exec($sql);
     echo "Table 'notifications' created or already exists successfully.";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "Error creating table: " . $e->getMessage();
 }
 ?>

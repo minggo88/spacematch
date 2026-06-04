@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Restore item from trash bin back to original table
 include_once '../db_connect.php';
 session_start();
@@ -70,13 +70,15 @@ try {
     echo json_encode(['success' => true, 'message' => '복원되었습니다.']);
 } catch (PDOException $e) {
     // If duplicate key, report gracefully
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
         // Try INSERT IGNORE or just delete from trash
         $conn->prepare("DELETE FROM trash_bin WHERE id = :id")->execute([':id' => $trash_id]);
         echo json_encode(['success' => true, 'message' => '동일 ID가 이미 존재합니다. 휴지통에서 제거했습니다.']);
     } else {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
 }
 ?>

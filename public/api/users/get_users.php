@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // Don't display errors in HTML, we'll return JSON
 
@@ -88,9 +88,11 @@ try {
 
 } catch (PDOException $e) {
   http_response_code(500);
-  echo json_encode(array("error" => "Database Error: " . $e->getMessage()));
+  error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+  echo json_encode(array("error" => '서버 오류가 발생했습니다.'));
 } catch (Exception $e) {
   http_response_code(500);
-  echo json_encode(array("error" => "Server Error: " . $e->getMessage()));
+  error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+  echo json_encode(array("error" => '서버 오류가 발생했습니다.'));
 }
 ?>

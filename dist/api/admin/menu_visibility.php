@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Admin: Menu Visibility Management API
 include_once '../db_connect.php';
 session_start();
@@ -110,7 +110,8 @@ if ($method === 'GET') {
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }
@@ -165,7 +166,8 @@ if ($method === 'POST') {
     } catch (PDOException $e) {
         $conn->rollBack();
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }
@@ -185,7 +187,8 @@ if ($method === 'DELETE') {
         echo json_encode(['success' => true, 'message' => 'Deleted', 'deleted' => $stmt->rowCount()]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }

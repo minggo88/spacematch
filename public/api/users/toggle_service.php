@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * toggle_service.php
  * 
@@ -106,7 +106,8 @@ if ($method === 'GET') {
 
         echo json_encode(['success' => true, 'services' => $services]);
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }
@@ -154,7 +155,8 @@ if ($method === 'POST') {
             'enabled' => $enabled
         ]);
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }

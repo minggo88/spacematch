@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once '../db_connect.php';
 
 // ─── ads table ───
@@ -21,6 +21,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     echo "✅ ads table created/verified.<br>";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "❌ ads table error: " . $e->getMessage() . "<br>";
 }
 
@@ -42,6 +43,7 @@ try {
         echo "✅ Default adsense_config row inserted.<br>";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "❌ adsense_config table error: " . $e->getMessage() . "<br>";
 }
 

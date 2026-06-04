@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * DB Migration: Add all missing columns to ads table
  * Safe to run multiple times — skips columns that already exist
@@ -39,6 +39,7 @@ try {
 
     echo json_encode(['success' => true, 'results' => $results], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage(), 'results' => $results]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.', 'results' => $results]);
 }
 ?>

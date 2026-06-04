@@ -53,7 +53,10 @@ $image_url = '';
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 
     $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!in_array($_FILES['image']['type'], $allowed)) {
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $realMime = finfo_file($finfo, $_FILES['image']['tmp_name']);
+    finfo_close($finfo);
+    if (!in_array($realMime, $allowed)) {
         echo json_encode(['success' => false, 'message' => '허용된 이미지 형식: JPG, PNG, GIF, WebP']);
         exit();
     }
@@ -78,7 +81,10 @@ $mobile_image_url = null;
 if (isset($_FILES['mobile_image']) && $_FILES['mobile_image']['error'] === UPLOAD_ERR_OK) {
 
     $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!in_array($_FILES['mobile_image']['type'], $allowed)) {
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $realMime = finfo_file($finfo, $_FILES['mobile_image']['tmp_name']);
+    finfo_close($finfo);
+    if (!in_array($realMime, $allowed)) {
         echo json_encode(['success' => false, 'message' => '모바일 이미지: 허용된 형식 JPG, PNG, GIF, WebP']);
         exit();
     }
@@ -114,7 +120,8 @@ try {
     $new_id = $conn->lastInsertId();
     echo json_encode(['success' => true, 'id' => $new_id, 'message' => '광고가 등록되었습니다.']);
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
 }
 ?>

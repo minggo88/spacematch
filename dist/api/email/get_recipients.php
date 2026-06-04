@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * get_recipients.php — 이메일 발송 대상 목록 조회
  * GET: ?role=all|seller|host|vendor
@@ -66,7 +66,8 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => '오류: ' . $e->getMessage()
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        'message' => '서버 오류가 발생했습니다.'
     ], JSON_UNESCAPED_UNICODE);
 }
 ?>

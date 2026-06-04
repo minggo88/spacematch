@@ -28,7 +28,10 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-if (!in_array($file['type'], $allowed)) {
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$realMime = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
+if (!in_array($realMime, $allowed)) {
     echo json_encode(['success' => false, 'message' => 'JPG, PNG, GIF, WebP만 업로드 가능합니다.'], JSON_UNESCAPED_UNICODE);
     exit;
 }

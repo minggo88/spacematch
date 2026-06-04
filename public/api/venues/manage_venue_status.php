@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once '../db_connect.php';
 include_once '../notifications/send_email.php';
 session_start();
@@ -80,7 +80,8 @@ if (isset($data->id) && isset($data->status)) {
             echo json_encode(array("success" => false, "message" => "Failed to update status."));
         }
     } catch (PDOException $e) {
-        echo json_encode(array("success" => false, "message" => "DB Error: " . $e->getMessage()));
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(array("success" => false, "message" => '서버 오류가 발생했습니다.'));
     }
 } else {
     echo json_encode(array("success" => false, "message" => "Missing parameters."));

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * 웹 푸시 알림 발송 함수
  * 
@@ -103,7 +103,8 @@ function sendPushToUsers($conn, $userIds, $title, $body, $url = '/', $icon = '/f
 
     } catch (Exception $e) {
         error_log("Push send error: " . $e->getMessage());
-        return ['sent' => 0, 'failed' => 0, 'error' => $e->getMessage()];
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        return ['sent' => 0, 'failed' => 0, 'error' => '서버 오류가 발생했습니다.'];
     }
 }
 

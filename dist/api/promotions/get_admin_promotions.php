@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * get_admin_promotions.php
  * 관리자 전용: 모든 프로모션 관리 데이터 (만료 포함)
@@ -209,5 +209,6 @@ try {
 } catch (PDOException $e) {
     error_log('[get_admin_promotions] ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(array('success' => false, 'message' => 'DB Error: ' . $e->getMessage()));
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(array('success' => false, 'message' => '서버 오류가 발생했습니다.'));
 }

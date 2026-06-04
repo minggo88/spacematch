@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * 어드민 데모 계정 생성 스크립트
  * 1회 실행 후 반드시 삭제하세요!
@@ -78,7 +78,8 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => '오류: ' . $e->getMessage()
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        'message' => '서버 오류가 발생했습니다.'
     ], JSON_UNESCAPED_UNICODE);
 }
 ?>

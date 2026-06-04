@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * get_campaigns.php — 이메일 캠페인 발송 이력 조회
  * GET: optional ?limit=50
@@ -69,6 +69,7 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => '오류: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.'], JSON_UNESCAPED_UNICODE);
 }
 ?>

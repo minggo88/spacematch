@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Backfill Geocoding Script
  * 
@@ -28,6 +28,7 @@ try {
         echo "✅ Added latitude/longitude columns\n";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "⚠️ Column check error: " . $e->getMessage() . "\n";
 }
 

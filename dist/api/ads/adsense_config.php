@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Admin: Get/Update AdSense config
 include_once '../db_connect.php';
 session_start();
@@ -23,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         echo json_encode(['success' => true, 'config' => $config ?: ['client_id' => '', 'slot_configs' => new \stdClass(), 'is_enabled' => 0]]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Update config
@@ -47,7 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         echo json_encode(['success' => true, 'message' => 'AdSense 설정이 저장되었습니다.']);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
 }
 ?>

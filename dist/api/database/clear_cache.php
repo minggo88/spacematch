@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header('Content-Type: application/json; charset=utf-8');
 include_once '../db_connect.php';
 session_start();
@@ -328,7 +328,8 @@ switch ($action) {
                             'message' => "{$affected}개 휴지통 기록 삭제 완료"
                         ];
                     } catch (PDOException $e) {
-                        $results['trash'] = ['deleted' => 0, 'error' => $e->getMessage()];
+                        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+                        $results['trash'] = ['deleted' => 0, 'error' => '서버 오류가 발생했습니다.'];
                     }
                     break;
 

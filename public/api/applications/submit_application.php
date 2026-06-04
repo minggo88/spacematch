@@ -59,10 +59,21 @@ try {
                 if ($_FILES['attachments']['error'][$i] === UPLOAD_ERR_OK) {
                     $origName = basename($_FILES['attachments']['name'][$i]);
                     $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                    // Block video files
-                    $videoExts = ['mp4', 'avi', 'mov', 'wmv', 'mkv', 'flv', 'webm', 'm4v', '3gp', 'mpeg', 'mpg', 'ts', 'vob'];
-                    if (in_array($ext, $videoExts)) {
-                        continue; // skip video files
+                    // Block video and executable/script files
+                    $blockedExts = ['mp4', 'avi', 'mov', 'wmv', 'mkv', 'flv', 'webm', 'm4v', '3gp', 'mpeg', 'mpg', 'ts', 'vob',
+                                    'php', 'php3', 'php4', 'php5', 'phtml', 'phar', 'cgi', 'pl', 'sh', 'py', 'rb', 'asp', 'aspx', 'jsp', 'exe', 'bat'];
+                    if (in_array($ext, $blockedExts)) {
+                        continue;
+                    }
+                    // finfo MIME check for image files
+                    $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                    if (in_array($ext, $imageExts)) {
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $realMime = finfo_file($finfo, $_FILES['attachments']['tmp_name'][$i]);
+                        finfo_close($finfo);
+                        if (!str_starts_with($realMime, 'image/')) {
+                            continue;
+                        }
                     }
                     $uniqueName = 'app_' . time() . '_' . $i . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
                     $destPath = $attachDir . $uniqueName;

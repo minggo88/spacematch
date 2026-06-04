@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Popup Management API
  * GET    — list active popups (public) or all (admin, ?admin=1)
@@ -82,7 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             echo json_encode(['success' => true, 'popups' => $popups]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
         }
     } else {
         // Public: return active popups for the user's role and country
@@ -135,7 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             echo json_encode(['success' => true, 'popups' => $popups]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
         }
     }
     exit;
@@ -183,7 +185,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $image_url = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!in_array($_FILES['image']['type'], $allowed)) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $realMime = finfo_file($finfo, $_FILES['image']['tmp_name']);
+        finfo_close($finfo);
+        if (!in_array($realMime, $allowed)) {
             echo json_encode(['success' => false, 'message' => '허용된 이미지 형식: JPG, PNG, GIF, WebP']);
             exit;
         }
@@ -219,7 +224,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => true, 'id' => $newId, 'message' => '팝업이 등록되었습니다.']);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }
@@ -268,7 +274,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         echo json_encode(['success' => true, 'message' => '팝업이 수정되었습니다.']);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }
@@ -294,7 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         echo json_encode(['success' => true, 'message' => 'Popup deleted.']);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
     exit;
 }

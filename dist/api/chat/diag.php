@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Translation Diagnostic — tests translation pipeline on the live server
  * Access: /api/chat/diag.php
@@ -68,6 +68,7 @@ try {
         'success' => !empty($translatedJa) && $translatedJa !== $testText
     ];
 } catch (Throwable $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     $result['google_ko_to_ja'] = 'ERROR: ' . $e->getMessage();
 }
 
@@ -95,6 +96,7 @@ if (isset($conn)) {
         }
         $result['recent_messages'] = $dbMessages;
     } catch (Throwable $e) {
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
         $result['db_messages'] = 'ERROR: ' . $e->getMessage();
     }
 
@@ -104,6 +106,7 @@ if (isset($conn)) {
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $result['users'] = $users;
     } catch (Throwable $e) {
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
         $result['users'] = 'ERROR: ' . $e->getMessage();
     }
 }

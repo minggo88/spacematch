@@ -58,10 +58,18 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
 
 // No file size limit at all
 
-// Extension check only (no finfo dependency)
 $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'svg'])) {
     echo json_encode(["success" => false, "message" => "Only image files are allowed."]);
+    exit;
+}
+// finfo로 실제 MIME 검증 (위장 파일 차단)
+$allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$realMime = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
+if (!in_array($realMime, $allowedMimes) && !str_starts_with($realMime, 'image/')) {
+    echo json_encode(["success" => false, "message" => "허용되지 않는 파일 형식입니다."]);
     exit;
 }
 

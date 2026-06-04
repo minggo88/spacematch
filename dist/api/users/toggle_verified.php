@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * toggle_verified.php — Admin toggles verification badge for a user with optional period
  */
@@ -65,6 +65,7 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'DB 오류: ' . $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
 }
 ?>

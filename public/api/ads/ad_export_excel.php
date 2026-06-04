@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Admin: Export ad report as real .xlsx download (transposed layout)
 include_once '../db_connect.php';
 session_start();
@@ -266,6 +266,7 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "Error: " . $e->getMessage();
 }
 ?>

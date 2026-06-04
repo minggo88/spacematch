@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Migration: Create ad analytics tables
 include_once '../db_connect.php';
 header('Content-Type: text/html; charset=utf-8');
@@ -19,6 +19,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     echo "✅ <b>ad_daily_stats</b> — OK<br>";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "❌ <b>ad_daily_stats</b> — " . $e->getMessage() . "<br>";
 }
 
@@ -35,6 +36,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     echo "✅ <b>ad_share_tokens</b> — OK<br>";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "❌ <b>ad_share_tokens</b> — " . $e->getMessage() . "<br>";
 }
 
@@ -54,6 +56,7 @@ try {
     }
     echo "✅ 기존 광고 $backfilled 건 백필 완료<br>";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "⚠️ 백필 스킵: " . $e->getMessage() . "<br>";
 }
 

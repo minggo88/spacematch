@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // ── 마진율 계산기 트래킹 API ──
 // 페이지뷰와 이벤트를 수집하여 DB에 저장
 header('Content-Type: application/json; charset=utf-8');
@@ -182,6 +182,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
 }
 ?>

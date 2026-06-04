@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * toggle_email_verified.php — Admin toggles email_verified for a user
  * POST: { "user_id": int, "email_verified": 0|1 }
@@ -47,7 +47,8 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => '오류: ' . $e->getMessage()
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        'message' => '서버 오류가 발생했습니다.'
     ], JSON_UNESCAPED_UNICODE);
 }
 ?>

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Admin: Reorder ads (update priority)
 @ini_set('upload_max_filesize', '500M');
 @ini_set('post_max_size', '500M');
@@ -35,6 +35,7 @@ try {
 } catch (PDOException $e) {
     $conn->rollBack();
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
 }
 ?>

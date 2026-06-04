@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once '../db_connect.php';
 
 try {
@@ -15,6 +15,7 @@ try {
     }
 
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "Error: " . $e->getMessage();
 }
 ?>

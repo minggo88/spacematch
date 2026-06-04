@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 header('Content-Type: text/html; charset=utf-8');
@@ -263,6 +263,7 @@ foreach ($tables as $name => $sql) {
         echo "✅ <b>$name</b> — OK<br>";
         $success++;
     } catch (PDOException $e) {
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
         echo "❌ <b>$name</b> — " . $e->getMessage() . "<br>";
         $errors++;
     }

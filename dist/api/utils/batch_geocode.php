@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Batch Geocode Script
  * Converts all existing venues without coordinates to lat/lng using Kakao API.
@@ -30,7 +30,8 @@ try {
         $conn->exec("ALTER TABLE venues ADD COLUMN longitude DECIMAL(10,7) DEFAULT NULL");
     }
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => "컬럼 추가 실패: " . $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.']);
     exit;
 }
 

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Seller Stats Import API
  * 
@@ -528,7 +528,8 @@ try {
                         $skipped++;
                         $errors[] = ['row' => $i + 1, 'error' => 'Duplicate date: ' . $date];
                     } else {
-                        $errors[] = ['row' => $i + 1, 'error' => $e->getMessage()];
+                        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+                        $errors[] = ['row' => $i + 1, 'error' => '서버 오류가 발생했습니다.'];
                         $skipped++;
                     }
                 }
@@ -583,7 +584,8 @@ try {
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "DB Error: " . $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.']);
 }
 
 // ── Helper: Normalize various date formats to YYYY-MM-DD / YYYY-MM / YYYY ──

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * toggle_wishlist.php
  * 좋아요(찜) 토글 API — 서버사이드 저장
@@ -52,6 +52,7 @@ try {
         echo json_encode(["success" => true, "wishlisted" => true]);
     }
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.']);
 }
 ?>

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Translation API Test Script
  * Run: php test_translate.php
@@ -128,6 +128,7 @@ try {
     }
 
 } catch (Exception $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "  ❌ DB Error: " . $e->getMessage() . "\n";
 }
 

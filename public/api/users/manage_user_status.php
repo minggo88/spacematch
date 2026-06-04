@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
@@ -118,6 +118,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    echo json_encode(array("success" => false, "message" => "DB Error: " . $e->getMessage()));
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(array("success" => false, "message" => '서버 오류가 발생했습니다.'));
 }
 ?>

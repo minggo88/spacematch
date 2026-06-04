@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * 마이그레이션: push_subscriptions 테이블 생성
  * 웹 푸시 알림을 위한 유저별 Push 구독 정보 저장
@@ -56,6 +56,7 @@ try {
     }
 
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "❌ 오류: " . $e->getMessage() . "<br>";
 }
 

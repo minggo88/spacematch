@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * get_trending.php
  * 급상승 공간 API — 인기 기반 알고리즘
@@ -101,6 +101,7 @@ try {
         "trending" => $results
     ]);
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => $e->getMessage(), "trending" => []]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.', "trending" => []]);
 }
 ?>

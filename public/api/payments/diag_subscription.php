@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * diag_subscription.php — 구독 상태 진단 (로그인한 사용자 본인 데이터만 반환)
  *
@@ -83,6 +83,7 @@ try {
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } catch (Exception $e) {
-    echo json_encode(['error' => $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['error' => '서버 오류가 발생했습니다.']);
 }
 ?>

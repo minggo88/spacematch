@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * 어드민 데모 계정 업그레이드 마이그레이션
  * demo-admin@spacematch.net의 role을 admin으로, is_demo를 1로 변경
@@ -37,7 +37,8 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => '오류: ' . $e->getMessage()
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        'message' => '서버 오류가 발생했습니다.'
     ], JSON_UNESCAPED_UNICODE);
 }
 ?>

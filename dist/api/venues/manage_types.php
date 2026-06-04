@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once '../db_connect.php';
 session_start();
 header('Content-Type: application/json');
@@ -21,7 +21,8 @@ if ($method === 'GET') {
         echo json_encode($types);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(["error" => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(["error" => '서버 오류가 발생했습니다.']);
     }
 }
 
@@ -35,7 +36,8 @@ else if ($method === 'POST') {
             $stmt->execute([':name' => $data['name'], ':code' => $data['code']]);
             echo json_encode(["success" => true, "message" => "Type added", "id" => $conn->lastInsertId()]);
         } catch (PDOException $e) {
-            echo json_encode(["success" => false, "message" => "Error adding type: " . $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.']);
         }
     } else {
         echo json_encode(["success" => false, "message" => "Missing name or code"]);
@@ -71,7 +73,8 @@ else if ($method === 'PUT') {
 
             echo json_encode(["success" => true, "message" => "Type updated"]);
         } catch (PDOException $e) {
-            echo json_encode(["success" => false, "message" => "Error updating type: " . $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.']);
         }
     } else {
         echo json_encode(["success" => false, "message" => "Missing ID"]);
@@ -89,7 +92,8 @@ else if ($method === 'DELETE') {
             $stmt->execute([':id' => $data['id']]);
             echo json_encode(["success" => true, "message" => "Type deleted"]);
         } catch (PDOException $e) {
-            echo json_encode(["success" => false, "message" => "Error deleting type: " . $e->getMessage()]);
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            echo json_encode(["success" => false, "message" => '서버 오류가 발생했습니다.']);
         }
     }
 }

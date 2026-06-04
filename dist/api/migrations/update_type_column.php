@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // DB 연결
 $paths = [
     '../../db_connect.php',
@@ -29,6 +29,7 @@ try {
     echo "<p style='color:green'>[성공] 'type' 컬럼이 VARCHAR(50)으로 변경되었습니다. 이제 모든 유형의 코드를 저장할 수 있습니다.</p>";
 
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "<p style='color:red'>[오류] SQL 실행 중 문제가 발생했습니다: " . $e->getMessage() . "</p>";
 }
 

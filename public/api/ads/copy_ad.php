@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Admin: Copy/duplicate an ad including its image file
 @ini_set('upload_max_filesize', '500M');
 @ini_set('post_max_size', '500M');
@@ -89,6 +89,7 @@ try {
     echo json_encode(['success' => true, 'id' => $new_id, 'message' => '광고가 이미지와 함께 복사되었습니다.']);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
 }
 ?>

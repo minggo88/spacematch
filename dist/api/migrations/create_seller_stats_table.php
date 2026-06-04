@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header('Content-Type: text/html; charset=utf-8');
 include_once '../db_connect.php';
 
@@ -28,6 +28,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     echo "[OK] seller_stats table created\n";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[ERROR] seller_stats: " . $e->getMessage() . "\n";
 }
 
@@ -41,6 +42,7 @@ try {
         echo "[OK] record_type column already exists\n";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[INFO] record_type check: " . $e->getMessage() . "\n";
 }
 
@@ -59,12 +61,14 @@ try {
             $conn->exec("ALTER TABLE seller_stats ADD UNIQUE KEY uq_user_type_date (user_id, record_type, record_date)");
             echo "[OK] Updated unique constraint\n";
         } catch (PDOException $e) {
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
             echo "[INFO] Unique key: " . $e->getMessage() . "\n";
         }
     } else {
         echo "[OK] record_date column already exists\n";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[INFO] record_date check: " . $e->getMessage() . "\n";
 }
 

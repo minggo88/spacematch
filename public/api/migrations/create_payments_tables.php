@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 header('Content-Type: text/html; charset=utf-8');
 include_once '../db_connect.php';
 
@@ -27,6 +27,7 @@ try {
         echo "[OK] Default row already exists\n";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[ERROR] payment_settings: " . $e->getMessage() . "\n";
 }
 
@@ -54,6 +55,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     echo "[OK] payments table\n";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[ERROR] payments: " . $e->getMessage() . "\n";
 }
 
@@ -71,6 +73,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     echo "[OK] payment_history table\n";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[ERROR] payment_history: " . $e->getMessage() . "\n";
 }
 
@@ -92,6 +95,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     echo "[OK] payment_plans table\n";
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[ERROR] payment_plans: " . $e->getMessage() . "\n";
 }
 
@@ -105,6 +109,7 @@ try {
         echo "[OK] plan_id column already exists\n";
     }
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "[ERROR] plan_id: " . $e->getMessage() . "\n";
 }
 

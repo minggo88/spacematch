@@ -85,8 +85,19 @@ if (!in_array($ext, $allowedExts)) {
 }
 
 $messageType = 'file';
-if (in_array($ext, $imageExts))
+if (in_array($ext, $imageExts)) {
+    // finfo로 실제 MIME 검증 (이미지 위장 PHP 차단)
+    $allowedImageMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $realMime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    if (!in_array($realMime, $allowedImageMimes)) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "허용되지 않는 이미지 형식입니다."]);
+        exit;
+    }
     $messageType = 'image';
+}
 if (in_array($ext, $videoExts))
     $messageType = 'video';
 

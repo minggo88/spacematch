@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Chat Translation Debug Endpoint
  * 
@@ -70,7 +70,8 @@ try {
     }
     $debug['steps'][] = ['step' => 'cache_miss'];
 } catch (Exception $e) {
-    $debug['steps'][] = ['step' => 'cache_error', 'error' => $e->getMessage()];
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+    $debug['steps'][] = ['step' => 'cache_error', 'error' => '서버 오류가 발생했습니다.'];
 }
 
 // Step 2: Call MyMemory API

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once '../db_connect.php';
 
 // Array of columns to add
@@ -22,6 +22,7 @@ foreach ($columns_to_add as $column => $definition) {
             echo "Column '$column' already exists.<br>";
         }
     } catch (PDOException $e) {
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
         echo "Error adding column '$column': " . $e->getMessage() . "<br>";
     }
 }

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 header('Content-Type: text/html; charset=utf-8');
@@ -24,6 +24,7 @@ try {
     echo "<p>이제 이 파일은 삭제하셔도 됩니다.</p>";
 
 } catch (PDOException $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     echo "<p style='color: red;'>❌ 오류: " . $e->getMessage() . "</p>";
 }
 ?>

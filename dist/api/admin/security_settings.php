@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Admin: Get/Update security settings
 include_once '../db_connect.php';
 session_start();
@@ -57,7 +57,8 @@ if ($method === 'GET') {
         echo json_encode(['success' => true, 'settings' => $settings]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
 } elseif ($method === 'POST') {
     // Update security settings
@@ -101,7 +102,8 @@ if ($method === 'GET') {
         echo json_encode(['success' => true, 'updated' => $updated]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '서버 오류가 발생했습니다.']);
     }
 } else {
     http_response_code(405);

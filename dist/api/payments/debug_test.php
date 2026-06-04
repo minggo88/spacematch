@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // 결제 시스템 세션/DB 진단 테스트
 include_once '../db_connect.php';
 session_start();
@@ -25,10 +25,12 @@ try {
             $count = $conn->query("SELECT COUNT(*) FROM $t")->fetchColumn();
             $result['tables'][$t] = ['exists' => true, 'count' => (int) $count];
         } catch (PDOException $e) {
-            $result['tables'][$t] = ['exists' => false, 'error' => $e->getMessage()];
+            error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
+            $result['tables'][$t] = ['exists' => false, 'error' => '서버 오류가 발생했습니다.'];
         }
     }
 } catch (Exception $e) {
+    error_log('[' . basename(__FILE__, '.php') . '] ' . $e->getMessage());
     $result['db_error'] = $e->getMessage();
 }
 
