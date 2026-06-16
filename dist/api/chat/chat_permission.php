@@ -63,6 +63,13 @@ try {
         exit;
     }
 
+    // seller↔host: always allowed
+    $is_seller_host = ($user_role === 'seller' && $target_role === 'host') || ($user_role === 'host' && $target_role === 'seller');
+    if ($is_seller_host) {
+        echo json_encode(["success" => true, "allowed" => true, "reason" => "seller_host"]);
+        exit;
+    }
+
     // vendor→seller or seller→vendor: check relationship
     $allowed = false;
     $reason = "no_relationship";

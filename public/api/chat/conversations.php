@@ -244,43 +244,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                // vendor↔seller: check relationship
-                $host_id = ($myRole === 'host') ? $user_id : $target_id;
-                $seller_id = ($myRole === 'seller') ? $user_id : $target_id;
-                $allowed = false;
+                // seller↔host: always allowed — skip relationship checks
+                $isSellerHost = ($myRole === 'seller' && $targetRole === 'host') || ($myRole === 'host' && $targetRole === 'seller');
+                if (!$isSellerHost) {
+                    // vendor↔seller: check relationship
+                    $host_id = ($myRole === 'host') ? $user_id : $target_id;
+                    $seller_id = ($myRole === 'seller') ? $user_id : $target_id;
+                    $allowed = false;
 
-                // Check 1: Vendor viewed seller contact
-                try {
-                    $v1 = $conn->prepare("SELECT id FROM seller_contact_views WHERE host_id = ? AND seller_id = ?");
-                    $v1->execute([$host_id, $seller_id]);
-                    if ($v1->fetch())
-                        $allowed = true;
-                } catch (PDOException $e) {
-                }
-
-                // Check 2: Seller viewed vendor contact
-                if (!$allowed) {
+                    // Check 1: Vendor viewed seller contact
                     try {
-                        $v2 = $conn->prepare("SELECT id FROM vendor_contact_views WHERE seller_id = ? AND host_id = ?");
-                        $v2->execute([$seller_id, $host_id]);
-                        if ($v2->fetch())
+                        $v1 = $conn->prepare("SELECT id FROM seller_contact_views WHERE host_id = ? AND seller_id = ?");
+                        $v1->execute([$host_id, $seller_id]);
+                        if ($v1->fetch())
                             $allowed = true;
                     } catch (PDOException $e) {
                     }
-                }
 
-                // Check 3: Approved application
-                if (!$allowed) {
-                    $appStmt = $conn->prepare("SELECT a.id FROM applications a JOIN venues v ON a.venue_id = v.id WHERE a.user_id = ? AND v.owner_id = ? AND a.status = 'approved' LIMIT 1");
-                    $appStmt->execute([$seller_id, $host_id]);
-                    if ($appStmt->fetch())
-                        $allowed = true;
-                }
+                    // Check 2: Seller viewed vendor contact
+                    if (!$allowed) {
+                        try {
+                            $v2 = $conn->prepare("SELECT id FROM vendor_contact_views WHERE seller_id = ? AND host_id = ?");
+                            $v2->execute([$seller_id, $host_id]);
+                            if ($v2->fetch())
+                                $allowed = true;
+                        } catch (PDOException $e) {
+                        }
+                    }
 
-                if (!$allowed) {
-                    http_response_code(403);
-                    echo json_encode(["success" => false, "message" => "채팅 권한이 없습니다. 연락처 열람 또는 입점 승인이 필요합니다.", "error_code" => "NO_PERMISSION"], JSON_UNESCAPED_UNICODE);
-                    exit;
+                    // Check 3: Approved application
+                    if (!$allowed) {
+                        $appStmt = $conn->prepare("SELECT a.id FROM applications a JOIN venues v ON a.venue_id = v.id WHERE a.user_id = ? AND v.owner_id = ? AND a.status = 'approved' LIMIT 1");
+                        $appStmt->execute([$seller_id, $host_id]);
+                        if ($appStmt->fetch())
+                            $allowed = true;
+                    }
+
+                    if (!$allowed) {
+                        http_response_code(403);
+                        echo json_encode(["success" => false, "message" => "채팅 권한이 없습니다. 연락처 열람 또는 입점 승인이 필요합니다.", "error_code" => "NO_PERMISSION"], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    }
                 }
             }
         }
