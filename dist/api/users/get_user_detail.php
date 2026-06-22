@@ -51,13 +51,16 @@ try {
 
     // 3. Get Applications (역할 무관하게 항상 조회)
     $col_check = $conn->query("SHOW COLUMNS FROM applications LIKE 'seller_id'");
-    $app_col = $col_check->fetch() ? 'seller_id' : 'user_id';
+    $hasSellerId = $col_check->fetch() ? true : false;
+    $app_match = $hasSellerId
+        ? 'COALESCE(NULLIF(a.user_id, 0), NULLIF(a.seller_id, 0)) = ?'
+        : 'a.user_id = ?';
 
     $aStmt = $conn->prepare("
         SELECT a.*, v.name as venue_name, v.location as venue_location
         FROM applications a
         JOIN venues v ON a.venue_id = v.id
-        WHERE a.{$app_col} = ?
+        WHERE {$app_match}
         ORDER BY a.created_at DESC
     ");
     $aStmt->execute([$id]);
